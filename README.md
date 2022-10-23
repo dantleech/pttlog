@@ -3,6 +3,18 @@ Plain Text Time Logger
 
 This is an educational project to create a plain text time logger in Rust.
 
+Semantics
+---------
+
+- `2022-01-01` Start a new day entry
+- `10:00 Hello World` Start a new time log with description `Hello World`
+- `11:00` (nothing more) End a time log (no further activity)
+- `JIRA-1234` parse ticket numbers.
+- `#pairing #firefighting` parse tags.
+
+Example
+-------
+
 Given the following text file:
 
 ```
