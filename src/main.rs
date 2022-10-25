@@ -2,6 +2,9 @@ mod parser;
 mod ui;
 
 use clap::Parser;
+use crossterm::event;
+use crossterm::event::Event;
+use crossterm::event::KeyCode;
 use crossterm::execute;
 use crossterm::terminal::disable_raw_mode;
 use parser::parse;
@@ -15,6 +18,18 @@ struct Args {
     path: String,
 }
 
+struct App {
+    entries: parser::Entries,
+}
+
+impl App {
+    fn new(entries: parser::Entries) -> App {
+        App{
+            entries,
+        }
+    }
+}
+
 fn main() -> Result<(), io::Error> {
     let args = Args::parse();
     let path = &args.path;
@@ -25,14 +40,10 @@ fn main() -> Result<(), io::Error> {
     execute!(stdout)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-
     terminal.clear()?;
-    terminal.draw(|frame| {
-        let size = frame.size();
-        let table = ui::table(&entries);
 
-        frame.render_widget(table, size)
-    })?;
+    let app = App::new(entries);
+    let _ = run_app(&mut terminal, app)?;
 
     disable_raw_mode()?;
     execute!(
@@ -40,4 +51,22 @@ fn main() -> Result<(), io::Error> {
     )?;
 
     Ok(())
+}
+
+fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: App) -> io::Result<()> {
+    loop {
+        terminal.draw(|frame| {
+            let size = frame.size();
+            let table = ui::table(&app.entries);
+
+            frame.render_widget(table, size)
+        })?;
+
+        if let Event::Key(key) = event::read()? {
+            match key.code {
+                KeyCode::Char('q') => return Ok(()),
+                _ => {}
+            }
+        }
+    }
 }
