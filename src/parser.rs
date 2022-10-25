@@ -26,6 +26,7 @@ impl Time {
 pub struct Log {
     pub time: Time,
     pub description: String,
+    pub duration: i8,
 }
 
 #[derive(Debug)]
@@ -83,7 +84,11 @@ fn log(text: &str) -> nom::IResult<&str, Log>   {
     ))(text);
 
     match entry {
-        Ok(ok) => Ok((ok.0, Log{ time: (ok.1).0, description: (ok.1).2.to_string()})),
+        Ok(ok) => Ok((ok.0, Log{
+            time: (ok.1).0,
+            description: (ok.1).2.to_string(),
+            duration: 0,
+        })),
         Err(err) => Err(err),
     }
 }
@@ -112,9 +117,23 @@ pub fn parse(text: &str) -> nom::IResult<&str, Entries>   {
     ))(text);
 
     match entry {
-        Ok(ok) => Ok((ok.0, Entries{ entries: (ok.1).1 })),
+        Ok(ok) => Ok((ok.0, Entries{ entries: process_entries((ok.1).1) })),
         Err(err) => Err(err),
     }
+}
+
+fn process_entries(entries: Vec<Entry>) -> Vec<Entry> {
+
+    for entry in entries.iter() {
+        let mut last_log: Option<&Log> = None;
+        for log in entry.logs.iter() {
+            if last_log.is_none() {
+                last_log = Some(log);
+                continue
+            }
+        }
+    }
+    return entries
 }
 
 #[cfg(test)]
@@ -185,6 +204,17 @@ mod tests {
             let (_, entries) = parse("\n\n2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
             assert_eq!("2022".to_string(), entries.entries[0].date.y);
             assert_eq!("02".to_string(), entries.entries[1].date.m);
+        }
+    }
+
+    #[test]
+    fn test_parse_logs() {
+        {
+            let (_, entries) = parse("2022-01-01\n10:00 Working on foo\n11:00 Working on bar\n12:00 Doing something else").unwrap();
+            assert_eq!("10:00", entries.entries[0].logs[0].time.to_string());
+            assert_eq!(1, entries.entries[0].logs[0].duration);
+            assert_eq!("11:00", entries.entries[0].logs[1].time.to_string());
+            assert_eq!("12:00", entries.entries[0].logs[2].time.to_string());
         }
     }
 }
