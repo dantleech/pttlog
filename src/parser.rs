@@ -1,24 +1,30 @@
 use nom::{
-    character::complete::{char, digit1, space0, not_line_ending, line_ending, multispace0}, multi::many0, combinator::opt, Parser
+    character::complete::{char, digit1, space0, not_line_ending, line_ending, multispace0}, multi::many0, combinator::{opt, map_res}, Parser
 };
 use nom::sequence;
 
 #[derive(Debug)]
 pub struct Date {
-    pub y: String,
-    pub m: String,
-    pub d: String,
+    pub y: i16,
+    pub m: i8,
+    pub d: i8,
+}
+
+impl Date {
+    pub fn to_string(&self) -> String {
+        return format!("{:04}-{:02}-{:02}", self.y, self.m, self.d)
+    }
 }
 
 #[derive(Debug)]
 pub struct Time {
-    pub hour: String,
-    pub minute: String,
+    pub hour: i8,
+    pub minute: i8,
 }
 
 impl Time {
     pub fn to_string(&self) -> String {
-        return format!("{}:{}", self.hour.as_str(), self.minute.as_str())
+        return format!("{:02}:{:02}", self.hour, self.minute)
     }
 }
 
@@ -40,21 +46,20 @@ pub struct Entries {
     pub entries: Vec<Entry>,
 }
 
-fn date_digits(text: &str) -> nom::IResult<&str, String> {
-    let result = digit1(text);
-    match result {
-        Ok(ok) => Ok((ok.0, ok.1.to_string())),
-        Err(err) => Err(err),
-    }
+fn date_digits_i8(text: &str) -> nom::IResult<&str, i8> {
+    map_res(digit1, str::parse)(text)
+}
+fn date_digits_i16(text: &str) -> nom::IResult<&str, i16> {
+    map_res(digit1, str::parse)(text)
 }
 
 fn date(text: &str) -> nom::IResult<&str, Date>   {
     let date = sequence::tuple((
-        date_digits,
+        date_digits_i16,
         char('-'),
-        date_digits,
+        date_digits_i8,
         char('-'),
-        date_digits
+        date_digits_i8
     ))(text);
 
     match date {
@@ -65,9 +70,9 @@ fn date(text: &str) -> nom::IResult<&str, Date>   {
 
 fn time(text: &str) -> nom::IResult<&str, Time>   {
     let date = sequence::tuple((
-        date_digits,
+        date_digits_i8,
         char(':'),
-        date_digits,
+        date_digits_i8,
     ))(text);
 
     match date {
@@ -141,16 +146,16 @@ mod tests {
     use super::*;
     #[test]
     fn test_parse_date_digits() {
-        assert_eq!(("", "2022".to_string()), date_digits("2022").unwrap());
-        assert_eq!(("-10", "2022".to_string()), date_digits("2022-10").unwrap());
+        assert_eq!(("", 2022), date_digits_i16("2022").unwrap());
+        assert_eq!(("-10", 2022), date_digits_i16("2022-10").unwrap());
     }
 
     #[test]
     fn test_parse_date() {
         let (_, date) = date("2022-01-02").unwrap();
-        assert_eq!("2022", date.y);
-        assert_eq!("01", date.m);
-        assert_eq!("02", date.d);
+        assert_eq!(2022, date.y);
+        assert_eq!(01, date.m);
+        assert_eq!(02, date.d);
     }
 
     #[test]
@@ -175,19 +180,19 @@ mod tests {
     fn test_parse_entry() {
         {
             let (_, entry) = entry("2022-01-01\n10:00 Working on foo").unwrap();
-            assert_eq!("2022".to_string(), entry.date.y);
+            assert_eq!("2022-01-01".to_string(), entry.date.to_string());
             assert_eq!("Working on foo".to_string(), entry.logs[0].description);
         }
 
         {
             let (_, entry) = entry("2022-01-01\n\n10:00 Working on foo").unwrap();
-            assert_eq!("2022".to_string(), entry.date.y);
+            assert_eq!("2022-01-01", entry.date.to_string());
             assert_eq!("Working on foo".to_string(), entry.logs[0].description);
         }
 
         {
             let (_, entry) = entry("2022-01-01\n\n10:00 Working on foo\n11:00 Working on bar").unwrap();
-            assert_eq!("2022".to_string(), entry.date.y);
+            assert_eq!("2022-01-01", entry.date.to_string());
             assert_eq!("Working on foo".to_string(), entry.logs[0].description);
             assert_eq!("Working on bar".to_string(), entry.logs[1].description);
         }
@@ -197,13 +202,12 @@ mod tests {
     fn test_parse_entries() {
         {
             let (_, entries) = parse("2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
-            assert_eq!("2022".to_string(), entries.entries[0].date.y);
+            assert_eq!("2022-01-01".to_string(), entries.entries[0].date.to_string());
         }
 
         {
             let (_, entries) = parse("\n\n2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
-            assert_eq!("2022".to_string(), entries.entries[0].date.y);
-            assert_eq!("02".to_string(), entries.entries[1].date.m);
+            assert_eq!("2022-01-01".to_string(), entries.entries[0].date.to_string());
         }
     }
 
