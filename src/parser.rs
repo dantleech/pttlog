@@ -16,6 +16,12 @@ pub struct Time {
     pub minute: String,
 }
 
+impl Time {
+    pub fn to_string(&self) -> String {
+        return format!("{}:{}", self.hour.as_str(), self.minute.as_str())
+    }
+}
+
 #[derive(Debug)]
 pub struct Log {
     pub time: Time,
