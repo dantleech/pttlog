@@ -11,7 +11,7 @@ pub fn table(entries: &parser::Entries) -> Table {
         for log in entry.logs.iter() {
             rows.push(Row::new([
                 Cell::from(log.time.to_string()),
-                Cell::from(""),
+                Cell::from(log.duration_as_string()),
                 Cell::from(log.description.as_str()),
             ]));
         }

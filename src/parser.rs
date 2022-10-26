@@ -6,8 +6,8 @@ use nom::sequence;
 #[derive(Debug)]
 pub struct Date {
     pub y: i16,
-    pub m: i8,
-    pub d: i8,
+    pub m: i16,
+    pub d: i16,
 }
 
 impl Date {
@@ -18,8 +18,8 @@ impl Date {
 
 #[derive(Debug)]
 pub struct Time {
-    pub hour: i8,
-    pub minute: i8,
+    pub hour: i16,
+    pub minute: i16,
 }
 
 impl Time {
@@ -32,7 +32,20 @@ impl Time {
 pub struct Log {
     pub time: Time,
     pub description: String,
-    pub duration: i8,
+    pub duration: i16,
+}
+
+impl Log {
+    pub fn set_duration(&mut self, end_time: &Time) {
+        self.duration = i16::from(((end_time.hour - self.time.hour) * 60) + (end_time.minute - self.time.minute))
+    }
+    pub fn duration_as_string(&self) -> String {
+        let quot = self.duration / 60;
+        let rem = self.duration % 60;
+
+        return format!("{}h{}m", quot, rem)
+
+    }
 }
 
 #[derive(Debug)]
@@ -46,9 +59,6 @@ pub struct Entries {
     pub entries: Vec<Entry>,
 }
 
-fn date_digits_i8(text: &str) -> nom::IResult<&str, i8> {
-    map_res(digit1, str::parse)(text)
-}
 fn date_digits_i16(text: &str) -> nom::IResult<&str, i16> {
     map_res(digit1, str::parse)(text)
 }
@@ -57,9 +67,9 @@ fn date(text: &str) -> nom::IResult<&str, Date>   {
     let date = sequence::tuple((
         date_digits_i16,
         char('-'),
-        date_digits_i8,
+        date_digits_i16,
         char('-'),
-        date_digits_i8
+        date_digits_i16
     ))(text);
 
     match date {
@@ -70,9 +80,9 @@ fn date(text: &str) -> nom::IResult<&str, Date>   {
 
 fn time(text: &str) -> nom::IResult<&str, Time>   {
     let date = sequence::tuple((
-        date_digits_i8,
+        date_digits_i16,
         char(':'),
-        date_digits_i8,
+        date_digits_i16,
     ))(text);
 
     match date {
@@ -122,23 +132,28 @@ pub fn parse(text: &str) -> nom::IResult<&str, Entries>   {
     ))(text);
 
     match entry {
-        Ok(ok) => Ok((ok.0, Entries{ entries: process_entries((ok.1).1) })),
+        Ok(ok) => {
+            let mut entries = (ok.1).1;
+            process_entries(&mut entries);
+            Ok((ok.0, Entries{ entries}))
+        }
         Err(err) => Err(err),
     }
 }
 
-fn process_entries(entries: Vec<Entry>) -> Vec<Entry> {
+fn process_entries(entries: &mut Vec<Entry>) {
 
-    for entry in entries.iter() {
-        let mut last_log: Option<&Log> = None;
-        for log in entry.logs.iter() {
+    for entry in entries.iter_mut() {
+        let mut last_log: Option<&mut Log> = None;
+        for log in entry.logs.iter_mut() {
             if last_log.is_none() {
                 last_log = Some(log);
                 continue
             }
+            last_log.unwrap().set_duration(&log.time);
+            last_log = Some(log);
         }
     }
-    return entries
 }
 
 #[cfg(test)]
@@ -216,7 +231,7 @@ mod tests {
         {
             let (_, entries) = parse("2022-01-01\n10:00 Working on foo\n11:00 Working on bar\n12:00 Doing something else").unwrap();
             assert_eq!("10:00", entries.entries[0].logs[0].time.to_string());
-            assert_eq!(1, entries.entries[0].logs[0].duration);
+            assert_eq!("1h0m", entries.entries[0].logs[0].duration_as_string());
             assert_eq!("11:00", entries.entries[0].logs[1].time.to_string());
             assert_eq!("12:00", entries.entries[0].logs[2].time.to_string());
         }
