@@ -9,6 +9,7 @@ use crossterm::execute;
 use crossterm::terminal::disable_raw_mode;
 use crossterm::terminal::enable_raw_mode;
 use parser::parse;
+use tui::layout::Rect;
 use std::fs;
 use std::io;
 use tui::{backend::CrosstermBackend, Terminal};
@@ -59,9 +60,11 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: App) -> i
     loop {
         terminal.draw(|frame| {
             let size = frame.size();
-            let table = ui::table(&app.entries);
-
-            frame.render_widget(table, size)
+            let rect = Rect{ x: 0, y: 0, width: size.width, height: size.height};
+            for entry in app.entries.entries.iter().rev() {
+                let table = ui::table(&entry);
+                frame.render_widget(table, rect)
+            }
         })?;
 
         if let Event::Key(key) = event::read()? {
