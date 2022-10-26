@@ -7,6 +7,7 @@ use crossterm::event::Event;
 use crossterm::event::KeyCode;
 use crossterm::execute;
 use crossterm::terminal::disable_raw_mode;
+use crossterm::terminal::enable_raw_mode;
 use parser::parse;
 use std::fs;
 use std::io;
@@ -38,6 +39,7 @@ fn main() -> Result<(), io::Error> {
 
     let mut stdout = io::stdout();
     execute!(stdout)?;
+    enable_raw_mode()?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
