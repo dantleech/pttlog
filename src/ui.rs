@@ -1,3 +1,5 @@
+use crate::parser::TimeRange;
+
 use super::app;
 
 use super::parser;
@@ -34,14 +36,25 @@ fn navigation(app: &app::App) -> Paragraph {
 
 pub fn table(entry: &parser::Entry) -> Table {
     let mut rows = vec![];
-    let headers = ["Start", "Duration", "Description"]
+    let headers = ["Time", "Duration", "Description"]
         .iter()
         .map(|header| Cell::from(*header));
 
     for log in entry.logs.iter() {
         rows.push(Row::new([
-                           Cell::from(log.time.start.to_string()),
-                           Cell::from(log.duration_as_string()),
+                           Cell::from(
+                              (|time: &TimeRange| {
+                                  if time.end.is_none() {
+                                      return Spans::from(vec![Span::raw(time.start.to_string())]);
+                                  }
+                                  Spans::from(vec![
+                                    Span::raw(time.start.to_string()),
+                                    Span::styled("-", Style::default().fg(Color::DarkGray)),
+                                    Span::styled(time.end.unwrap().to_string(), Style::default().fg(Color::DarkGray)),
+                                  ])
+                              })(&log.time)
+                           ),
+                           Cell::from(Span::raw(log.duration_as_string())),
                            Cell::from(log.description.as_str()),
         ]));
     }
@@ -49,7 +62,7 @@ pub fn table(entry: &parser::Entry) -> Table {
     Table::new(rows)
         .header(Row::new(headers).height(1).bottom_margin(1).style(Style::default()))
         .widths(&[
-                Constraint::Min(7),
+                Constraint::Min(12),
                 Constraint::Min(8),
                 Constraint::Percentage(33),
         ])
