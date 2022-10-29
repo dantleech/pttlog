@@ -40,7 +40,7 @@ pub fn table(entry: &parser::Entry) -> Table {
 
     for log in entry.logs.iter() {
         rows.push(Row::new([
-                           Cell::from(log.time.to_string()),
+                           Cell::from(log.time.start.to_string()),
                            Cell::from(log.duration_as_string()),
                            Cell::from(log.description.as_str()),
         ]));

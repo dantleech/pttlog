@@ -4,7 +4,7 @@ use nom::{
 };
 use nom::sequence;
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug)]
 pub struct Date {
     pub year: i16,
     pub month: i16,
@@ -20,7 +20,7 @@ impl Date {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy)]
 pub struct Time {
     pub hour: i16,
     pub minute: i16,
@@ -32,18 +32,35 @@ impl Time {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug)]
+pub struct TimeRange {
+    pub start: Time,
+    pub end: Option<Time>,
+}
+
+impl TimeRange {
+    pub fn to_string(&self) -> String {
+        if self.end.is_none() {
+            return self.start.to_string();
+        }
+
+        return format!("{}-{}", self.start.to_string(), self.end.as_ref().unwrap().to_string())
+    }
+}
+
+#[derive(Debug)]
 pub struct Log {
-    pub time: Time,
+    pub time: TimeRange,
     pub description: String,
     pub duration: i16,
 }
 
 impl Log {
     pub fn set_duration(&mut self, end_time: &Time) {
+        self.time.end = Some(*end_time);
         self.duration = i16::from((
-            (end_time.hour - self.time.hour) * 60
-        ) + (end_time.minute - self.time.minute))
+            (end_time.hour - self.time.start.hour) * 60
+        ) + (end_time.minute - self.time.start.minute))
     }
     pub fn duration_as_string(&self) -> String {
         let quot = self.duration / 60;
@@ -54,7 +71,7 @@ impl Log {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug)]
 pub struct Entry {
     pub date: Date,
     pub logs: Vec<Log>,
@@ -122,7 +139,7 @@ fn log(text: &str) -> nom::IResult<&str, Log>   {
 
     match entry {
         Ok(ok) => Ok((ok.0, Log{
-            time: (ok.1).0,
+            time: TimeRange{start: (ok.1).0, end: None},
             description: (ok.1).2.to_string(),
             duration: 0,
         })),
@@ -173,7 +190,7 @@ fn process_entries(entries: &mut Vec<Entry>) {
                 last_log = Some(log);
                 continue
             }
-            last_log.unwrap().set_duration(&log.time);
+            last_log.unwrap().set_duration(&log.time.start);
             last_log = Some(log);
         }
     }
