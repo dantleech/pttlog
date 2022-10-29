@@ -6,17 +6,17 @@ use nom::sequence;
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Date {
-    pub y: i16,
-    pub m: i16,
-    pub d: i16,
+    pub year: i16,
+    pub month: i16,
+    pub day: i16,
 }
 
 impl Date {
     pub fn sort_value(&self) -> i16 {
-        return self.y + self.m + self.d;
+        return self.year + self.month + self.day;
     }
     pub fn to_string(&self) -> String {
-        return format!("{:04}-{:02}-{:02}", self.y, self.m, self.d)
+        return format!("{:04}-{:02}-{:02}", self.year, self.month, self.day)
     }
 }
 
@@ -95,7 +95,7 @@ fn date(text: &str) -> nom::IResult<&str, Date>   {
             ))(text);
 
     match date {
-        Ok(ok) => Ok((ok.0, Date{ y: (ok.1).0, m: (ok.1).2, d: (ok.1).4})),
+        Ok(ok) => Ok((ok.0, Date{ year: (ok.1).0, month: (ok.1).2, day: (ok.1).4})),
         Err(err) => Err(err),
     }
 }
@@ -191,9 +191,9 @@ mod tests {
     #[test]
     fn test_parse_date() {
         let (_, date) = date("2022-01-02").unwrap();
-        assert_eq!(2022, date.y);
-        assert_eq!(01, date.m);
-        assert_eq!(02, date.d);
+        assert_eq!(2022, date.year);
+        assert_eq!(01, date.month);
+        assert_eq!(02, date.day);
     }
 
     #[test]
