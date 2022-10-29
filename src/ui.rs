@@ -4,6 +4,7 @@ use super::app;
 
 use super::parser;
 use tui::style::Color;
+use tui::widgets::Gauge;
 use tui::{widgets::{Table, Block, Row, Borders, Cell, Paragraph}, layout::{Constraint, Layout}, style::Style, Frame, backend::Backend, text::{Span, Spans}};
 
 pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
@@ -39,6 +40,7 @@ pub fn table(entry: &parser::Entry) -> Table {
     let headers = ["Time", "Duration", "Description"]
         .iter()
         .map(|header| Cell::from(*header));
+    let entry_duration = entry.duration_total();
 
     for log in entry.logs.iter() {
         rows.push(Row::new([
@@ -54,7 +56,10 @@ pub fn table(entry: &parser::Entry) -> Table {
                                   ])
                               })(&log.time)
                            ),
-                           Cell::from(Span::raw(log.duration_as_string())),
+                           Cell::from(Spans::from(vec![
+                              Span::raw(log.duration_as_string()),
+                              Span::styled(format!(" {:.2}%", log.as_percentage(entry_duration)), Style::default().fg(Color::DarkGray)),
+                           ])),
                            Cell::from(log.description.as_str()),
         ]));
     }
@@ -63,7 +68,7 @@ pub fn table(entry: &parser::Entry) -> Table {
         .header(Row::new(headers).height(1).bottom_margin(1).style(Style::default()))
         .widths(&[
                 Constraint::Min(12),
-                Constraint::Min(8),
+                Constraint::Min(14),
                 Constraint::Percentage(33),
         ])
         .block(Block::default().borders(Borders::ALL).title(entry.date_object().format("%A %e %B, %Y").to_string()))

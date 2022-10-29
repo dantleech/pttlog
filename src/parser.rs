@@ -78,6 +78,10 @@ impl Log {
         return format!("{}h{}m", quot, rem)
 
     }
+
+    pub(crate) fn as_percentage(&self, duration_total: i16) -> f32 {
+        return (f32::from(self.time.duration()) / f32::from(duration_total)) * 100.0;
+    }
 }
 
 #[derive(Debug)]
