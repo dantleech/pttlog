@@ -1,3 +1,4 @@
+use chrono::{DateTime, NaiveDate};
 use nom::{
     character::complete::{char, digit1, space0, not_line_ending, line_ending, multispace0}, multi::many0, combinator::{opt, map_res}, Parser
 };
@@ -60,6 +61,9 @@ pub struct Entry {
 }
 
 impl Entry {
+    pub fn date_object(&self) -> NaiveDate {
+        NaiveDate::parse_from_str(&self.date.to_string(), "%Y-%m-%d").expect("Could not parse date")
+    }
     pub fn duration_total_as_string(&self) -> String {
         let quot = self.duration_total() / 60;
         let rem = self.duration_total() % 60;
