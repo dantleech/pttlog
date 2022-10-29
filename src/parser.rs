@@ -3,7 +3,7 @@ use nom::{
 };
 use nom::sequence;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Date {
     pub y: i16,
     pub m: i16,
@@ -11,12 +11,15 @@ pub struct Date {
 }
 
 impl Date {
+    pub fn sort_value(&self) -> i16 {
+        return self.y + self.m + self.d;
+    }
     pub fn to_string(&self) -> String {
         return format!("{:04}-{:02}-{:02}", self.y, self.m, self.d)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time {
     pub hour: i16,
     pub minute: i16,
@@ -28,7 +31,7 @@ impl Time {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Log {
     pub time: Time,
     pub description: String,
@@ -48,7 +51,7 @@ impl Log {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Entry {
     pub date: Date,
     pub logs: Vec<Log>,
@@ -142,6 +145,8 @@ pub fn parse(text: &str) -> nom::IResult<&str, Entries>   {
 }
 
 fn process_entries(entries: &mut Vec<Entry>) {
+    entries.sort_by_key(|e|e.date.sort_value());
+    println!("{:?}", entries);
 
     for entry in entries.iter_mut() {
         let mut last_log: Option<&mut Log> = None;
@@ -246,7 +251,8 @@ mod tests {
     #[test]
     fn test_sorts_entries_by_date_asc() {
         {
-            let (_, entries) = parse("2022-01-01\n2021-01-01").unwrap();
+            let (_, entries) = parse("2022-01-01\n2021-01-01\n").unwrap();
+            assert_eq!(2, entries.entries.len());
             assert_eq!("2021-01-01".to_string(), entries.entries[0].date.to_string());
             assert_eq!("2022-01-01".to_string(), entries.entries[1].date.to_string());
         }
