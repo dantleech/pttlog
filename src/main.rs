@@ -59,12 +59,7 @@ fn main() -> Result<(), io::Error> {
 fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: App) -> io::Result<()> {
     loop {
         terminal.draw(|frame| {
-            let size = frame.size();
-            let rect = Rect{ x: 0, y: 0, width: size.width, height: size.height};
-            for entry in app.entries.entries.iter().rev() {
-                let table = ui::table(&entry);
-                frame.render_widget(table, rect)
-            }
+            ui::layout(frame, &app.entries)
         })?;
 
         if let Event::Key(key) = event::read()? {

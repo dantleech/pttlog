@@ -1,5 +1,20 @@
 use super::parser;
-use tui::{widgets::{Table, Block, Row, Borders, Cell}, layout::Constraint, style::Style};
+use tui::{widgets::{Table, Block, Row, Borders, Cell}, layout::{Constraint, Layout}, style::Style, Frame, backend::Backend};
+
+pub fn layout<B: Backend>(f: &mut Frame<B>, entries: &parser::Entries) {
+    let rows = Layout::default()
+        .margin(1)
+        .constraints([
+                     Constraint::Min(3),
+                     Constraint::Min(3),
+                     Constraint::Min(10)
+            ].as_ref()
+        ).split(f.size());
+
+    for entry in entries.entries.iter() {
+        f.render_widget(table(entry), rows[2])
+    }
+}
 
 pub fn table(entry: &parser::Entry) -> Table {
     let mut rows = vec![];
