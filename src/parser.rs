@@ -233,13 +233,22 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_logs() {
+    fn test_calculates_duration() {
         {
             let (_, entries) = parse("2022-01-01\n10:00 Working on foo\n11:00 Working on bar\n12:00 Doing something else").unwrap();
             assert_eq!("10:00", entries.entries[0].logs[0].time.to_string());
             assert_eq!("1h0m", entries.entries[0].logs[0].duration_as_string());
             assert_eq!("11:00", entries.entries[0].logs[1].time.to_string());
             assert_eq!("12:00", entries.entries[0].logs[2].time.to_string());
+        }
+    }
+
+    #[test]
+    fn test_sorts_entries_by_date_asc() {
+        {
+            let (_, entries) = parse("2022-01-01\n2021-01-01").unwrap();
+            assert_eq!("2021-01-01".to_string(), entries.entries[0].date.to_string());
+            assert_eq!("2022-01-01".to_string(), entries.entries[1].date.to_string());
         }
     }
 }
