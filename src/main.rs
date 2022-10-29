@@ -44,7 +44,7 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: app::App) -> io::Result<()> {
+fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: app::App) -> io::Result<()> {
     loop {
         terminal.draw(|frame| {
             ui::layout(frame, &app)
@@ -53,6 +53,8 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: app::App)
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
+                KeyCode::Char('p') => app.entry_previous(),
+                KeyCode::Char('n') => app.entry_next(),
                 _ => {}
             }
         }

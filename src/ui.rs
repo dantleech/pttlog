@@ -25,6 +25,7 @@ fn navigation(app: &app::App) -> Paragraph {
     let text: Vec<Spans> = vec![
         Spans::from(vec![
            Span::raw("< [p] "),
+           Span::raw(app.current_entry_index().to_string()),
            Span::raw(app.current_entry().date.to_string()),
            Span::raw(" [n] >")
         ])
