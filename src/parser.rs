@@ -46,6 +46,16 @@ impl TimeRange {
 
         return format!("{}-{}", self.start.to_string(), self.end.as_ref().unwrap().to_string())
     }
+
+    fn duration(&self) -> i16 {
+        if self.end.is_none() {
+            return 0;
+        }
+        let end = self.end.unwrap();
+        i16::from((
+            (end.hour - self.start.hour) * 60
+        ) + (end.minute - self.start.minute))
+    }
 }
 
 #[derive(Debug)]
@@ -60,13 +70,11 @@ impl Log {
         if self.time.end.is_some() {
             return;
         }
-        self.duration = i16::from((
-            (end_time.hour - self.time.start.hour) * 60
-        ) + (end_time.minute - self.time.start.minute))
+        self.time.end = Some(*end_time);
     }
     pub fn duration_as_string(&self) -> String {
-        let quot = self.duration / 60;
-        let rem = self.duration % 60;
+        let quot = self.time.duration() / 60;
+        let rem = self.time.duration() % 60;
 
         return format!("{}h{}m", quot, rem)
 
