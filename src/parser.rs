@@ -57,7 +57,9 @@ pub struct Log {
 
 impl Log {
     pub fn set_duration(&mut self, end_time: &Time) {
-        self.time.end = Some(*end_time);
+        if self.time.end.is_some() {
+            return;
+        }
         self.duration = i16::from((
             (end_time.hour - self.time.start.hour) * 60
         ) + (end_time.minute - self.time.start.minute))
@@ -129,17 +131,36 @@ fn time(text: &str) -> nom::IResult<&str, Time>   {
         Err(err) => Err(err),
     }
 }
+fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
+    let time_range = sequence::tuple(
+        (
+            time,
+            opt(sequence::pair(char('-'), time))
+        )
+    )(text);
+    match time_range {
+        Ok(ok) => {
+            if (ok.1).1.is_some() {
+                let end = (ok.1).1.unwrap();
+                return Ok((ok.0, TimeRange{ start: (ok.1).0, end: Some(end.1)}));
+            }
+            Ok((ok.0, TimeRange{ start: (ok.1).0, end: None}))
+        }
+        Err(err) => Err(err),
+    }
+}
+
 
 fn log(text: &str) -> nom::IResult<&str, Log>   {
     let entry = sequence::tuple((
-            time,
+            time_range,
             space0,
             not_line_ending
             ))(text);
 
     match entry {
         Ok(ok) => Ok((ok.0, Log{
-            time: TimeRange{start: (ok.1).0, end: None},
+            time: (ok.1).0,
             description: (ok.1).2.to_string(),
             duration: 0,
         })),
@@ -276,7 +297,7 @@ mod tests {
     fn test_calculates_duration() {
         {
             let (_, entries) = parse("2022-01-01\n10:00 Working on foo\n11:00 Working on bar\n12:00 Doing something else").unwrap();
-            assert_eq!("10:00", entries.entries[0].logs[0].time.start.to_string());
+            assert_eq!("10:00", entries.entries[0].logs[0].time.to_string());
             assert_eq!("1h0m", entries.entries[0].logs[0].duration_as_string());
             assert_eq!("11:00", entries.entries[0].logs[1].time.start.to_string());
             assert_eq!("12:00", entries.entries[0].logs[2].time.start.to_string());
