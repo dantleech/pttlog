@@ -62,7 +62,6 @@ impl TimeRange {
 pub struct Log {
     pub time: TimeRange,
     pub description: String,
-    pub duration: i16,
 }
 
 impl Log {
@@ -99,7 +98,7 @@ impl Entry {
     }
 
     pub fn duration_total(&self) -> i16 {
-        self.logs.iter().fold(0, |c,l| c + l.duration)
+        self.logs.iter().fold(0, |c,l| c + l.time.duration())
     }
 }
 
@@ -170,7 +169,6 @@ fn log(text: &str) -> nom::IResult<&str, Log>   {
         Ok(ok) => Ok((ok.0, Log{
             time: (ok.1).0,
             description: (ok.1).2.to_string(),
-            duration: 0,
         })),
         Err(err) => Err(err),
     }
@@ -305,7 +303,7 @@ mod tests {
     fn test_calculates_duration() {
         {
             let (_, entries) = parse("2022-01-01\n10:00 Working on foo\n11:00 Working on bar\n12:00 Doing something else").unwrap();
-            assert_eq!("10:00", entries.entries[0].logs[0].time.to_string());
+            assert_eq!("10:00", entries.entries[0].logs[0].time.start.to_string());
             assert_eq!("1h0m", entries.entries[0].logs[0].duration_as_string());
             assert_eq!("11:00", entries.entries[0].logs[1].time.start.to_string());
             assert_eq!("12:00", entries.entries[0].logs[2].time.start.to_string());
