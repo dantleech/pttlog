@@ -8,35 +8,25 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
         .margin(0)
         .constraints([
                      Constraint::Min(2),
-                     Constraint::Min(2),
                      Constraint::Percentage(100)
             ].as_ref()
         ).split(f.size());
 
-    f.render_widget(navigation(app), rows[1]);
-
-    f.render_widget(header(), rows[0]);
-    f.render_widget(table(app.current_entry()), rows[2])
+    f.render_widget(navigation(app), rows[0]);
+    f.render_widget(table(app.current_entry()), rows[1])
 }
 
 fn navigation(app: &app::App) -> Paragraph {
     let text: Vec<Spans> = vec![
         Spans::from(vec![
+           Span::raw("PTTLog "),
            Span::raw(format!("{}/{} ", app.current_entry_number().to_string(), app.entry_count().to_string())),
-           Span::raw("< [p] "),
+           Span::raw("[p]rev "),
            Span::raw(app.current_entry().date.to_string()),
-           Span::raw(" [n] >")
-        ])
-    ];
-
-    Paragraph::new(text)
-}
-
-// can this not be 'static?
-fn header() -> Paragraph<'static> {
-    let text: Vec<Spans> = vec![
+           Span::raw(" [n]ext")
+        ]),
         Spans::from(vec![
-           Span::raw("PTTLog")
+            Span::raw(app.current_entry().duration_total_as_string())
         ])
     ];
 

@@ -40,7 +40,9 @@ pub struct Log {
 
 impl Log {
     pub fn set_duration(&mut self, end_time: &Time) {
-        self.duration = i16::from(((end_time.hour - self.time.hour) * 60) + (end_time.minute - self.time.minute))
+        self.duration = i16::from((
+            (end_time.hour - self.time.hour) * 60
+        ) + (end_time.minute - self.time.minute))
     }
     pub fn duration_as_string(&self) -> String {
         let quot = self.duration / 60;
@@ -57,6 +59,19 @@ pub struct Entry {
     pub logs: Vec<Log>,
 }
 
+impl Entry {
+    pub fn duration_total_as_string(&self) -> String {
+        let quot = self.duration_total() / 60;
+        let rem = self.duration_total() % 60;
+
+        return format!("{}h{}m", quot, rem)
+    }
+
+    pub fn duration_total(&self) -> i16 {
+        self.logs.iter().fold(0, |c,l| c + l.duration)
+    }
+}
+
 #[derive(Debug)]
 pub struct Entries {
     pub entries: Vec<Entry>,
@@ -68,12 +83,12 @@ fn date_digits_i16(text: &str) -> nom::IResult<&str, i16> {
 
 fn date(text: &str) -> nom::IResult<&str, Date>   {
     let date = sequence::tuple((
-        date_digits_i16,
-        char('-'),
-        date_digits_i16,
-        char('-'),
-        date_digits_i16
-    ))(text);
+            date_digits_i16,
+            char('-'),
+            date_digits_i16,
+            char('-'),
+            date_digits_i16
+            ))(text);
 
     match date {
         Ok(ok) => Ok((ok.0, Date{ y: (ok.1).0, m: (ok.1).2, d: (ok.1).4})),
@@ -83,10 +98,10 @@ fn date(text: &str) -> nom::IResult<&str, Date>   {
 
 fn time(text: &str) -> nom::IResult<&str, Time>   {
     let date = sequence::tuple((
-        date_digits_i16,
-        char(':'),
-        date_digits_i16,
-    ))(text);
+            date_digits_i16,
+            char(':'),
+            date_digits_i16,
+            ))(text);
 
     match date {
         Ok(ok) => Ok((ok.0, Time{ hour: (ok.1).0, minute: (ok.1).2})),
@@ -96,10 +111,10 @@ fn time(text: &str) -> nom::IResult<&str, Time>   {
 
 fn log(text: &str) -> nom::IResult<&str, Log>   {
     let entry = sequence::tuple((
-        time,
-        space0,
-        not_line_ending
-    ))(text);
+            time,
+            space0,
+            not_line_ending
+            ))(text);
 
     match entry {
         Ok(ok) => Ok((ok.0, Log{
@@ -118,8 +133,8 @@ fn entry(text: &str) -> nom::IResult<&str, Entry>   {
             multispace0,
             many0(
                 sequence::tuple((log, opt(line_ending))).map(|t| t.0)
-            )
-    ))(text);
+                )
+            ))(text);
 
     match entry {
         Ok(ok) => Ok((ok.0, Entry{ date: (ok.1).0, logs: (ok.1).3 })),
@@ -131,8 +146,8 @@ pub fn parse(text: &str) -> nom::IResult<&str, Entries>   {
             multispace0,
             many0(
                 sequence::tuple((entry, multispace0)).map(|t| t.0)
-            )
-    ))(text);
+                )
+            ))(text);
 
     match entry {
         Ok(ok) => {
@@ -146,7 +161,6 @@ pub fn parse(text: &str) -> nom::IResult<&str, Entries>   {
 
 fn process_entries(entries: &mut Vec<Entry>) {
     entries.sort_by_key(|e|e.date.sort_value());
-    println!("{:?}", entries);
 
     for entry in entries.iter_mut() {
         let mut last_log: Option<&mut Log> = None;
