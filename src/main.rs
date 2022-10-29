@@ -1,5 +1,6 @@
 mod parser;
 mod ui;
+mod app;
 
 use clap::Parser;
 use crossterm::event;
@@ -9,7 +10,6 @@ use crossterm::execute;
 use crossterm::terminal::disable_raw_mode;
 use crossterm::terminal::enable_raw_mode;
 use parser::parse;
-use tui::layout::Rect;
 use std::fs;
 use std::io;
 use tui::{backend::CrosstermBackend, Terminal};
@@ -18,18 +18,6 @@ use tui::{backend::CrosstermBackend, Terminal};
 #[command(author,version,about,long_about=None)]
 struct Args {
     path: String,
-}
-
-struct App {
-    entries: parser::Entries,
-}
-
-impl App {
-    fn new(entries: parser::Entries) -> App {
-        App{
-            entries,
-        }
-    }
 }
 
 fn main() -> Result<(), io::Error> {
@@ -45,7 +33,7 @@ fn main() -> Result<(), io::Error> {
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    let app = App::new(entries);
+    let app = app::App::new(entries);
     let _ = run_app(&mut terminal, app)?;
 
     disable_raw_mode()?;
@@ -56,10 +44,10 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: App) -> io::Result<()> {
+fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: app::App) -> io::Result<()> {
     loop {
         terminal.draw(|frame| {
-            ui::layout(frame, &app.entries)
+            ui::layout(frame, &app)
         })?;
 
         if let Event::Key(key) = event::read()? {
