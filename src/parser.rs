@@ -220,6 +220,11 @@ mod tests {
             assert_eq!("2022-01-01".to_string(), entries.entries[0].date.to_string());
             assert_eq!("2022-02-02".to_string(), entries.entries[1].date.to_string());
         }
+        {
+            let (_, entries) = parse("2022-01-01\n\n\n10:00 Working on foo\n\n\n2022-02-02\n11:00 Foo").unwrap();
+            assert_eq!("2022-01-01".to_string(), entries.entries[0].date.to_string());
+            assert_eq!("2022-02-02".to_string(), entries.entries[1].date.to_string());
+        }
 
         {
             let (_, entries) = parse("\n\n2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();

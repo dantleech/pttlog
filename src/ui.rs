@@ -16,9 +16,7 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
     f.render_widget(navigation(app), rows[1]);
 
     f.render_widget(header(), rows[0]);
-    for entry in app.entries.entries.iter() {
-        f.render_widget(table(entry), rows[2])
-    }
+    f.render_widget(table(app.current_entry()), rows[2])
 }
 
 fn navigation(app: &app::App) -> Paragraph {

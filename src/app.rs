@@ -9,7 +9,7 @@ pub struct App {
 impl App {
     pub fn new(entries: parser::Entries) -> App {
         App{
-            current_entry: entries.entries.len() - 1,
+            current_entry: 0,
             entries,
         }
     }
