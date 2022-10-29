@@ -14,12 +14,15 @@ impl App {
         }
     }
 
-    pub fn current_entry_index(&self) -> usize {
-        return self.current_entry;
+    pub fn current_entry_number(&self) -> usize {
+        return self.current_entry + 1;
     }
 
     pub fn current_entry(&self) -> &parser::Entry {
         &self.entries.entries[self.current_entry]
+    }
+    pub fn entry_count(&self) -> usize {
+        self.entries.entries.len()
     }
 
     pub(crate) fn entry_previous(&mut self) {
@@ -31,7 +34,6 @@ impl App {
 
     pub(crate) fn entry_next(&mut self) {
         if self.current_entry == self.entries.entries.len() - 1 {
-            println!("{:?}", self.entries.entries);
             return;
         }
         self.current_entry +=1;
