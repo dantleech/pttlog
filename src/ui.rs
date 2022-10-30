@@ -6,6 +6,8 @@ use super::parser;
 use tui::layout::Margin;
 use tui::style::Color;
 
+use tui::widgets::Block;
+use tui::widgets::Borders;
 use tui::{
     backend::Backend,
     layout::{Constraint, Layout},
@@ -23,17 +25,23 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
 
     f.render_widget(navigation(app), rows[0]);
 
+    let current_entry = app.current_entry();
     // By day view
     let columns = Layout::default()
         .direction(tui::layout::Direction::Horizontal)
         .margin(0)
         .constraints([Constraint::Percentage(100)])
         .split(rows[1].inner(&Margin {
-            vertical: 0,
-            horizontal: 0,
+            vertical: 2,
+            horizontal: 2,
         }));
 
-    f.render_widget(table(app.current_entry()), columns[0]);
+    let container = Block::default().borders(Borders::ALL).title(current_entry.date_object().format("%A %e %B, %Y").to_string());
+    f.render_widget(table(current_entry), columns[0]);
+    f.render_widget(container, rows[1].inner(&Margin {
+        vertical: 0,
+        horizontal: 0,
+    }))
 }
 
 fn navigation(app: &app::App) -> Paragraph {
