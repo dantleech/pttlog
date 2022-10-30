@@ -33,7 +33,16 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
         ]).split(rows[1].inner(&Margin{ vertical: 0, horizontal: 0 }));
 
     f.render_widget(table(app.current_entry()), columns[0]);
-    f.render_widget(breakdown_chart(app.current_entry()), columns[1]);
+
+    let chart_data = breakdown_chart_tag_durations(app.current_entry());
+    let data = &chart_data.iter().map(|(k, v)| {
+            (k.as_str(),*v as u64)
+        }).collect::<Vec<(&str,u64)>>();
+    let chart = BarChart::default()
+        .bar_width(4)
+        .data(data);
+
+    f.render_widget(chart, columns[1])
 }
 
 fn navigation(app: &app::App) -> Paragraph {
@@ -102,25 +111,18 @@ fn description(tokens: &parser::Tokens) -> Spans<'static> {
     Spans::from(foo)
 }
 
-pub fn breakdown_chart(entry: &parser::Entry) -> BarChart {
-    let buckets = breakdown_chart_buckets(entry);
-
-    BarChart::default()
-
-}
-
-fn breakdown_chart_buckets(entry: &parser::Entry) -> HashMap<String,i16> {
-    let mut buckets = HashMap::<String,i16>::new();
+fn breakdown_chart_tag_durations(entry: &parser::Entry) -> HashMap<String,i16> {
+    let mut counts = HashMap::<String,i16>::new();
     for entry in entry.logs.iter() {
         for tag in entry.description.tags().iter() {
-            if !buckets.contains_key(&tag.text) {
-                buckets.insert(tag.text.to_owned(), 0);
+            if !counts.contains_key(&tag.text) {
+                counts.insert(tag.text.to_owned(), 0);
             }
-            let count = buckets.get_mut(&tag.text).unwrap();
+            let count = counts.get_mut(&tag.text).unwrap();
             *count += entry.time.duration();
         }
     }
-    buckets
+    counts
 }
 
 #[cfg(test)]
@@ -131,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_breakdown_chart_buckets() {
-        let buckets = breakdown_chart_buckets(
+        let buckets = breakdown_chart_tag_durations(
             &parser::Entry{
                 date: parser::Date { year: 1, month: 1, day: 1 },
                 logs: vec![
