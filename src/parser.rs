@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use nom::{
-    character::complete::{char, digit1, space0, line_ending, multispace0, alphanumeric1}, multi::many0, combinator::{opt, map_res}, Parser, branch, sequence::{pair, tuple}, bytes::complete::take_till1
+    character::complete::{char, digit1, space0, line_ending, multispace0, alphanumeric1}, multi::many0, combinator::{opt, map_res}, Parser, branch, sequence::{tuple}, bytes::complete::take_till1
 };
 use nom::sequence;
 use core::fmt::Debug;

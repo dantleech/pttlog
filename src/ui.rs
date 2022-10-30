@@ -3,6 +3,7 @@ use crate::parser::TimeRange;
 use super::app;
 
 use super::parser;
+use tui::layout::Margin;
 use tui::style::Color;
 
 use tui::{widgets::{Table, Block, Row, Borders, Cell, Paragraph}, layout::{Constraint, Layout}, style::Style, Frame, backend::Backend, text::{Span, Spans}};
@@ -17,7 +18,17 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
         ).split(f.size());
 
     f.render_widget(navigation(app), rows[0]);
-    f.render_widget(table(app.current_entry()), rows[1])
+
+    // By day view
+    let columns = Layout::default()
+        .direction(tui::layout::Direction::Horizontal)
+        .margin(0)
+        .constraints([
+         Constraint::Percentage(50),
+         Constraint::Percentage(50),
+        ]).split(rows[1].inner(&Margin{ vertical: 0, horizontal: 0 }));
+
+    f.render_widget(table(app.current_entry()), columns[0]);
 }
 
 fn navigation(app: &app::App) -> Paragraph {
@@ -69,9 +80,8 @@ pub fn table(entry: &parser::Entry) -> Table {
         .widths(&[
                 Constraint::Min(12),
                 Constraint::Min(14),
-                Constraint::Percentage(33),
+                Constraint::Percentage(100),
         ])
-        .block(Block::default().borders(Borders::ALL).title(entry.date_object().format("%A %e %B, %Y").to_string()))
 }
 
 fn description(tokens: &parser::Tokens) -> Spans<'static> {
