@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use nom::{
-    character::complete::{char, digit1, space0, line_ending, multispace0, alphanumeric1}, multi::many0, combinator::{opt, map_res}, Parser, branch, sequence::pair, bytes::complete::take_till1
+    character::complete::{char, digit1, space0, line_ending, multispace0, alphanumeric1}, multi::many0, combinator::{opt, map_res}, Parser, branch, sequence::{pair, tuple}, bytes::complete::take_till1
 };
 use nom::sequence;
 use core::fmt::Debug;
@@ -207,7 +207,7 @@ fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
     }
 }
 fn tag_token(text: &str) -> nom::IResult<&str, Token> {
-    let token = pair(char('@'), alphanumeric1)(text);
+    let token = tuple((char('@'), alphanumeric1, space0))(text);
 
     match token {
         Ok(ok) => {
@@ -430,7 +430,7 @@ mod tests {
             assert_eq!("foobar".to_string(), entries.entries[0].logs[0].description.at(1).deref().to_string());
             assert_eq!(TokenKind::Tag, entries.entries[0].logs[0].description.at(1).deref().kind);
 
-            assert_eq!(" barfoo".to_string(), entries.entries[0].logs[0].description.at(2).deref().to_string());
+            assert_eq!("barfoo".to_string(), entries.entries[0].logs[0].description.at(2).deref().to_string());
         }
     }
 }
