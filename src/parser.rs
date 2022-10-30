@@ -1,10 +1,9 @@
 use chrono::NaiveDate;
 use nom::{
-    character::complete::{char, digit1, space0, not_line_ending, line_ending, multispace0}, multi::many0, combinator::{opt, map_res}, Parser
+    character::complete::{char, digit1, space0, not_line_ending, line_ending, multispace0}, multi::many0, combinator::{opt, map_res}, Parser, branch, sequence::pair
 };
 use nom::sequence;
 use core::fmt::Debug;
-use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct Date {
@@ -65,54 +64,39 @@ enum TokenKind {
     Prose,
     Tag,
 }
-impl Display for TokenKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
-    }
+
+#[derive(Debug)]
+struct Token {
+    pub kind: TokenKind,
+    pub text: String,
 }
 
-trait Token {
-    fn kind(&self) -> TokenKind;
-    fn as_string(&self) -> String;
-}
-
-impl Debug for dyn Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Token({}) = \"{}\"", self.kind(), self.as_string())
+impl Token {
+    pub fn to_string(&self) -> String {
+        self.text
     }
 }
 
 #[derive(Debug)]
-struct ProseToken {
-    prose: String
-}
-
-impl Token for ProseToken {
-    fn kind(&self) -> TokenKind {
-        TokenKind::Prose
-    }
-
-    fn as_string(&self) -> String {
-        format!("{}", self.prose)
-    }
-}
-
-#[derive(Debug)]
-pub struct Tokens(Vec<Box<dyn Token>>);
+pub struct Tokens(Vec<Token>);
 
 impl Tokens {
+
+    fn first(&self) -> &Token {
+        assert!(self.0.len() > 0, "Cannot get first token when tokens are empty");
+        self.0.first().unwrap()
+
+    } 
 
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string())
     }
-    pub fn as_str(&self) {
-    }
     pub fn to_string(&self) -> String {
-        self.0.iter().fold("".to_string(), |acc, item| format!("{}{}", acc, item.as_string()))
+        self.0.iter().fold("".to_string(), |acc, item| format!("{}{}", acc, item.to_string()))
         
     }
 
-    fn new(tokens: Vec<Box<dyn Token>>) -> Tokens {
+    fn new(tokens: Vec<Token>) -> Tokens {
         Tokens(tokens)
     }
 }
@@ -219,19 +203,31 @@ fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
         Err(err) => Err(err),
     }
 }
+fn tag(text: &str) -> nom::IResult<&str, Tag> {
+    let token = pair(char("@", alphanumeric1));
+    match token {
+        Ok(ok) => {
+        }
+    }
 
+}
+fn prose(text: &str) -> nom::IResult<&str, Token> {
+    branch::alt(
+        tag,
+        )
+}
 
 fn log(text: &str) -> nom::IResult<&str, Log>   {
     let entry = sequence::tuple((
             time_range,
             space0,
-            not_line_ending
+            prose,
             ))(text);
 
     match entry {
         Ok(ok) => Ok((ok.0, Log{
             time: (ok.1).0,
-            description: Tokens::new(vec![Box::new(ProseToken{prose: (ok.1).2.to_string()})]),
+            description: Tokens::new(vec![Token{kind: TokenKind::Prose, text: (ok.1).2.to_string()}]),
         })),
         Err(err) => Err(err),
     }
@@ -288,6 +284,8 @@ fn process_entries(entries: &mut Vec<Entry>) {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Deref;
+
     use super::*;
     #[test]
     fn test_parse_date_digits() {
@@ -389,6 +387,15 @@ mod tests {
             let (_, entries) = parse("2022-01-01\n20:00-21:00").unwrap();
             assert_eq!(1, entries.entries.len());
             assert_eq!("20:00-21:00".to_string(), entries.entries[0].logs[0].time.to_string());
+        }
+    }
+
+    #[test]
+    fn test_parse_tag() {
+        {
+            let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar").unwrap();
+            assert_eq!(1, entries.entries.len());
+            assert_eq!("Foobar ".to_string(), entries.entries[0].logs[0].description.first().deref().as_string());
         }
     }
 }
