@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use crate::parser::Entries;
 use crate::parser::TimeRange;
 
 use super::app;
@@ -6,6 +9,7 @@ use super::parser;
 use tui::layout::Margin;
 use tui::style::Color;
 
+use tui::widgets::BarChart;
 use tui::{widgets::{Table, Block, Row, Borders, Cell, Paragraph}, layout::{Constraint, Layout}, style::Style, Frame, backend::Backend, text::{Span, Spans}};
 
 pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
@@ -29,6 +33,7 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
         ]).split(rows[1].inner(&Margin{ vertical: 0, horizontal: 0 }));
 
     f.render_widget(table(app.current_entry()), columns[0]);
+    f.render_widget(breakdown_chart(app.current_entry()), columns[1]);
 }
 
 fn navigation(app: &app::App) -> Paragraph {
@@ -95,4 +100,56 @@ fn description(tokens: &parser::Tokens) -> Spans<'static> {
         }
     }).collect::<Vec<_>>();
     Spans::from(foo)
+}
+
+pub fn breakdown_chart(entry: &parser::Entry) -> BarChart {
+    let buckets = breakdown_chart_buckets(entry);
+
+    BarChart::default()
+
+}
+
+fn breakdown_chart_buckets(entry: &parser::Entry) -> HashMap<String,u16> {
+    let mut buckets = HashMap::<String,u16>::new();
+    for entry in entry.logs.iter() {
+        for tag in entry.description.tags().iter() {
+            if !buckets.contains_key(&tag.text) {
+                buckets.insert(tag.text.to_owned(), 0);
+            }
+            let count = buckets.get_mut(&tag.text).unwrap();
+            *count += 1;
+        }
+    }
+    buckets
+}
+#[cfg(test)]
+mod tests {
+    use crate::parser::{Log, Tokens};
+
+    use super::*;
+
+
+    #[test]
+    fn test_breakdown_chart_buckets() {
+        let buckets = breakdown_chart_buckets(
+            &parser::Entry{
+                date: parser::Date { year: 1, month: 1, day: 1 },
+                logs: vec![
+                    Log{ time: TimeRange{ start: parser::Time { hour: 0, minute: 0 }, end: None }, description: Tokens(vec![
+                       parser::Token{ kind: parser::TokenKind::Prose, text: "Today is the day".to_string() },
+                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat1".to_string() },
+                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat2".to_string() },
+                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat2".to_string() },
+                    ])},
+                    Log{ time: TimeRange{ start: parser::Time { hour: 0, minute: 0 }, end: None }, description: Tokens(vec![
+                       parser::Token{ kind: parser::TokenKind::Prose, text: "Today is another day".to_string() },
+                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat1".to_string() },
+                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat2".to_string() },
+                    ])}
+                ]
+            }
+        );
+        assert_eq!(2, buckets.get("cat1").unwrap().to_owned());
+        assert_eq!(3, buckets.get("cat2").unwrap().to_owned());
+    }
 }

@@ -78,7 +78,7 @@ impl Token {
 }
 
 #[derive(Debug)]
-pub struct Tokens(Vec<Token>);
+pub struct Tokens(pub Vec<Token>);
 
 impl Tokens {
 
@@ -106,6 +106,10 @@ impl Tokens {
 
     fn new(tokens: Vec<Token>) -> Tokens {
         Tokens(tokens)
+    }
+
+    pub fn tags(&self) -> Vec<&Token>  {
+        self.0.iter().filter(|t|t.kind == TokenKind::Tag).collect()
     }
 }
 
