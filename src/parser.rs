@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use nom::{
-    character::complete::{char, digit1, space0, not_line_ending, line_ending, multispace0}, multi::many0, combinator::{opt, map_res}, Parser, branch, sequence::pair
+    character::{complete::{char, digit1, space0, not_line_ending, line_ending, multispace0, alphanumeric1, space1}, self, is_space}, multi::many0, combinator::{opt, map_res, not}, Parser, branch, sequence::pair, bytes::complete::{take_while, take_till, take_till1}
 };
 use nom::sequence;
 use core::fmt::Debug;
@@ -203,25 +203,39 @@ fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
         Err(err) => Err(err),
     }
 }
-fn tag(text: &str) -> nom::IResult<&str, Tag> {
-    let token = pair(char("@", alphanumeric1));
+fn tag(text: &str) -> nom::IResult<&str, Token> {
+    let token = pair(char('@'), alphanumeric1)(text);
+
     match token {
         Ok(ok) => {
-        }
+            Ok((ok.0, Token{ kind: TokenKind::Tag, text: (ok.1).1.to_string() }))
+        },
+        Err(err) => Err(err),
     }
-
 }
+
 fn prose(text: &str) -> nom::IResult<&str, Token> {
-    branch::alt(
+    let text = take_till(|c| c == ' ')(text);
+    match text {
+        Ok(ok) => {
+            Ok((ok.0, Token{ kind: TokenKind::Prose, text: (ok.1).to_string() }))
+        },
+        Err(err) => Err(err),
+    }
+}
+
+fn token(text: &str) -> nom::IResult<&str, Token> {
+    branch::alt((
         tag,
-        )
+        prose,
+    ))(text)
 }
 
 fn log(text: &str) -> nom::IResult<&str, Log>   {
     let entry = sequence::tuple((
             time_range,
             space0,
-            prose,
+            token,
             ))(text);
 
     match entry {
