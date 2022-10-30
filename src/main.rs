@@ -1,6 +1,6 @@
+mod app;
 mod parser;
 mod ui;
-mod app;
 
 use clap::Parser;
 use crossterm::event;
@@ -37,18 +37,17 @@ fn main() -> Result<(), io::Error> {
     let _ = run_app(&mut terminal, app)?;
 
     disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-    )?;
+    execute!(terminal.backend_mut(),)?;
 
     Ok(())
 }
 
-fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, mut app: app::App) -> io::Result<()> {
+fn run_app(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    mut app: app::App,
+) -> io::Result<()> {
     loop {
-        terminal.draw(|frame| {
-            ui::layout(frame, &app)
-        })?;
+        terminal.draw(|frame| ui::layout(frame, &app))?;
 
         if let Event::Key(key) = event::read()? {
             match key.code {

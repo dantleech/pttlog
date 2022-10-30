@@ -1,4 +1,3 @@
-
 use super::parser;
 
 pub struct App {
@@ -8,7 +7,7 @@ pub struct App {
 
 impl App {
     pub fn new(entries: parser::Entries) -> App {
-        App{
+        App {
             current_entry: entries.entries.len() - 1,
             entries,
         }
@@ -29,14 +28,13 @@ impl App {
         if self.current_entry == 0 {
             return;
         }
-        self.current_entry -=1;
+        self.current_entry -= 1;
     }
 
     pub(crate) fn entry_next(&mut self) {
         if self.current_entry == self.entries.entries.len() - 1 {
             return;
         }
-        self.current_entry +=1;
+        self.current_entry += 1;
     }
 }
-

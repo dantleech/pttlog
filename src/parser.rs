@@ -1,9 +1,15 @@
 use chrono::NaiveDate;
-use nom::{
-    character::complete::{char, digit1, space0, line_ending, multispace0, alphanumeric1}, multi::many0, combinator::{opt, map_res}, Parser, branch, sequence::{tuple}, bytes::complete::take_till1
-};
-use nom::sequence;
 use core::fmt::Debug;
+use nom::sequence;
+use nom::{
+    branch,
+    bytes::complete::take_till1,
+    character::complete::{alphanumeric1, char, digit1, line_ending, multispace0, space0},
+    combinator::{map_res, opt},
+    multi::many0,
+    sequence::tuple,
+    Parser,
+};
 
 #[derive(Debug)]
 pub struct Date {
@@ -17,7 +23,7 @@ impl Date {
         return self.year + self.month + self.day;
     }
     pub fn to_string(&self) -> String {
-        return format!("{:04}-{:02}-{:02}", self.year, self.month, self.day)
+        return format!("{:04}-{:02}-{:02}", self.year, self.month, self.day);
     }
 }
 
@@ -29,7 +35,7 @@ pub struct Time {
 
 impl Time {
     pub fn to_string(&self) -> String {
-        return format!("{:02}:{:02}", self.hour, self.minute)
+        return format!("{:02}:{:02}", self.hour, self.minute);
     }
 }
 
@@ -45,7 +51,11 @@ impl TimeRange {
             return self.start.to_string();
         }
 
-        return format!("{}-{}", self.start.to_string(), self.end.as_ref().unwrap().to_string())
+        return format!(
+            "{}-{}",
+            self.start.to_string(),
+            self.end.as_ref().unwrap().to_string()
+        );
     }
 
     pub fn duration(&self) -> i16 {
@@ -53,9 +63,7 @@ impl TimeRange {
             return 0;
         }
         let end = self.end.unwrap();
-        i16::from((
-            (end.hour - self.start.hour) * 60
-        ) + (end.minute - self.start.minute))
+        i16::from(((end.hour - self.start.hour) * 60) + (end.minute - self.start.minute))
     }
 }
 
@@ -81,35 +89,37 @@ impl Token {
 pub struct Tokens(pub Vec<Token>);
 
 impl Tokens {
-
-    pub fn to_vec(&self) -> &Vec<Token>
-    {
+    pub fn to_vec(&self) -> &Vec<Token> {
         &self.0
     }
 
     fn first(&self) -> &Token {
-        assert!(self.0.len() > 0, "Cannot get first token when tokens are empty");
+        assert!(
+            self.0.len() > 0,
+            "Cannot get first token when tokens are empty"
+        );
         self.0.first().unwrap()
-    } 
+    }
 
     fn at(&self, index: usize) -> &Token {
         &self.0[index]
-    } 
+    }
 
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string())
     }
     pub fn to_string(&self) -> String {
-        self.0.iter().fold("".to_string(), |acc, item| format!("{}{}", acc, item.to_string()))
-        
+        self.0.iter().fold("".to_string(), |acc, item| {
+            format!("{}{}", acc, item.to_string())
+        })
     }
 
     fn new(tokens: Vec<Token>) -> Tokens {
         Tokens(tokens)
     }
 
-    pub fn tags(&self) -> Vec<&Token>  {
-        self.0.iter().filter(|t|t.kind == TokenKind::Tag).collect()
+    pub fn tags(&self) -> Vec<&Token> {
+        self.0.iter().filter(|t| t.kind == TokenKind::Tag).collect()
     }
 }
 
@@ -130,8 +140,7 @@ impl Log {
         let quot = self.time.duration() / 60;
         let rem = self.time.duration() % 60;
 
-        return format!("{}h{}m", quot, rem)
-
+        return format!("{}h{}m", quot, rem);
     }
 
     pub(crate) fn as_percentage(&self, duration_total: i16) -> f32 {
@@ -153,11 +162,11 @@ impl Entry {
         let quot = self.duration_total() / 60;
         let rem = self.duration_total() % 60;
 
-        return format!("{}h{}m", quot, rem)
+        return format!("{}h{}m", quot, rem);
     }
 
     pub fn duration_total(&self) -> i16 {
-        self.logs.iter().fold(0, |c,l| c + l.time.duration())
+        self.logs.iter().fold(0, |c, l| c + l.time.duration())
     }
 }
 
@@ -170,47 +179,63 @@ fn date_digits_i16(text: &str) -> nom::IResult<&str, i16> {
     map_res(digit1, str::parse)(text)
 }
 
-fn date(text: &str) -> nom::IResult<&str, Date>   {
+fn date(text: &str) -> nom::IResult<&str, Date> {
     let date = sequence::tuple((
-            date_digits_i16,
-            char('-'),
-            date_digits_i16,
-            char('-'),
-            date_digits_i16
-            ))(text);
+        date_digits_i16,
+        char('-'),
+        date_digits_i16,
+        char('-'),
+        date_digits_i16,
+    ))(text);
 
     match date {
-        Ok(ok) => Ok((ok.0, Date{ year: (ok.1).0, month: (ok.1).2, day: (ok.1).4})),
+        Ok(ok) => Ok((
+            ok.0,
+            Date {
+                year: (ok.1).0,
+                month: (ok.1).2,
+                day: (ok.1).4,
+            },
+        )),
         Err(err) => Err(err),
     }
 }
 
-fn time(text: &str) -> nom::IResult<&str, Time>   {
-    let date = sequence::tuple((
-            date_digits_i16,
-            char(':'),
-            date_digits_i16,
-            ))(text);
+fn time(text: &str) -> nom::IResult<&str, Time> {
+    let date = sequence::tuple((date_digits_i16, char(':'), date_digits_i16))(text);
 
     match date {
-        Ok(ok) => Ok((ok.0, Time{ hour: (ok.1).0, minute: (ok.1).2})),
+        Ok(ok) => Ok((
+            ok.0,
+            Time {
+                hour: (ok.1).0,
+                minute: (ok.1).2,
+            },
+        )),
         Err(err) => Err(err),
     }
 }
 fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
-    let time_range = sequence::tuple(
-        (
-            time,
-            opt(sequence::pair(char('-'), time))
-        )
-    )(text);
+    let time_range = sequence::tuple((time, opt(sequence::pair(char('-'), time))))(text);
     match time_range {
         Ok(ok) => {
             if (ok.1).1.is_some() {
                 let end = (ok.1).1.unwrap();
-                return Ok((ok.0, TimeRange{ start: (ok.1).0, end: Some(end.1)}));
+                return Ok((
+                    ok.0,
+                    TimeRange {
+                        start: (ok.1).0,
+                        end: Some(end.1),
+                    },
+                ));
             }
-            Ok((ok.0, TimeRange{ start: (ok.1).0, end: None}))
+            Ok((
+                ok.0,
+                TimeRange {
+                    start: (ok.1).0,
+                    end: None,
+                },
+            ))
         }
         Err(err) => Err(err),
     }
@@ -219,9 +244,13 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
     let token = tuple((char('@'), alphanumeric1))(text);
 
     match token {
-        Ok(ok) => {
-            Ok((ok.0, Token{ kind: TokenKind::Tag, text: (ok.1).1.to_string() }))
-        },
+        Ok(ok) => Ok((
+            ok.0,
+            Token {
+                kind: TokenKind::Tag,
+                text: (ok.1).1.to_string(),
+            },
+        )),
         Err(err) => Err(err),
     }
 }
@@ -230,7 +259,7 @@ fn prose_token(text: &str) -> nom::IResult<&str, Token> {
     let text = sequence::tuple((
         space0,
         take_till1(|c| c == ' ' || c == '\n' || c == '\r'),
-        space0
+        space0,
     ))(text);
 
     match text {
@@ -239,77 +268,81 @@ fn prose_token(text: &str) -> nom::IResult<&str, Token> {
             let word = (ok.1).1.to_string();
             let spaces2 = (ok.1).2;
 
-            Ok((ok.0, Token{ kind: TokenKind::Prose, text: format!("{}{}{}", spaces1, word, spaces2)}))
-        },
+            Ok((
+                ok.0,
+                Token {
+                    kind: TokenKind::Prose,
+                    text: format!("{}{}{}", spaces1, word, spaces2),
+                },
+            ))
+        }
         Err(err) => Err(err),
     }
 }
 
 fn token(text: &str) -> nom::IResult<&str, Token> {
-    branch::alt((
-        tag_token,
-        prose_token,
-    ))(text)
+    branch::alt((tag_token, prose_token))(text)
 }
 
-fn log(text: &str) -> nom::IResult<&str, Log>   {
-    let entry = sequence::tuple((
-            time_range,
-            space0,
-            many0(token),
-            ))(text);
+fn log(text: &str) -> nom::IResult<&str, Log> {
+    let entry = sequence::tuple((time_range, space0, many0(token)))(text);
 
     match entry {
-        Ok(ok) => Ok((ok.0, Log{
-            time: (ok.1).0,
-            description: Tokens::new((ok.1).2),
-        })),
+        Ok(ok) => Ok((
+            ok.0,
+            Log {
+                time: (ok.1).0,
+                description: Tokens::new((ok.1).2),
+            },
+        )),
         Err(err) => Err(err),
     }
 }
 
-fn entry(text: &str) -> nom::IResult<&str, Entry>   {
+fn entry(text: &str) -> nom::IResult<&str, Entry> {
     let entry = sequence::tuple((
-            date,
-            line_ending,
-            multispace0,
-            many0(
-                sequence::tuple((log, opt(line_ending))).map(|t| t.0)
-                )
-            ))(text);
+        date,
+        line_ending,
+        multispace0,
+        many0(sequence::tuple((log, opt(line_ending))).map(|t| t.0)),
+    ))(text);
 
     match entry {
-        Ok(ok) => Ok((ok.0, Entry{ date: (ok.1).0, logs: (ok.1).3 })),
+        Ok(ok) => Ok((
+            ok.0,
+            Entry {
+                date: (ok.1).0,
+                logs: (ok.1).3,
+            },
+        )),
         Err(err) => Err(err),
     }
 }
-pub fn parse(text: &str) -> nom::IResult<&str, Entries>   {
+pub fn parse(text: &str) -> nom::IResult<&str, Entries> {
     let entry = sequence::tuple((
-            multispace0,
-            many0(
-                sequence::tuple((entry, multispace0)).map(|t| t.0)
-                )
-            ))(text);
+        multispace0,
+        many0(sequence::tuple((entry, multispace0)).map(|t| t.0)),
+    ))(text);
 
     match entry {
         Ok(ok) => {
             let mut entries = (ok.1).1;
             process_entries(&mut entries);
-            Ok((ok.0, Entries{ entries}))
+            Ok((ok.0, Entries { entries }))
         }
         Err(err) => Err(err),
     }
 }
 
 fn process_entries(entries: &mut Vec<Entry>) {
-    entries.sort_by_key(|e|e.date.sort_value());
+    entries.sort_by_key(|e| e.date.sort_value());
 
     for entry in entries.iter_mut() {
         let mut last_log: Option<&mut Log> = None;
         for log in entry.logs.iter_mut() {
             if last_log.is_none() {
                 last_log = Some(log);
-                continue
+                continue;
             }
             last_log.unwrap().set_duration(&log.time.start);
             last_log = Some(log);
@@ -359,40 +392,71 @@ mod tests {
         {
             let (_, entry) = entry("2022-01-01\n10:00 Working on foo").unwrap();
             assert_eq!("2022-01-01".to_string(), entry.date.to_string());
-            assert_eq!("Working on foo".to_string(), entry.logs[0].description.to_string());
+            assert_eq!(
+                "Working on foo".to_string(),
+                entry.logs[0].description.to_string()
+            );
         }
 
         {
             let (_, entry) = entry("2022-01-01\n\n10:00 Working on foo").unwrap();
             assert_eq!("2022-01-01", entry.date.to_string());
-            assert_eq!("Working on foo".to_string(), entry.logs[0].description.to_string());
+            assert_eq!(
+                "Working on foo".to_string(),
+                entry.logs[0].description.to_string()
+            );
         }
 
         {
-            let (_, entry) = entry("2022-01-01\n\n10:00 Working on foo\n11:00 Working on bar").unwrap();
+            let (_, entry) =
+                entry("2022-01-01\n\n10:00 Working on foo\n11:00 Working on bar").unwrap();
             assert_eq!("2022-01-01", entry.date.to_string());
-            assert_eq!("Working on foo".to_string(), entry.logs[0].description.to_string());
-            assert_eq!("Working on bar".to_string(), entry.logs[1].description.to_string());
+            assert_eq!(
+                "Working on foo".to_string(),
+                entry.logs[0].description.to_string()
+            );
+            assert_eq!(
+                "Working on bar".to_string(),
+                entry.logs[1].description.to_string()
+            );
         }
     }
 
     #[test]
     fn test_parse_entries() {
         {
-            let (_, entries) = parse("2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
+            let (_, entries) =
+                parse("2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
             assert_eq!(2, entries.entries.len());
-            assert_eq!("2022-01-01".to_string(), entries.entries[0].date.to_string());
-            assert_eq!("2022-02-02".to_string(), entries.entries[1].date.to_string());
+            assert_eq!(
+                "2022-01-01".to_string(),
+                entries.entries[0].date.to_string()
+            );
+            assert_eq!(
+                "2022-02-02".to_string(),
+                entries.entries[1].date.to_string()
+            );
         }
         {
-            let (_, entries) = parse("2022-01-01\n\n\n10:00 Working on foo\n\n\n2022-02-02\n11:00 Foo").unwrap();
-            assert_eq!("2022-01-01".to_string(), entries.entries[0].date.to_string());
-            assert_eq!("2022-02-02".to_string(), entries.entries[1].date.to_string());
+            let (_, entries) =
+                parse("2022-01-01\n\n\n10:00 Working on foo\n\n\n2022-02-02\n11:00 Foo").unwrap();
+            assert_eq!(
+                "2022-01-01".to_string(),
+                entries.entries[0].date.to_string()
+            );
+            assert_eq!(
+                "2022-02-02".to_string(),
+                entries.entries[1].date.to_string()
+            );
         }
 
         {
-            let (_, entries) = parse("\n\n2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
-            assert_eq!("2022-01-01".to_string(), entries.entries[0].date.to_string());
+            let (_, entries) =
+                parse("\n\n2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
+            assert_eq!(
+                "2022-01-01".to_string(),
+                entries.entries[0].date.to_string()
+            );
         }
     }
 
@@ -412,8 +476,14 @@ mod tests {
         {
             let (_, entries) = parse("2022-01-01\n2021-01-01\n").unwrap();
             assert_eq!(2, entries.entries.len());
-            assert_eq!("2021-01-01".to_string(), entries.entries[0].date.to_string());
-            assert_eq!("2022-01-01".to_string(), entries.entries[1].date.to_string());
+            assert_eq!(
+                "2021-01-01".to_string(),
+                entries.entries[0].date.to_string()
+            );
+            assert_eq!(
+                "2022-01-01".to_string(),
+                entries.entries[1].date.to_string()
+            );
         }
     }
 
@@ -422,7 +492,10 @@ mod tests {
         {
             let (_, entries) = parse("2022-01-01\n20:00-21:00").unwrap();
             assert_eq!(1, entries.entries.len());
-            assert_eq!("20:00-21:00".to_string(), entries.entries[0].logs[0].time.to_string());
+            assert_eq!(
+                "20:00-21:00".to_string(),
+                entries.entries[0].logs[0].time.to_string()
+            );
         }
     }
 
@@ -431,17 +504,51 @@ mod tests {
         {
             let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar").unwrap();
             assert_eq!(1, entries.entries.len());
-            assert_eq!("Foobar ".to_string(), entries.entries[0].logs[0].description.first().deref().to_string());
-            assert_eq!("foobar".to_string(), entries.entries[0].logs[0].description.at(1).deref().to_string());
-            assert_eq!(TokenKind::Tag, entries.entries[0].logs[0].description.at(1).deref().kind);
+            assert_eq!(
+                "Foobar ".to_string(),
+                entries.entries[0].logs[0]
+                    .description
+                    .first()
+                    .deref()
+                    .to_string()
+            );
+            assert_eq!(
+                "foobar".to_string(),
+                entries.entries[0].logs[0]
+                    .description
+                    .at(1)
+                    .deref()
+                    .to_string()
+            );
+            assert_eq!(
+                TokenKind::Tag,
+                entries.entries[0].logs[0].description.at(1).deref().kind
+            );
         }
         {
             let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar barfoo").unwrap();
             assert_eq!(1, entries.entries.len());
-            assert_eq!("foobar".to_string(), entries.entries[0].logs[0].description.at(1).deref().to_string());
-            assert_eq!(TokenKind::Tag, entries.entries[0].logs[0].description.at(1).deref().kind);
+            assert_eq!(
+                "foobar".to_string(),
+                entries.entries[0].logs[0]
+                    .description
+                    .at(1)
+                    .deref()
+                    .to_string()
+            );
+            assert_eq!(
+                TokenKind::Tag,
+                entries.entries[0].logs[0].description.at(1).deref().kind
+            );
 
-            assert_eq!(" barfoo".to_string(), entries.entries[0].logs[0].description.at(2).deref().to_string());
+            assert_eq!(
+                " barfoo".to_string(),
+                entries.entries[0].logs[0]
+                    .description
+                    .at(2)
+                    .deref()
+                    .to_string()
+            );
         }
     }
 }
