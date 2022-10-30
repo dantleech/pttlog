@@ -162,6 +162,6 @@ mod tests {
             }
         );
         assert_eq!(30, buckets.get("cat1").unwrap().to_owned());
-        assert_eq!(30, buckets.get("cat2").unwrap().to_owned());
+        assert_eq!(40, buckets.get("cat2").unwrap().to_owned());
     }
 }
