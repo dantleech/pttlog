@@ -60,13 +60,13 @@ impl TimeRange {
 }
 
 #[derive(Debug, PartialEq)]
-enum TokenKind {
+pub enum TokenKind {
     Prose,
     Tag,
 }
 
 #[derive(Debug)]
-struct Token {
+pub struct Token {
     pub kind: TokenKind,
     pub text: String,
 }
@@ -81,6 +81,11 @@ impl Token {
 pub struct Tokens(Vec<Token>);
 
 impl Tokens {
+
+    pub fn to_vec(&self) -> &Vec<Token>
+    {
+        &self.0
+    }
 
     fn first(&self) -> &Token {
         assert!(self.0.len() > 0, "Cannot get first token when tokens are empty");

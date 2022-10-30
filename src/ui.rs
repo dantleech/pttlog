@@ -60,7 +60,7 @@ pub fn table(entry: &parser::Entry) -> Table {
                               Span::raw(log.duration_as_string()),
                               Span::styled(format!(" {:.2}%", log.as_percentage(entry_duration)), Style::default().fg(Color::DarkGray)),
                            ])),
-                           Cell::from(log.description.to_string()),
+                           Cell::from(description(&log.description)),
         ]));
     }
 
@@ -72,4 +72,17 @@ pub fn table(entry: &parser::Entry) -> Table {
                 Constraint::Percentage(33),
         ])
         .block(Block::default().borders(Borders::ALL).title(entry.date_object().format("%A %e %B, %Y").to_string()))
+}
+
+fn description(tokens: &parser::Tokens) -> Spans<'static> {
+    let foo = tokens.to_vec().iter().map(|t: &parser::Token| {
+        match t.kind {
+            parser::TokenKind::Tag => Span::styled(
+                format!("@{}", t.text.to_owned()),
+                Style::default().fg(Color::Green)
+            ),
+            parser::TokenKind::Prose => Span::raw(t.text.to_owned()),
+        }
+    }).collect::<Vec<_>>();
+    Spans::from(foo)
 }
