@@ -4,7 +4,7 @@ use super::app;
 
 use super::parser;
 use tui::style::Color;
-use tui::widgets::Gauge;
+
 use tui::{widgets::{Table, Block, Row, Borders, Cell, Paragraph}, layout::{Constraint, Layout}, style::Style, Frame, backend::Backend, text::{Span, Spans}};
 
 pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
