@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use nom::{
-    character::{complete::{char, digit1, space0, line_ending, multispace0, alphanumeric1}}, multi::many0, combinator::{opt, map_res}, Parser, branch, sequence::pair, bytes::complete::{take_till1}
+    character::complete::{char, digit1, space0, line_ending, multispace0, alphanumeric1}, multi::many0, combinator::{opt, map_res}, Parser, branch, sequence::pair, bytes::complete::take_till1
 };
 use nom::sequence;
 use core::fmt::Debug;
@@ -219,7 +219,7 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
 
 fn prose_token(text: &str) -> nom::IResult<&str, Token> {
     let text = sequence::tuple((
-        take_till1(|c| c == ' ' || c == '\n'),
+        take_till1(|c| c == ' ' || c == '\n' || c == '\r'),
         space0
     ))(text);
 
@@ -423,6 +423,14 @@ mod tests {
             assert_eq!("Foobar ".to_string(), entries.entries[0].logs[0].description.first().deref().to_string());
             assert_eq!("foobar".to_string(), entries.entries[0].logs[0].description.at(1).deref().to_string());
             assert_eq!(TokenKind::Tag, entries.entries[0].logs[0].description.at(1).deref().kind);
+        }
+        {
+            let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar barfoo").unwrap();
+            assert_eq!(1, entries.entries.len());
+            assert_eq!("foobar".to_string(), entries.entries[0].logs[0].description.at(1).deref().to_string());
+            assert_eq!(TokenKind::Tag, entries.entries[0].logs[0].description.at(1).deref().kind);
+
+            assert_eq!(" barfoo".to_string(), entries.entries[0].logs[0].description.at(2).deref().to_string());
         }
     }
 }
