@@ -59,7 +59,7 @@ impl TimeRange {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum TokenKind {
     Prose,
     Tag,
@@ -85,7 +85,10 @@ impl Tokens {
     fn first(&self) -> &Token {
         assert!(self.0.len() > 0, "Cannot get first token when tokens are empty");
         self.0.first().unwrap()
+    } 
 
+    fn at(&self, index: usize) -> &Token {
+        &self.0[index]
     } 
 
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -418,6 +421,8 @@ mod tests {
             let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar").unwrap();
             assert_eq!(1, entries.entries.len());
             assert_eq!("Foobar ".to_string(), entries.entries[0].logs[0].description.first().deref().to_string());
+            assert_eq!("foobar".to_string(), entries.entries[0].logs[0].description.at(1).deref().to_string());
+            assert_eq!(TokenKind::Tag, entries.entries[0].logs[0].description.at(1).deref().kind);
         }
     }
 }
