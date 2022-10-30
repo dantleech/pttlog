@@ -60,7 +60,7 @@ pub fn table(entry: &parser::Entry) -> Table {
                               Span::raw(log.duration_as_string()),
                               Span::styled(format!(" {:.2}%", log.as_percentage(entry_duration)), Style::default().fg(Color::DarkGray)),
                            ])),
-                           Cell::from(log.description.as_str()),
+                           Cell::from(log.description.to_string()),
         ]));
     }
 

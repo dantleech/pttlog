@@ -1,8 +1,10 @@
-use chrono::{NaiveDate};
+use chrono::NaiveDate;
 use nom::{
     character::complete::{char, digit1, space0, not_line_ending, line_ending, multispace0}, multi::many0, combinator::{opt, map_res}, Parser
 };
 use nom::sequence;
+use core::fmt::Debug;
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct Date {
@@ -59,9 +61,66 @@ impl TimeRange {
 }
 
 #[derive(Debug)]
+enum TokenKind {
+    Prose,
+    Tag,
+}
+impl Display for TokenKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+trait Token {
+    fn kind(&self) -> TokenKind;
+    fn as_string(&self) -> String;
+}
+
+impl Debug for dyn Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Token({}) = \"{}\"", self.kind(), self.as_string())
+    }
+}
+
+#[derive(Debug)]
+struct ProseToken {
+    prose: String
+}
+
+impl Token for ProseToken {
+    fn kind(&self) -> TokenKind {
+        TokenKind::Prose
+    }
+
+    fn as_string(&self) -> String {
+        format!("{}", self.prose)
+    }
+}
+
+#[derive(Debug)]
+pub struct Tokens(Vec<Box<dyn Token>>);
+
+impl Tokens {
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+    pub fn as_str(&self) {
+    }
+    pub fn to_string(&self) -> String {
+        self.0.iter().fold("".to_string(), |acc, item| format!("{}{}", acc, item.as_string()))
+        
+    }
+
+    fn new(tokens: Vec<Box<dyn Token>>) -> Tokens {
+        Tokens(tokens)
+    }
+}
+
+#[derive(Debug)]
 pub struct Log {
     pub time: TimeRange,
-    pub description: String,
+    pub description: Tokens,
 }
 
 impl Log {
@@ -172,7 +231,7 @@ fn log(text: &str) -> nom::IResult<&str, Log>   {
     match entry {
         Ok(ok) => Ok((ok.0, Log{
             time: (ok.1).0,
-            description: (ok.1).2.to_string(),
+            description: Tokens::new(vec![Box::new(ProseToken{prose: (ok.1).2.to_string()})]),
         })),
         Err(err) => Err(err),
     }
@@ -253,12 +312,12 @@ mod tests {
     fn test_parse_log() {
         {
             let (_, entry) = log("10:00 Working on foo").unwrap();
-            assert_eq!("Working on foo".to_string(), entry.description);
+            assert_eq!("Working on foo".to_string(), entry.description.to_string());
         }
 
         {
             let (_, entry) = log("09:00    Working on foo").unwrap();
-            assert_eq!("Working on foo".to_string(), entry.description);
+            assert_eq!("Working on foo".to_string(), entry.description.to_string());
         }
     }
 
@@ -267,20 +326,20 @@ mod tests {
         {
             let (_, entry) = entry("2022-01-01\n10:00 Working on foo").unwrap();
             assert_eq!("2022-01-01".to_string(), entry.date.to_string());
-            assert_eq!("Working on foo".to_string(), entry.logs[0].description);
+            assert_eq!("Working on foo".to_string(), entry.logs[0].description.to_string());
         }
 
         {
             let (_, entry) = entry("2022-01-01\n\n10:00 Working on foo").unwrap();
             assert_eq!("2022-01-01", entry.date.to_string());
-            assert_eq!("Working on foo".to_string(), entry.logs[0].description);
+            assert_eq!("Working on foo".to_string(), entry.logs[0].description.to_string());
         }
 
         {
             let (_, entry) = entry("2022-01-01\n\n10:00 Working on foo\n11:00 Working on bar").unwrap();
             assert_eq!("2022-01-01", entry.date.to_string());
-            assert_eq!("Working on foo".to_string(), entry.logs[0].description);
-            assert_eq!("Working on bar".to_string(), entry.logs[1].description);
+            assert_eq!("Working on foo".to_string(), entry.logs[0].description.to_string());
+            assert_eq!("Working on bar".to_string(), entry.logs[1].description.to_string());
         }
     }
 
