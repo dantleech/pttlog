@@ -207,7 +207,7 @@ fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
     }
 }
 fn tag_token(text: &str) -> nom::IResult<&str, Token> {
-    let token = tuple((char('@'), alphanumeric1, space0))(text);
+    let token = tuple((char('@'), alphanumeric1))(text);
 
     match token {
         Ok(ok) => {
@@ -219,16 +219,18 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
 
 fn prose_token(text: &str) -> nom::IResult<&str, Token> {
     let text = sequence::tuple((
+        space0,
         take_till1(|c| c == ' ' || c == '\n' || c == '\r'),
         space0
     ))(text);
 
     match text {
         Ok(ok) => {
-            let word = (ok.1).0.to_string();
-            let spaces = (ok.1).1;
+            let spaces1 = (ok.1).0;
+            let word = (ok.1).1.to_string();
+            let spaces2 = (ok.1).2;
 
-            Ok((ok.0, Token{ kind: TokenKind::Prose, text: format!("{}{}", word, spaces)}))
+            Ok((ok.0, Token{ kind: TokenKind::Prose, text: format!("{}{}{}", spaces1, word, spaces2)}))
         },
         Err(err) => Err(err),
     }
@@ -430,7 +432,7 @@ mod tests {
             assert_eq!("foobar".to_string(), entries.entries[0].logs[0].description.at(1).deref().to_string());
             assert_eq!(TokenKind::Tag, entries.entries[0].logs[0].description.at(1).deref().kind);
 
-            assert_eq!("barfoo".to_string(), entries.entries[0].logs[0].description.at(2).deref().to_string());
+            assert_eq!(" barfoo".to_string(), entries.entries[0].logs[0].description.at(2).deref().to_string());
         }
     }
 }
