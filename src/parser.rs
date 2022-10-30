@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use nom::{
-    character::{complete::{char, digit1, space0, not_line_ending, line_ending, multispace0, alphanumeric1, space1}, self, is_space}, multi::many0, combinator::{opt, map_res, not}, Parser, branch, sequence::pair, bytes::complete::{take_while, take_till, take_till1}
+    character::{complete::{char, digit1, space0, not_line_ending, line_ending, multispace0, alphanumeric1, space1, newline}, self, is_space}, multi::many0, combinator::{opt, map_res, not}, Parser, branch, sequence::pair, bytes::complete::{take_while, take_till, take_till1}
 };
 use nom::sequence;
 use core::fmt::Debug;
@@ -73,7 +73,7 @@ struct Token {
 
 impl Token {
     pub fn to_string(&self) -> String {
-        self.text
+        self.text.to_string()
     }
 }
 
@@ -203,7 +203,7 @@ fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
         Err(err) => Err(err),
     }
 }
-fn tag(text: &str) -> nom::IResult<&str, Token> {
+fn tag_token(text: &str) -> nom::IResult<&str, Token> {
     let token = pair(char('@'), alphanumeric1)(text);
 
     match token {
@@ -214,11 +214,18 @@ fn tag(text: &str) -> nom::IResult<&str, Token> {
     }
 }
 
-fn prose(text: &str) -> nom::IResult<&str, Token> {
-    let text = take_till(|c| c == ' ')(text);
+fn prose_token(text: &str) -> nom::IResult<&str, Token> {
+    let text = sequence::tuple((
+        take_till1(|c| c == ' ' || c == '\n'),
+        space0
+    ))(text);
+
     match text {
         Ok(ok) => {
-            Ok((ok.0, Token{ kind: TokenKind::Prose, text: (ok.1).to_string() }))
+            let word = (ok.1).0.to_string();
+            let spaces = (ok.1).1;
+
+            Ok((ok.0, Token{ kind: TokenKind::Prose, text: format!("{}{}", word, spaces)}))
         },
         Err(err) => Err(err),
     }
@@ -226,8 +233,8 @@ fn prose(text: &str) -> nom::IResult<&str, Token> {
 
 fn token(text: &str) -> nom::IResult<&str, Token> {
     branch::alt((
-        tag,
-        prose,
+        tag_token,
+        prose_token,
     ))(text)
 }
 
@@ -235,13 +242,13 @@ fn log(text: &str) -> nom::IResult<&str, Log>   {
     let entry = sequence::tuple((
             time_range,
             space0,
-            token,
+            many0(token),
             ))(text);
 
     match entry {
         Ok(ok) => Ok((ok.0, Log{
             time: (ok.1).0,
-            description: Tokens::new(vec![Token{kind: TokenKind::Prose, text: (ok.1).2.to_string()}]),
+            description: Tokens::new((ok.1).2),
         })),
         Err(err) => Err(err),
     }
@@ -359,6 +366,7 @@ mod tests {
     fn test_parse_entries() {
         {
             let (_, entries) = parse("2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
+            assert_eq!(2, entries.entries.len());
             assert_eq!("2022-01-01".to_string(), entries.entries[0].date.to_string());
             assert_eq!("2022-02-02".to_string(), entries.entries[1].date.to_string());
         }
@@ -409,7 +417,7 @@ mod tests {
         {
             let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar").unwrap();
             assert_eq!(1, entries.entries.len());
-            assert_eq!("Foobar ".to_string(), entries.entries[0].logs[0].description.first().deref().as_string());
+            assert_eq!("Foobar ".to_string(), entries.entries[0].logs[0].description.first().deref().to_string());
         }
     }
 }
