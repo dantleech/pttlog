@@ -109,25 +109,25 @@ pub fn breakdown_chart(entry: &parser::Entry) -> BarChart {
 
 }
 
-fn breakdown_chart_buckets(entry: &parser::Entry) -> HashMap<String,u16> {
-    let mut buckets = HashMap::<String,u16>::new();
+fn breakdown_chart_buckets(entry: &parser::Entry) -> HashMap<String,i16> {
+    let mut buckets = HashMap::<String,i16>::new();
     for entry in entry.logs.iter() {
         for tag in entry.description.tags().iter() {
             if !buckets.contains_key(&tag.text) {
                 buckets.insert(tag.text.to_owned(), 0);
             }
             let count = buckets.get_mut(&tag.text).unwrap();
-            *count += 1;
+            *count += entry.time.duration();
         }
     }
     buckets
 }
+
 #[cfg(test)]
 mod tests {
     use crate::parser::{Log, Tokens};
 
     use super::*;
-
 
     #[test]
     fn test_breakdown_chart_buckets() {
@@ -135,21 +135,33 @@ mod tests {
             &parser::Entry{
                 date: parser::Date { year: 1, month: 1, day: 1 },
                 logs: vec![
-                    Log{ time: TimeRange{ start: parser::Time { hour: 0, minute: 0 }, end: None }, description: Tokens(vec![
-                       parser::Token{ kind: parser::TokenKind::Prose, text: "Today is the day".to_string() },
-                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat1".to_string() },
-                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat2".to_string() },
-                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat2".to_string() },
-                    ])},
-                    Log{ time: TimeRange{ start: parser::Time { hour: 0, minute: 0 }, end: None }, description: Tokens(vec![
-                       parser::Token{ kind: parser::TokenKind::Prose, text: "Today is another day".to_string() },
-                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat1".to_string() },
-                       parser::Token{ kind: parser::TokenKind::Tag, text: "cat2".to_string() },
-                    ])}
+                    Log{
+                       time: TimeRange{ 
+                           start: parser::Time { hour: 0, minute: 0 }, 
+                           end: Some(parser::Time { hour: 0, minute: 10 }),
+                       },
+                       description: Tokens(vec![
+                           parser::Token{ kind: parser::TokenKind::Prose, text: "Today is the day".to_string() },
+                           parser::Token{ kind: parser::TokenKind::Tag, text: "cat1".to_string() },
+                           parser::Token{ kind: parser::TokenKind::Tag, text: "cat2".to_string() },
+                           parser::Token{ kind: parser::TokenKind::Tag, text: "cat2".to_string() },
+                       ])
+                    },
+                    Log{
+                       time: TimeRange{ 
+                           start: parser::Time { hour: 0, minute: 0 }, 
+                           end: Some(parser::Time { hour: 0, minute: 20 }),
+                       },
+                       description: Tokens(vec![
+                           parser::Token{ kind: parser::TokenKind::Prose, text: "Today is another day".to_string() },
+                           parser::Token{ kind: parser::TokenKind::Tag, text: "cat1".to_string() },
+                           parser::Token{ kind: parser::TokenKind::Tag, text: "cat2".to_string() },
+                       ])
+                    },
                 ]
             }
         );
-        assert_eq!(2, buckets.get("cat1").unwrap().to_owned());
-        assert_eq!(3, buckets.get("cat2").unwrap().to_owned());
+        assert_eq!(30, buckets.get("cat1").unwrap().to_owned());
+        assert_eq!(30, buckets.get("cat2").unwrap().to_owned());
     }
 }

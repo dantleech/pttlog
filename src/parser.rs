@@ -48,7 +48,7 @@ impl TimeRange {
         return format!("{}-{}", self.start.to_string(), self.end.as_ref().unwrap().to_string())
     }
 
-    fn duration(&self) -> i16 {
+    pub fn duration(&self) -> i16 {
         if self.end.is_none() {
             return 0;
         }
