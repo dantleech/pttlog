@@ -1,8 +1,11 @@
+use std::borrow::Borrow;
+
 use crate::parser::TimeRange;
 
 use super::app;
 
 use super::parser;
+use tui::layout::Alignment;
 use tui::layout::Margin;
 use tui::style::Color;
 
@@ -36,12 +39,37 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
             horizontal: 2,
         }));
 
-    let container = Block::default().borders(Borders::ALL).title(current_entry.date_object().format("%A %e %B, %Y").to_string());
+    let container = Block::default().borders(Borders::ALL).title(format!(
+        "{}: {}",
+        current_entry
+            .date_object()
+            .format("%A %e %B, %Y")
+            .to_string(),
+        current_entry.duration_total_as_string()
+    ));
     f.render_widget(table(current_entry), columns[0]);
-    f.render_widget(container, rows[1].inner(&Margin {
-        vertical: 0,
-        horizontal: 0,
-    }))
+    f.render_widget(
+        container,
+        rows[1].inner(&Margin {
+            vertical: 0,
+            horizontal: 0,
+        }),
+    );
+    if app.notification.should_display() {
+        let text: Vec<Spans> = vec![Spans::from(vec![Span::raw(&app.notification.notification)])];
+
+        let notification = Paragraph::new(text)
+            .alignment(Alignment::Right)
+            .style(Style::default().fg(Color::DarkGray));
+
+        f.render_widget(
+            notification,
+            rows[0].inner(&Margin {
+                vertical: 0,
+                horizontal: 0,
+            }),
+        )
+    }
 }
 
 fn navigation(app: &app::App) -> Paragraph {
@@ -51,14 +79,14 @@ fn navigation(app: &app::App) -> Paragraph {
             app.current_entry_number().to_string(),
             app.entry_count().to_string()
         )),
-        Span::styled("[p] ", Style::default().fg(Color::Green)),
-        Span::styled(
-            app.current_entry().date.to_string(),
-            Style::default().fg(Color::LightBlue),
-        ),
-        Span::styled(" [n]", Style::default().fg(Color::Green)),
-        Span::raw(" "),
-        Span::raw(app.current_entry().duration_total_as_string()),
+        Span::styled("[p]", Style::default().fg(Color::Green)),
+        Span::raw("rev "),
+        Span::styled("[n]", Style::default().fg(Color::Green)),
+        Span::raw("ext "),
+        Span::styled("[r]", Style::default().fg(Color::Green)),
+        Span::raw("eload"),
+        Span::styled(" [q]", Style::default().fg(Color::Green)),
+        Span::raw("uit"),
     ])];
 
     Paragraph::new(text)
