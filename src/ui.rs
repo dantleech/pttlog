@@ -39,14 +39,12 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
             horizontal: 2,
         }));
 
-    let container = Block::default().borders(Borders::ALL).title(format!(
-        "{}: {}",
+    let container = Block::default().borders(Borders::ALL).title(
         current_entry
             .date_object()
             .format("%A %e %B, %Y")
             .to_string(),
-        current_entry.duration_total_as_string()
-    ));
+    );
     f.render_widget(table(current_entry), columns[0]);
     f.render_widget(
         container,
@@ -124,6 +122,17 @@ pub fn table(entry: &parser::Entry) -> Table {
             Cell::from(description(&log.description)),
         ]));
     }
+
+    rows.push(Row::new([
+       Cell::default(),
+       Cell::default(),
+       Cell::default(),
+    ]));
+    rows.push(Row::new([
+       Cell::from(Span::raw("Total:")),
+       Cell::from(Span::raw(entry.duration_total_as_string())),
+       Cell::default(),
+    ]));
 
     Table::new(rows)
         .header(
