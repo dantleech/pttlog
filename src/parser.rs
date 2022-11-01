@@ -562,5 +562,17 @@ mod tests {
                     .to_string()
             );
         }
+        {
+            let (_, entries) = parse("2022-01-01\n20:00 @foobar \n2022-02-02 @barfoo").unwrap();
+            assert_eq!(2, entries.entries.len());
+            assert_eq!(
+                " barfoo".to_string(),
+                entries.entries[1].logs[0]
+                    .description
+                    .at(2)
+                    .deref()
+                    .to_string()
+            );
+        }
     }
 }
