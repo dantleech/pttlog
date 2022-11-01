@@ -19,8 +19,8 @@ pub struct Date {
 }
 
 impl Date {
-    pub fn sort_value(&self) -> i16 {
-        return self.year + self.month + self.day;
+    pub fn sort_value(&self) -> i32 {
+        return format!("{:04}{:02}{:02}", self.year, self.month, self.day).parse::<i32>().unwrap();
     }
     pub fn to_string(&self) -> String {
         return format!("{:04}-{:02}-{:02}", self.year, self.month, self.day);
@@ -482,6 +482,18 @@ mod tests {
             );
             assert_eq!(
                 "2022-01-01".to_string(),
+                entries.entries[1].date.to_string()
+            );
+        }
+        {
+            let (_, entries) = parse("2022-01-31\n2022-02-01\n").unwrap();
+            assert_eq!(2, entries.entries.len());
+            assert_eq!(
+                "2022-01-31".to_string(),
+                entries.entries[0].date.to_string()
+            );
+            assert_eq!(
+                "2022-02-01".to_string(),
                 entries.entries[1].date.to_string()
             );
         }
