@@ -93,7 +93,7 @@ impl Tokens {
         &self.0
     }
 
-    fn first(&self) -> &Token {
+    pub fn first(&self) -> &Token {
         assert!(
             self.0.len() > 0,
             "Cannot get first token when tokens are empty"
@@ -101,11 +101,11 @@ impl Tokens {
         self.0.first().unwrap()
     }
 
-    fn at(&self, index: usize) -> &Token {
+    pub fn at(&self, index: usize) -> &Token {
         &self.0[index]
     }
 
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    pub fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string())
     }
     pub fn to_string(&self) -> String {

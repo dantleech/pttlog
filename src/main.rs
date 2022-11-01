@@ -1,6 +1,6 @@
-mod app;
-mod parser;
-mod ui;
+pub mod app;
+pub mod parser;
+pub mod ui;
 
 use clap::Parser;
 use crossterm::event;
