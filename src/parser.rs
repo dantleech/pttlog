@@ -1,9 +1,9 @@
 use chrono::NaiveDate;
+use nom::bytes::complete;
 use core::fmt::Debug;
 use nom::sequence;
 use nom::{
     branch,
-    bytes::complete::take_till1,
     character::complete::{alphanumeric1, char, digit1, line_ending, multispace0, space0},
     combinator::{map_res, opt},
     multi::many0,
@@ -77,11 +77,12 @@ pub enum TokenKind {
 pub struct Token {
     pub kind: TokenKind,
     pub text: String,
+    pub whitespace: String,
 }
 
 impl Token {
     pub fn to_string(&self) -> String {
-        self.text.to_string()
+        format!("{}{}", self.text.to_string(), self.whitespace.to_string())
     }
 }
 
@@ -91,6 +92,10 @@ pub struct Tokens(pub Vec<Token>);
 impl Tokens {
     pub fn to_vec(&self) -> &Vec<Token> {
         &self.0
+    }
+
+    pub fn len(&self) -> usize {
+        return self.0.len();
     }
 
     pub fn first(&self) -> &Token {
@@ -241,7 +246,7 @@ fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
     }
 }
 fn tag_token(text: &str) -> nom::IResult<&str, Token> {
-    let token = tuple((char('@'), alphanumeric1))(text);
+    let token = tuple((char('@'), alphanumeric1, space0))(text);
 
     match token {
         Ok(ok) => Ok((
@@ -249,6 +254,7 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
             Token {
                 kind: TokenKind::Tag,
                 text: (ok.1).1.to_string(),
+                whitespace: (ok.1).2.to_string(),
             },
         )),
         Err(err) => Err(err),
@@ -258,7 +264,7 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
 fn prose_token(text: &str) -> nom::IResult<&str, Token> {
     let text = sequence::tuple((
         space0,
-        take_till1(|c| c == ' ' || c == '\n' || c == '\r'),
+        complete::take_till1(|c| c == ' ' || c == '\n' || c == '\r'),
         space0,
     ))(text);
 
@@ -272,7 +278,8 @@ fn prose_token(text: &str) -> nom::IResult<&str, Token> {
                 ok.0,
                 Token {
                     kind: TokenKind::Prose,
-                    text: format!("{}{}{}", spaces1, word, spaces2),
+                    text: format!("{}{}", spaces1, word),
+                    whitespace: spaces2.to_string(),
                 },
             ))
         }
@@ -530,7 +537,7 @@ mod tests {
                     .description
                     .at(1)
                     .deref()
-                    .to_string()
+                    .text
             );
             assert_eq!(
                 TokenKind::Tag,
@@ -546,7 +553,7 @@ mod tests {
                     .description
                     .at(1)
                     .deref()
-                    .to_string()
+                    .text
             );
             assert_eq!(
                 TokenKind::Tag,
@@ -554,25 +561,45 @@ mod tests {
             );
 
             assert_eq!(
-                " barfoo".to_string(),
+                "barfoo".to_string(),
                 entries.entries[0].logs[0]
                     .description
                     .at(2)
                     .deref()
-                    .to_string()
+                    .text
             );
         }
-        {
-            let (_, entries) = parse("2022-01-01\n20:00 @foobar \n2022-02-02 @barfoo").unwrap();
-            assert_eq!(2, entries.entries.len());
-            assert_eq!(
-                " barfoo".to_string(),
-                entries.entries[1].logs[0]
-                    .description
-                    .at(2)
-                    .deref()
-                    .to_string()
-            );
-        }
+    }
+
+    #[test]
+    fn test_parse_tag_with_space() {
+        let (_, entries) = parse("2022-01-01\n20:00 @foobar \n2022-02-02\n20:00 @barfoo\n").unwrap();
+        println!("{:?}", entries);
+        assert_eq!(2, entries.entries.len());
+        assert_eq!(
+            "barfoo".to_string(),
+            entries.entries[1].logs[0]
+            .description
+            .at(0)
+            .deref()
+            .text
+        );
+    }
+
+    #[test]
+    fn test_parse_tag_with_space_and_subsequent_token() {
+        let (_, entries) = parse("2022-01-01\n20:00 @foobar barfoo").unwrap();
+        println!("{:?}", entries);
+        assert_eq!(1, entries.entries.len());
+        let description = &entries.entries[0].logs[0].description;
+        assert_eq!(2, description.len());
+        assert_eq!(
+            "foobar ".to_string(),
+            description.at(0).deref().to_string()
+        );
+        assert_eq!(
+            "barfoo".to_string(),
+            description.at(1).deref().text
+        );
     }
 }

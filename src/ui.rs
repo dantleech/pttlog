@@ -154,10 +154,10 @@ fn description(tokens: &parser::Tokens) -> Spans<'static> {
         .iter()
         .map(|t: &parser::Token| match t.kind {
             parser::TokenKind::Tag => Span::styled(
-                format!("@{}", t.text.to_owned()),
+                format!("@{}", t.to_string().to_owned()),
                 Style::default().fg(Color::Green),
             ),
-            parser::TokenKind::Prose => Span::raw(t.text.to_owned()),
+            parser::TokenKind::Prose => Span::raw(t.to_string().to_owned()),
         })
         .collect::<Vec<_>>();
     Spans::from(foo)
