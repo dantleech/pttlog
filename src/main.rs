@@ -76,7 +76,7 @@ fn main_loop(
                     KeyCode::Char('p') => app.entry_previous(),
                     KeyCode::Char('n') => app.entry_next(),
                     KeyCode::Char('r') => {
-                        app.notify("Reloaded timesheet".to_string(), 50);
+                        app.notify("reloaded timesheet".to_string(), 50);
                         return Ok(Cmd::Reload);
                     }
                     _ => {}
