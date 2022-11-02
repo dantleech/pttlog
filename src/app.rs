@@ -22,7 +22,10 @@ impl App {
         return self.current_entry + 1;
     }
 
-    pub fn current_entry(&self) -> &parser::Entry {
+    pub fn current_entry(&mut self) -> &parser::Entry {
+        if self.current_entry >= self.entries.entries.len() {
+            self.current_entry = self.entries.entries.len() - 1;
+        }
         &self.entries.entries[self.current_entry]
     }
     pub fn entry_count(&self) -> usize {
@@ -71,5 +74,35 @@ impl Notification {
     }
     pub fn should_display(&self) -> bool {
         return self.lifetime > 0;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::{self, Entry};
+
+    use super::App;
+
+    #[test]
+    pub fn test_replace_entries_resets_current_entry_if_out_of_bounds()
+    {
+        let mut app = App::new(parser::Entries{ entries: vec![
+            Entry{
+                date: parser::Date { year: 2022, month: 01, day: 01 },
+                logs: vec![]
+            },
+            Entry{
+                date: parser::Date { year: 2022, month: 01, day: 02 },
+                logs: vec![]
+            },
+        ]});
+        app.entry_next();
+        app.with_entries(parser::Entries{ entries: vec![
+            Entry{
+                date: parser::Date { year: 2022, month: 01, day: 01 },
+                logs: vec![]
+            },
+        ]});
+        app.current_entry();
     }
 }

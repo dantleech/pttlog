@@ -20,7 +20,7 @@ use tui::{
     Frame,
 };
 
-pub fn layout<B: Backend>(f: &mut Frame<B>, app: &app::App) {
+pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
     let rows = Layout::default()
         .margin(0)
         .constraints([Constraint::Min(2), Constraint::Percentage(100)].as_ref())
