@@ -54,6 +54,9 @@ fn main() -> Result<(), io::Error> {
 fn load_entries(path: &str) -> io::Result<parser::Entries> {
     let contents = fs::read_to_string(path)?;
     let (_, entries) = parse(&contents).expect("Could not parse file");
+    if entries.entries.len() == 0 {
+        return Ok(parser::Entries{entries: vec![parser::Entry::placeholder()]});
+    }
     Ok(entries)
 }
 

@@ -14,7 +14,7 @@ impl App {
             notification: Notification {
                 notification: "".to_string(),
                 lifetime: 0,
-            },
+            }
         }
     }
 
