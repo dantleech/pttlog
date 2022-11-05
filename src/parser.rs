@@ -1,7 +1,8 @@
-use chrono::{NaiveDateTime, NaiveDate, NaiveTime, Timelike};
+use chrono::{NaiveDateTime, NaiveDate, NaiveTime, Timelike, Duration};
 use nom::bytes::complete;
 use chrono::Datelike;
 use core::fmt::Debug;
+use std::ops::Sub;
 use nom::sequence;
 use nom::{
     branch,
@@ -84,6 +85,9 @@ impl Time {
     pub fn to_string(&self) -> String {
         self.time.format("%H:%M").to_string()
     }
+    pub fn subt(&self, t: Time) -> Duration {
+        self.time - t.time
+    }
 }
 
 #[derive(Debug)]
@@ -105,12 +109,12 @@ impl TimeRange {
         );
     }
 
-    pub fn duration(&self) -> u32 {
+    pub fn duration(&self) -> Duration {
         if self.end.is_none() {
-            return 0;
+            return Duration::zero();
         }
         let end = self.end.unwrap();
-        u32::from(((end.hour() - self.start.hour()) * 60) + (end.minute() - self.start.minute()))
+        end.subt(self.start)
     }
 }
 
@@ -192,14 +196,14 @@ impl Log {
         self.time.end = Some(*end_time);
     }
     pub fn duration_as_string(&self) -> String {
-        let quot = self.time.duration() / 60;
-        let rem = self.time.duration() % 60;
+        let quot = self.time.duration().num_minutes() / 60;
+        let rem = self.time.duration().num_minutes() % 60;
 
         return format!("{}h{}m", quot, rem);
     }
 
-    pub(crate) fn as_percentage(&self, duration_total: u32) -> f64 {
-        return (f64::from(self.time.duration()) / f64::from(duration_total)) * 100.0;
+    pub(crate) fn as_percentage(&self, duration_total: i64) -> f64 {
+        return (self.time.duration().num_seconds() as f64 / duration_total as f64) * 100.0;
     }
 }
 
@@ -220,8 +224,8 @@ impl Entry {
         return format!("{}h{}m", quot, rem);
     }
 
-    pub fn duration_total(&self) -> u32 {
-        self.logs.iter().fold(0, |c, l| c + l.time.duration())
+    pub fn duration_total(&self) -> i64 {
+        self.logs.iter().fold(0, |c, l| c + l.time.duration().num_minutes())
     }
 
     pub(crate) fn placeholder() -> Entry {
