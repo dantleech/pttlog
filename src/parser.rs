@@ -619,13 +619,4 @@ mod tests {
             description.at(1).deref().text
             );
     }
-
-    #[test]
-    fn test_allow_arbitrary_text_before_entries() {
-        let (_, entries) = parse("-foobar\n-barfoo\n2022-01-01\n20:00 @foobar barfoo").unwrap();
-        println!("{:?}", entries);
-        assert_eq!(1, entries.entries.len());
-        let description = &entries.entries[0].logs[0].description;
-        assert_eq!(2, description.len());
-    }
 }
