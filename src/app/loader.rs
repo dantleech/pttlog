@@ -8,7 +8,12 @@ pub trait Loader {
 }
 
 pub struct FileLoader {
-    pub path: String,
+    path: String,
+}
+impl FileLoader {
+    pub fn new(path: String) -> Box<dyn Loader> {
+        Box::new(FileLoader{path})
+    }
 }
 
 impl Loader for FileLoader {
@@ -25,6 +30,11 @@ impl Loader for FileLoader {
 pub struct FuncLoader {
     pub factory: Box<dyn Fn() -> Entries>
 
+}
+impl FuncLoader {
+    pub fn new(func: Box<dyn Fn() -> Entries>) -> Box<dyn Loader> {
+        Box::new(FuncLoader{factory: func})
+    }
 }
 
 impl Loader for FuncLoader {

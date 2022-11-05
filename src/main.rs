@@ -31,7 +31,9 @@ fn main() -> Result<(), io::Error> {
     let mut terminal = Terminal::new(backend)?;
     enable_raw_mode()?;
     terminal.clear()?;
-    let mut app = app::App::new(Box::new(FileLoader{path: path.to_string()}));
+    let mut app = app::App::new(
+        FileLoader::new(path.to_string())
+    );
     app.reload();
 
     loop {

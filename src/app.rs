@@ -1,5 +1,3 @@
-use self::loader::FuncLoader;
-
 use super::parser;
 
 pub mod loader;
@@ -71,10 +69,6 @@ impl App {
         self.entries = self.loader.load();
         self.current_entry = self.entries.entries.len()
     }
-
-    pub fn from_factory(factory: Box<dyn Fn() -> parser::Entries>) -> App {
-        App::new(Box::new(FuncLoader{factory}))
-    }
 }
 
 #[derive(Debug)]
@@ -98,12 +92,12 @@ impl Notification {
 mod tests {
     use crate::parser::{self, Entry};
 
-    use super::App;
+    use super::{App, loader::FuncLoader};
 
     #[test]
     pub fn test_replace_entries_resets_current_entry_if_out_of_bounds()
     {
-        let mut app = App::from_factory(Box::new(|| parser::Entries{entries: vec![
+        let mut app = App::new(FuncLoader::new(Box::new(|| parser::Entries{entries: vec![
             Entry{
                 date: parser::Date { year: 2022, month: 01, day: 01 },
                 logs: vec![]
@@ -112,7 +106,7 @@ mod tests {
                 date: parser::Date { year: 2022, month: 01, day: 02 },
                 logs: vec![]
             },
-        ]}));
+        ]})));
         app.entry_next();
         app.with_entries(parser::Entries{ entries: vec![
             Entry{
