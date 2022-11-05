@@ -22,13 +22,13 @@ impl Loader for FileLoader {
     }
 }
 
-pub struct VecLoader {
-    pub entries: Box<dyn Fn() -> Entries>
+pub struct FuncLoader {
+    pub factory: Box<dyn Fn() -> Entries>
 
 }
 
-impl Loader for VecLoader {
+impl Loader for FuncLoader {
     fn load(&self) -> Entries {
-        return (self.entries)()
+        return (self.factory)()
     }
 }

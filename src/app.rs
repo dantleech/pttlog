@@ -1,4 +1,4 @@
-use self::loader::VecLoader;
+use self::loader::FuncLoader;
 
 use super::parser;
 
@@ -68,11 +68,12 @@ impl App {
     }
 
     pub fn reload(&mut self) {
-        self.loader.load();
+        self.entries = self.loader.load();
+        self.current_entry = self.entries.entries.len()
     }
 
     pub fn from_factory(factory: Box<dyn Fn() -> parser::Entries>) -> App {
-        App::new(Box::new(VecLoader{entries: factory}))
+        App::new(Box::new(FuncLoader{factory}))
     }
 }
 
