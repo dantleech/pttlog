@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, NaiveDate};
+use chrono::{NaiveDateTime, NaiveDate, NaiveTime, Timelike};
 use nom::bytes::complete;
 use chrono::Datelike;
 use core::fmt::Debug;
@@ -53,13 +53,21 @@ impl Date {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Time {
-    pub hour: i32,
-    pub minute: i32,
+    time: NaiveTime,
 }
 
 impl Time {
+    pub fn from_hm(h: u32, m: u32) -> Time {
+        Time{time: NaiveTime::from_hms(h, m, 0)}
+    }
+    pub fn hour(&self) -> u32 {
+        self.time.hour()
+    }
+    pub fn minute(&self) -> u32 {
+        self.time.minute()
+    }
     pub fn to_string(&self) -> String {
-        return format!("{:02}:{:02}", self.hour, self.minute);
+        self.time.format("%H:%M").to_string()
     }
 }
 
@@ -82,12 +90,12 @@ impl TimeRange {
         );
     }
 
-    pub fn duration(&self) -> i32 {
+    pub fn duration(&self) -> u32 {
         if self.end.is_none() {
             return 0;
         }
         let end = self.end.unwrap();
-        i32::from(((end.hour - self.start.hour) * 60) + (end.minute - self.start.minute))
+        u32::from(((end.hour() - self.start.hour()) * 60) + (end.minute() - self.start.minute()))
     }
 }
 
@@ -175,7 +183,7 @@ impl Log {
         return format!("{}h{}m", quot, rem);
     }
 
-    pub(crate) fn as_percentage(&self, duration_total: i32) -> f64 {
+    pub(crate) fn as_percentage(&self, duration_total: u32) -> f64 {
         return (f64::from(self.time.duration()) / f64::from(duration_total)) * 100.0;
     }
 }
@@ -197,7 +205,7 @@ impl Entry {
         return format!("{}h{}m", quot, rem);
     }
 
-    pub fn duration_total(&self) -> i32 {
+    pub fn duration_total(&self) -> u32 {
         self.logs.iter().fold(0, |c, l| c + l.time.duration())
     }
 
@@ -206,8 +214,8 @@ impl Entry {
             date: Date { date: NaiveDate::from_ymd_opt(2015, 1, 1).unwrap() },
             logs: vec![
                 Log{ time: TimeRange {
-                    start: Time { hour: 7, minute: 28 },
-                    end: Some(Time { hour: 8, minute: 28 })
+                    start: Time::from_hm(7, 28),
+                    end: Some(Time::from_hm(8, 28))
                 }, description: Tokens::from_prose(
                     "Marty! this plain text time sheet is empty Marty!".to_string()
                 ) }
@@ -250,16 +258,16 @@ fn date(text: &str) -> nom::IResult<&str, Date> {
 }
 
 fn time(text: &str) -> nom::IResult<&str, Time> {
-    let date = sequence::tuple((date_digits_i32, char(':'), date_digits_i32))(text);
+    let time = sequence::tuple((date_digits_i32, char(':'), date_digits_i32))(text);
 
-    match date {
+    match time {
         Ok(ok) => Ok((
-                ok.0,
-                Time {
-                    hour: (ok.1).0,
-                    minute: (ok.1).2,
-                },
-                )),
+            ok.0,
+            Time::from_hm(
+                (ok.1).0.try_into().unwrap(),
+                u32::try_from((ok.1).2).unwrap()
+            ),
+        )),
         Err(err) => Err(err),
     }
 }
