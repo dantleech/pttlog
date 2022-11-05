@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, Utc, Local};
+use chrono::{NaiveDateTime, Local};
 
 use super::parser;
 
