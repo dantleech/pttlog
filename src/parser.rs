@@ -1,5 +1,6 @@
-use chrono::NaiveDate;
+use chrono::{NaiveDateTime, NaiveDate};
 use nom::bytes::complete;
+use chrono::Datelike;
 use core::fmt::Debug;
 use nom::sequence;
 use nom::{
@@ -13,9 +14,9 @@ use nom::{
 
 #[derive(Debug)]
 pub struct Date {
-    pub year: i16,
-    pub month: i16,
-    pub day: i16,
+    pub year: i32,
+    pub month: u32,
+    pub day: u32,
 }
 
 impl Date {
@@ -25,12 +26,16 @@ impl Date {
     pub fn to_string(&self) -> String {
         return format!("{:04}-{:02}-{:02}", self.year, self.month, self.day);
     }
+
+    pub(crate) fn is(&self, current_date: &NaiveDateTime) -> bool {
+        return self.year == current_date.year() && self.month == current_date.month() && self.day == (current_date.day()).try_into().unwrap()
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Time {
-    pub hour: i16,
-    pub minute: i16,
+    pub hour: i32,
+    pub minute: i32,
 }
 
 impl Time {
@@ -58,12 +63,12 @@ impl TimeRange {
         );
     }
 
-    pub fn duration(&self) -> i16 {
+    pub fn duration(&self) -> i32 {
         if self.end.is_none() {
             return 0;
         }
         let end = self.end.unwrap();
-        i16::from(((end.hour - self.start.hour) * 60) + (end.minute - self.start.minute))
+        i32::from(((end.hour - self.start.hour) * 60) + (end.minute - self.start.minute))
     }
 }
 
@@ -151,8 +156,8 @@ impl Log {
         return format!("{}h{}m", quot, rem);
     }
 
-    pub(crate) fn as_percentage(&self, duration_total: i16) -> f32 {
-        return (f32::from(self.time.duration()) / f32::from(duration_total)) * 100.0;
+    pub(crate) fn as_percentage(&self, duration_total: i32) -> f64 {
+        return (f64::from(self.time.duration()) / f64::from(duration_total)) * 100.0;
     }
 }
 
@@ -173,7 +178,7 @@ impl Entry {
         return format!("{}h{}m", quot, rem);
     }
 
-    pub fn duration_total(&self) -> i16 {
+    pub fn duration_total(&self) -> i32 {
         self.logs.iter().fold(0, |c, l| c + l.time.duration())
     }
 
@@ -197,17 +202,17 @@ pub struct Entries {
     pub entries: Vec<Entry>,
 }
 
-fn date_digits_i16(text: &str) -> nom::IResult<&str, i16> {
+fn date_digits_i32(text: &str) -> nom::IResult<&str, i32> {
     map_res(digit1, str::parse)(text)
 }
 
 fn date(text: &str) -> nom::IResult<&str, Date> {
     let date = sequence::tuple((
-            date_digits_i16,
+            date_digits_i32,
             char('-'),
-            date_digits_i16,
+            date_digits_i32,
             char('-'),
-            date_digits_i16,
+            date_digits_i32,
             ))(text);
 
     match date {
@@ -215,8 +220,8 @@ fn date(text: &str) -> nom::IResult<&str, Date> {
                 ok.0,
                 Date {
                     year: (ok.1).0,
-                    month: (ok.1).2,
-                    day: (ok.1).4,
+                    month: (ok.1).2.try_into().unwrap(),
+                    day: (ok.1).4.try_into().unwrap(),
                 },
                 )),
         Err(err) => Err(err),
@@ -224,7 +229,7 @@ fn date(text: &str) -> nom::IResult<&str, Date> {
 }
 
 fn time(text: &str) -> nom::IResult<&str, Time> {
-    let date = sequence::tuple((date_digits_i16, char(':'), date_digits_i16))(text);
+    let date = sequence::tuple((date_digits_i32, char(':'), date_digits_i32))(text);
 
     match date {
         Ok(ok) => Ok((
@@ -381,8 +386,8 @@ mod tests {
     use super::*;
     #[test]
     fn test_parse_date_digits() {
-        assert_eq!(("", 2022), date_digits_i16("2022").unwrap());
-        assert_eq!(("-10", 2022), date_digits_i16("2022-10").unwrap());
+        assert_eq!(("", 2022), date_digits_i32("2022").unwrap());
+        assert_eq!(("-10", 2022), date_digits_i32("2022-10").unwrap());
     }
 
     #[test]

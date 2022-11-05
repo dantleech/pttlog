@@ -1,8 +1,11 @@
+use chrono::{NaiveDateTime, Utc};
+
 use super::parser;
 
 pub mod loader;
 
 pub struct App {
+    current_time: NaiveDateTime,
     current_entry: usize,
     pub entries: parser::Entries,
     pub notification: Notification,
@@ -12,6 +15,7 @@ pub struct App {
 impl App {
     pub fn new(loader: Box<dyn loader::Loader>) -> App {
         App {
+            current_time: Utc::now().naive_utc(),
             loader,
             current_entry: 0,
             entries: parser::Entries{
@@ -28,10 +32,7 @@ impl App {
         return self.current_entry + 1;
     }
 
-    pub fn current_entry(&mut self) -> &parser::Entry {
-        if self.current_entry >= self.entries.entries.len() {
-            self.current_entry = self.entries.entries.len() - 1;
-        }
+    pub fn current_entry(&self) -> &parser::Entry {
         &self.entries.entries[self.current_entry]
     }
     pub fn entry_count(&self) -> usize {
@@ -67,7 +68,11 @@ impl App {
 
     pub fn reload(&mut self) {
         self.entries = self.loader.load();
-        self.current_entry = self.entries.entries.len()
+        self.current_entry = self.entries.entries.len() - 1
+    }
+
+    pub fn current_date(&self) -> &NaiveDateTime {
+        &self.current_time
     }
 }
 

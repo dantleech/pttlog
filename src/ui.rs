@@ -31,7 +31,6 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
 
     f.render_widget(navigation(app), rows[0]);
 
-    let current_entry = app.current_entry();
     // By day view
     let columns = Layout::default()
         .direction(tui::layout::Direction::Horizontal)
@@ -42,13 +41,18 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
             horizontal: 2,
         }));
 
+    let current_entry = app.current_entry();
+
     let container = Block::default().borders(Borders::ALL).title(
         current_entry
             .date_object()
             .format("%A %e %B, %Y")
             .to_string(),
     );
-    f.render_widget(table(current_entry), columns[0]);
+    f.render_widget(table(
+        &app,
+        current_entry
+    ), columns[0]);
     f.render_widget(
         container,
         rows[1].inner(&Margin {
@@ -93,7 +97,7 @@ fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
     Paragraph::new(text)
 }
 
-pub fn table(entry: &parser::Entry) -> Table {
+pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
     let mut rows = vec![];
     let headers = ["Time", "Duration", "Description"]
         .iter()
@@ -103,6 +107,8 @@ pub fn table(entry: &parser::Entry) -> Table {
     for log in entry.logs.iter() {
         rows.push(Row::new([
             Cell::from((|time: &TimeRange| {
+                if time.end.is_none() && entry.date.is(app.current_date()) {
+                }
                 if time.end.is_none() {
                     return Spans::from(vec![Span::raw(time.start.to_string())]);
                 }
