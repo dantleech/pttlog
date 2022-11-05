@@ -49,10 +49,7 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
             .format("%A %e %B, %Y")
             .to_string(),
     );
-    f.render_widget(table(
-        &app,
-        current_entry
-    ), columns[0]);
+    f.render_widget(table(&app, current_entry), columns[0]);
     f.render_widget(
         container,
         rows[1].inner(&Margin {
@@ -62,7 +59,6 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
     );
     if app.notification.should_display() {
         let text: Vec<Spans> = vec![Spans::from(vec![Span::raw(&app.notification.notification)])];
-
         let notification = Paragraph::new(text)
             .alignment(Alignment::Right)
             .style(Style::default().fg(Color::DarkGray));
@@ -107,8 +103,6 @@ pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
     for log in entry.logs.iter() {
         rows.push(Row::new([
             Cell::from((|time: &TimeRange| {
-                if time.end.is_none() && entry.date.is(app.current_date()) {
-                }
                 if time.end.is_none() {
                     return Spans::from(vec![Span::raw(time.start.to_string())]);
                 }
@@ -121,13 +115,21 @@ pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
                     ),
                 ])
             })(&log.time)),
-            Cell::from(Spans::from(vec![
-                Span::raw(log.duration_as_string()),
-                Span::styled(
-                    format!(" {:.2}%", log.as_percentage(entry_duration)),
-                    Style::default().fg(Color::DarkGray),
-                ),
-            ])),
+            Cell::from((|time: &TimeRange| {
+                if time.end.is_none() && entry.date.is(app.current_date()) {
+                    return Spans::from(vec![
+                        // TODO: refactor to use DateTime
+                        Span::raw("now"),
+                    ]);
+                }
+                Spans::from(vec![
+                    Span::raw(log.duration_as_string()),
+                    Span::styled(
+                        format!(" {:.2}%", log.as_percentage(entry_duration)),
+                        Style::default().fg(Color::DarkGray),
+                    ),
+                ])
+            })(&log.time)),
             Cell::from(description(&log.description)),
         ]));
     }
