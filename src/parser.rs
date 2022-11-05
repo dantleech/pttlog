@@ -2,7 +2,6 @@ use chrono::{NaiveDateTime, NaiveDate, NaiveTime, Timelike, Duration};
 use nom::bytes::complete;
 use chrono::Datelike;
 use core::fmt::Debug;
-use std::ops::Sub;
 use nom::sequence;
 use nom::{
     branch,
@@ -57,6 +56,17 @@ pub struct Time {
     time: NaiveTime,
 }
 
+impl PartialEq for Time {
+    fn eq(&self, other: &Self) -> bool {
+        self.time.eq(&other.time)
+    }
+}
+impl PartialOrd for Time {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.time.partial_cmp(&other.time)
+    }
+}
+
 impl Time {
     /// # Example
     ///
@@ -97,6 +107,10 @@ pub struct TimeRange {
 }
 
 impl TimeRange {
+    pub fn from_start_end(start: Time, end: Time) -> TimeRange {
+        TimeRange { start, end: Some(end) }
+    }
+
     pub fn to_string(&self) -> String {
         if self.end.is_none() {
             return self.start.to_string();
@@ -109,12 +123,39 @@ impl TimeRange {
         );
     }
 
+    /// Return duration elapsed between the time ranges
+    /// if the end time is before the last time it is assumed that
+    /// the time rolled over.
+    ///
+    /// ```
+    /// use pttlogger::parser::{TimeRange,Time};
+    ///
+    /// let t = TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(11,30));
+    /// assert_eq!(90, t.duration().num_minutes());
+    /// ```
+    ///
+    /// ```
+    /// use pttlogger::parser::{TimeRange,Time};
+    ///
+    /// let t = TimeRange::from_start_end(Time::from_hm(23, 30), Time::from_hm(0,30));
+    /// assert_eq!(60, t.duration().num_minutes());
+    /// ```
     pub fn duration(&self) -> Duration {
         if self.end.is_none() {
             return Duration::zero();
         }
         let end = self.end.unwrap();
-        end.subt(self.start)
+
+        // end is after start
+        if end > self.start {
+            return end.subt(self.start);
+        }
+
+        // end is before start, assume rollover
+        let m_to_mid = 1440 - (self.start.hour() * 60 + self.start.minute());
+        let m_past_mid = end.hour() * 60 + end.minute();
+
+        Duration::minutes(m_to_mid as i64 + m_past_mid as i64)
     }
 }
 
@@ -189,6 +230,12 @@ pub struct Log {
 }
 
 impl Log {
+    pub fn from_range_and_description(range: TimeRange, description: String) -> Log {
+        Log{
+            time: range,
+            description: Tokens::from_prose(description),
+        }
+    }
     pub fn set_duration(&mut self, end_time: &Time) {
         if self.time.end.is_some() {
             return;
@@ -202,8 +249,20 @@ impl Log {
         return format!("{}h{}m", quot, rem);
     }
 
-    pub(crate) fn as_percentage(&self, duration_total: i64) -> f64 {
-        return (self.time.duration().num_seconds() as f64 / duration_total as f64) * 100.0;
+    /// ```
+    /// use pttlogger::parser::{Log,TimeRange,Time};
+    ///
+    /// let l = Log::from_range_and_description(
+    ///   TimeRange::from_start_end(
+    ///     Time::from_hm(0, 0),
+    ///     Time::from_hm(12,0),
+    ///   ),
+    ///   "this is my log".to_string(),
+    /// );
+    /// assert_eq!(50.0, l.as_percentage(1440));
+    /// ```
+    pub fn as_percentage(&self, duration_total: i64) -> f64 {
+        return (self.time.duration().num_minutes() as f64 / duration_total as f64) * 100.0;
     }
 }
 
