@@ -14,21 +14,40 @@ use nom::{
 
 #[derive(Debug)]
 pub struct Date {
-    pub year: i32,
-    pub month: u32,
-    pub day: u32,
+    date: NaiveDate
+}
+
+impl Date {
+    pub fn from_ymd(year: i32, month: u32, day: u32) -> Date {
+        Date{date: NaiveDate::from_ymd(year, month, day)}
+    }
+}
+
+impl Date {
+    pub fn year(&self) -> i32 {
+        self.date.year()
+    }
+    pub fn month(&self) -> u32 {
+        self.date.month()
+    }
+    pub fn day(&self) -> u32 {
+        self.date.day()
+    }
+
+
+
 }
 
 impl Date {
     pub fn sort_value(&self) -> i32 {
-        return format!("{:04}{:02}{:02}", self.year, self.month, self.day).parse::<i32>().unwrap();
+        return format!("{:04}{:02}{:02}", self.date.year(), self.date.month(), self.date.day()).parse::<i32>().unwrap();
     }
     pub fn to_string(&self) -> String {
-        return format!("{:04}-{:02}-{:02}", self.year, self.month, self.day);
+        return format!("{:04}-{:02}-{:02}", self.date.year(), self.date.month(), self.date.day());
     }
 
     pub(crate) fn is(&self, current_date: &NaiveDateTime) -> bool {
-        return self.year == current_date.year() && self.month == current_date.month() && self.day == (current_date.day()).try_into().unwrap()
+        return self.date.year() == current_date.year() && self.date.month() == current_date.month() && self.date.day() == current_date.day()
     }
 }
 
@@ -184,7 +203,7 @@ impl Entry {
 
     pub(crate) fn placeholder() -> Entry {
         Entry{
-            date: Date { year: 2015, month: 01, day: 01 },
+            date: Date { date: NaiveDate::from_ymd_opt(2015, 1, 1).unwrap() },
             logs: vec![
                 Log{ time: TimeRange {
                     start: Time { hour: 7, minute: 28 },
@@ -219,9 +238,11 @@ fn date(text: &str) -> nom::IResult<&str, Date> {
         Ok(ok) => Ok((
                 ok.0,
                 Date {
-                    year: (ok.1).0,
-                    month: (ok.1).2.try_into().unwrap(),
-                    day: (ok.1).4.try_into().unwrap(),
+                    date: NaiveDate::from_ymd_opt(
+                        (ok.1).0,
+                        (ok.1).2.try_into().unwrap(),
+                        (ok.1).4.try_into().unwrap(),
+                    ).unwrap()
                 },
                 )),
         Err(err) => Err(err),
@@ -393,9 +414,9 @@ mod tests {
     #[test]
     fn test_parse_date() {
         let (_, date) = date("2022-01-02").unwrap();
-        assert_eq!(2022, date.year);
-        assert_eq!(01, date.month);
-        assert_eq!(02, date.day);
+        assert_eq!(2022, date.year());
+        assert_eq!(01, date.month());
+        assert_eq!(02, date.day());
     }
 
     #[test]

@@ -105,18 +105,18 @@ mod tests {
     {
         let mut app = App::new(FuncLoader::new(Box::new(|| parser::Entries{entries: vec![
             Entry{
-                date: parser::Date { year: 2022, month: 01, day: 01 },
+                date: parser::Date::from_ymd(2022, 01, 01),
                 logs: vec![]
             },
             Entry{
-                date: parser::Date { year: 2022, month: 01, day: 02 },
+                date: parser::Date::from_ymd(2022, 01, 02),
                 logs: vec![]
             },
         ]})));
         app.entry_next();
         app.with_entries(parser::Entries{ entries: vec![
             Entry{
-                date: parser::Date { year: 2022, month: 01, day: 01 },
+                date: parser::Date::from_ymd(2022, 01, 01),
                 logs: vec![]
             },
         ]});
