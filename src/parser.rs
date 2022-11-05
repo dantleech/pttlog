@@ -1,7 +1,7 @@
-use chrono::{NaiveDateTime, NaiveDate, NaiveTime, Timelike, Duration};
-use nom::bytes::complete;
 use chrono::Datelike;
+use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 use core::fmt::Debug;
+use nom::bytes::complete;
 use nom::sequence;
 use nom::{
     branch,
@@ -14,12 +14,14 @@ use nom::{
 
 #[derive(Debug)]
 pub struct Date {
-    date: NaiveDate
+    date: NaiveDate,
 }
 
 impl Date {
     pub fn from_ymd(year: i32, month: u32, day: u32) -> Date {
-        Date{date: NaiveDate::from_ymd(year, month, day)}
+        Date {
+            date: NaiveDate::from_ymd(year, month, day),
+        }
     }
 }
 
@@ -33,21 +35,32 @@ impl Date {
     pub fn day(&self) -> u32 {
         self.date.day()
     }
-
-
-
 }
 
 impl Date {
     pub fn sort_value(&self) -> i32 {
-        return format!("{:04}{:02}{:02}", self.date.year(), self.date.month(), self.date.day()).parse::<i32>().unwrap();
+        return format!(
+            "{:04}{:02}{:02}",
+            self.date.year(),
+            self.date.month(),
+            self.date.day()
+        )
+        .parse::<i32>()
+        .unwrap();
     }
     pub fn to_string(&self) -> String {
-        return format!("{:04}-{:02}-{:02}", self.date.year(), self.date.month(), self.date.day());
+        return format!(
+            "{:04}-{:02}-{:02}",
+            self.date.year(),
+            self.date.month(),
+            self.date.day()
+        );
     }
 
     pub(crate) fn is(&self, current_date: &NaiveDateTime) -> bool {
-        return self.date.year() == current_date.year() && self.date.month() == current_date.month() && self.date.day() == current_date.day()
+        return self.date.year() == current_date.year()
+            && self.date.month() == current_date.month()
+            && self.date.day() == current_date.day();
     }
 }
 
@@ -84,7 +97,9 @@ impl Time {
     /// assert_eq!("00:10", t.to_string());
     /// ```
     pub fn from_hm(h: u32, m: u32) -> Time {
-        Time{time: NaiveTime::from_hms(h % 24, m % 60, 0)}
+        Time {
+            time: NaiveTime::from_hms(h % 24, m % 60, 0),
+        }
     }
     pub fn hour(&self) -> u32 {
         self.time.hour()
@@ -108,7 +123,10 @@ pub struct TimeRange {
 
 impl TimeRange {
     pub fn from_start_end(start: Time, end: Time) -> TimeRange {
-        TimeRange { start, end: Some(end) }
+        TimeRange {
+            start,
+            end: Some(end),
+        }
     }
 
     pub fn to_string(&self) -> String {
@@ -183,7 +201,11 @@ pub struct Tokens(pub Vec<Token>);
 
 impl Tokens {
     pub fn from_prose(prose: String) -> Tokens {
-        Tokens(vec![Token{kind: TokenKind::Prose, text: prose, whitespace: "".to_string()}])
+        Tokens(vec![Token {
+            kind: TokenKind::Prose,
+            text: prose,
+            whitespace: "".to_string(),
+        }])
     }
     pub fn to_vec(&self) -> &Vec<Token> {
         &self.0
@@ -231,7 +253,7 @@ pub struct Log {
 
 impl Log {
     pub fn from_range_and_description(range: TimeRange, description: String) -> Log {
-        Log{
+        Log {
             time: range,
             description: Tokens::from_prose(description),
         }
@@ -284,20 +306,25 @@ impl Entry {
     }
 
     pub fn duration_total(&self) -> i64 {
-        self.logs.iter().fold(0, |c, l| c + l.time.duration().num_minutes())
+        self.logs
+            .iter()
+            .fold(0, |c, l| c + l.time.duration().num_minutes())
     }
 
     pub(crate) fn placeholder() -> Entry {
-        Entry{
-            date: Date { date: NaiveDate::from_ymd_opt(2015, 1, 1).unwrap() },
-            logs: vec![
-                Log{ time: TimeRange {
+        Entry {
+            date: Date {
+                date: NaiveDate::from_ymd_opt(2015, 1, 1).unwrap(),
+            },
+            logs: vec![Log {
+                time: TimeRange {
                     start: Time::from_hm(7, 28),
-                    end: Some(Time::from_hm(8, 28))
-                }, description: Tokens::from_prose(
-                    "Marty! this plain text time sheet is empty Marty!".to_string()
-                ) }
-            ]
+                    end: Some(Time::from_hm(8, 28)),
+                },
+                description: Tokens::from_prose(
+                    "Marty! this plain text time sheet is empty Marty!".to_string(),
+                ),
+            }],
         }
     }
 }
@@ -313,24 +340,25 @@ fn date_digits_i32(text: &str) -> nom::IResult<&str, i32> {
 
 fn date(text: &str) -> nom::IResult<&str, Date> {
     let date = sequence::tuple((
-            date_digits_i32,
-            char('-'),
-            date_digits_i32,
-            char('-'),
-            date_digits_i32,
-            ))(text);
+        date_digits_i32,
+        char('-'),
+        date_digits_i32,
+        char('-'),
+        date_digits_i32,
+    ))(text);
 
     match date {
         Ok(ok) => Ok((
-                ok.0,
-                Date {
-                    date: NaiveDate::from_ymd_opt(
-                        (ok.1).0,
-                        (ok.1).2.try_into().unwrap(),
-                        (ok.1).4.try_into().unwrap(),
-                    ).unwrap()
-                },
-                )),
+            ok.0,
+            Date {
+                date: NaiveDate::from_ymd_opt(
+                    (ok.1).0,
+                    (ok.1).2.try_into().unwrap(),
+                    (ok.1).4.try_into().unwrap(),
+                )
+                .unwrap(),
+            },
+        )),
         Err(err) => Err(err),
     }
 }
@@ -343,7 +371,7 @@ fn time(text: &str) -> nom::IResult<&str, Time> {
             ok.0,
             Time::from_hm(
                 (ok.1).0.try_into().unwrap(),
-                u32::try_from((ok.1).2).unwrap()
+                u32::try_from((ok.1).2).unwrap(),
             ),
         )),
         Err(err) => Err(err),
@@ -356,20 +384,20 @@ fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
             if (ok.1).1.is_some() {
                 let end = (ok.1).1.unwrap();
                 return Ok((
-                        ok.0,
-                        TimeRange {
-                            start: (ok.1).0,
-                            end: Some(end.1),
-                        },
-                        ));
-            }
-            Ok((
                     ok.0,
                     TimeRange {
                         start: (ok.1).0,
-                        end: None,
+                        end: Some(end.1),
                     },
-                    ))
+                ));
+            }
+            Ok((
+                ok.0,
+                TimeRange {
+                    start: (ok.1).0,
+                    end: None,
+                },
+            ))
         }
         Err(err) => Err(err),
     }
@@ -379,23 +407,23 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
 
     match token {
         Ok(ok) => Ok((
-                ok.0,
-                Token {
-                    kind: TokenKind::Tag,
-                    text: (ok.1).1.to_string(),
-                    whitespace: (ok.1).2.to_string(),
-                },
-                )),
+            ok.0,
+            Token {
+                kind: TokenKind::Tag,
+                text: (ok.1).1.to_string(),
+                whitespace: (ok.1).2.to_string(),
+            },
+        )),
         Err(err) => Err(err),
     }
 }
 
 fn prose_token(text: &str) -> nom::IResult<&str, Token> {
     let text = sequence::tuple((
-            space0,
-            complete::take_till1(|c| c == ' ' || c == '\n' || c == '\r'),
-            space0,
-            ))(text);
+        space0,
+        complete::take_till1(|c| c == ' ' || c == '\n' || c == '\r'),
+        space0,
+    ))(text);
 
     match text {
         Ok(ok) => {
@@ -404,13 +432,13 @@ fn prose_token(text: &str) -> nom::IResult<&str, Token> {
             let spaces2 = (ok.1).2;
 
             Ok((
-                    ok.0,
-                    Token {
-                        kind: TokenKind::Prose,
-                        text: format!("{}{}", spaces1, word),
-                        whitespace: spaces2.to_string(),
-                    },
-                    ))
+                ok.0,
+                Token {
+                    kind: TokenKind::Prose,
+                    text: format!("{}{}", spaces1, word),
+                    whitespace: spaces2.to_string(),
+                },
+            ))
         }
         Err(err) => Err(err),
     }
@@ -425,40 +453,40 @@ fn log(text: &str) -> nom::IResult<&str, Log> {
 
     match entry {
         Ok(ok) => Ok((
-                ok.0,
-                Log {
-                    time: (ok.1).0,
-                    description: Tokens::new((ok.1).2),
-                },
-                )),
+            ok.0,
+            Log {
+                time: (ok.1).0,
+                description: Tokens::new((ok.1).2),
+            },
+        )),
         Err(err) => Err(err),
     }
 }
 
 fn entry(text: &str) -> nom::IResult<&str, Entry> {
     let entry = sequence::tuple((
-            date,
-            line_ending,
-            multispace0,
-            many0(sequence::tuple((log, opt(line_ending))).map(|t| t.0)),
-            ))(text);
+        date,
+        line_ending,
+        multispace0,
+        many0(sequence::tuple((log, opt(line_ending))).map(|t| t.0)),
+    ))(text);
 
     match entry {
         Ok(ok) => Ok((
-                ok.0,
-                Entry {
-                    date: (ok.1).0,
-                    logs: (ok.1).3,
-                },
-                )),
+            ok.0,
+            Entry {
+                date: (ok.1).0,
+                logs: (ok.1).3,
+            },
+        )),
         Err(err) => Err(err),
     }
 }
 pub fn parse(text: &str) -> nom::IResult<&str, Entries> {
     let entry = sequence::tuple((
-            multispace0,
-            many0(sequence::tuple((entry, multispace0)).map(|t| t.0)),
-            ))(text);
+        multispace0,
+        many0(sequence::tuple((entry, multispace0)).map(|t| t.0)),
+    ))(text);
 
     match entry {
         Ok(ok) => {
@@ -531,7 +559,7 @@ mod tests {
             assert_eq!(
                 "Working on foo".to_string(),
                 entry.logs[0].description.to_string()
-                );
+            );
         }
 
         {
@@ -540,7 +568,7 @@ mod tests {
             assert_eq!(
                 "Working on foo".to_string(),
                 entry.logs[0].description.to_string()
-                );
+            );
         }
 
         {
@@ -550,11 +578,11 @@ mod tests {
             assert_eq!(
                 "Working on foo".to_string(),
                 entry.logs[0].description.to_string()
-                );
+            );
             assert_eq!(
                 "Working on bar".to_string(),
                 entry.logs[1].description.to_string()
-                );
+            );
         }
     }
 
@@ -567,11 +595,11 @@ mod tests {
             assert_eq!(
                 "2022-01-01".to_string(),
                 entries.entries[0].date.to_string()
-                );
+            );
             assert_eq!(
                 "2022-02-02".to_string(),
                 entries.entries[1].date.to_string()
-                );
+            );
         }
         {
             let (_, entries) =
@@ -579,11 +607,11 @@ mod tests {
             assert_eq!(
                 "2022-01-01".to_string(),
                 entries.entries[0].date.to_string()
-                );
+            );
             assert_eq!(
                 "2022-02-02".to_string(),
                 entries.entries[1].date.to_string()
-                );
+            );
         }
 
         {
@@ -592,7 +620,7 @@ mod tests {
             assert_eq!(
                 "2022-01-01".to_string(),
                 entries.entries[0].date.to_string()
-                );
+            );
         }
     }
 
@@ -615,11 +643,11 @@ mod tests {
             assert_eq!(
                 "2021-01-01".to_string(),
                 entries.entries[0].date.to_string()
-                );
+            );
             assert_eq!(
                 "2022-01-01".to_string(),
                 entries.entries[1].date.to_string()
-                );
+            );
         }
         {
             let (_, entries) = parse("2022-01-31\n2022-02-01\n").unwrap();
@@ -627,11 +655,11 @@ mod tests {
             assert_eq!(
                 "2022-01-31".to_string(),
                 entries.entries[0].date.to_string()
-                );
+            );
             assert_eq!(
                 "2022-02-01".to_string(),
                 entries.entries[1].date.to_string()
-                );
+            );
         }
     }
 
@@ -643,7 +671,7 @@ mod tests {
             assert_eq!(
                 "20:00-21:00".to_string(),
                 entries.entries[0].logs[0].time.to_string()
-                );
+            );
         }
     }
 
@@ -655,64 +683,49 @@ mod tests {
             assert_eq!(
                 "Foobar ".to_string(),
                 entries.entries[0].logs[0]
-                .description
-                .first()
-                .deref()
-                .to_string()
-                );
+                    .description
+                    .first()
+                    .deref()
+                    .to_string()
+            );
             assert_eq!(
                 "foobar".to_string(),
-                entries.entries[0].logs[0]
-                .description
-                .at(1)
-                .deref()
-                .text
-                );
+                entries.entries[0].logs[0].description.at(1).deref().text
+            );
             assert_eq!(
                 TokenKind::Tag,
                 entries.entries[0].logs[0].description.at(1).deref().kind
-                );
+            );
         }
         {
             let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar barfoo").unwrap();
             assert_eq!(1, entries.entries.len());
             assert_eq!(
                 "foobar".to_string(),
-                entries.entries[0].logs[0]
-                .description
-                .at(1)
-                .deref()
-                .text
-                );
+                entries.entries[0].logs[0].description.at(1).deref().text
+            );
             assert_eq!(
                 TokenKind::Tag,
                 entries.entries[0].logs[0].description.at(1).deref().kind
-                );
+            );
 
             assert_eq!(
                 "barfoo".to_string(),
-                entries.entries[0].logs[0]
-                .description
-                .at(2)
-                .deref()
-                .text
-                );
+                entries.entries[0].logs[0].description.at(2).deref().text
+            );
         }
     }
 
     #[test]
     fn test_parse_tag_with_space() {
-        let (_, entries) = parse("2022-01-01\n20:00 @foobar \n2022-02-02\n20:00 @barfoo\n").unwrap();
+        let (_, entries) =
+            parse("2022-01-01\n20:00 @foobar \n2022-02-02\n20:00 @barfoo\n").unwrap();
         println!("{:?}", entries);
         assert_eq!(2, entries.entries.len());
         assert_eq!(
             "barfoo".to_string(),
-            entries.entries[1].logs[0]
-            .description
-            .at(0)
-            .deref()
-            .text
-            );
+            entries.entries[1].logs[0].description.at(0).deref().text
+        );
     }
 
     #[test]
@@ -722,13 +735,7 @@ mod tests {
         assert_eq!(1, entries.entries.len());
         let description = &entries.entries[0].logs[0].description;
         assert_eq!(2, description.len());
-        assert_eq!(
-            "foobar ".to_string(),
-            description.at(0).deref().to_string()
-            );
-        assert_eq!(
-            "barfoo".to_string(),
-            description.at(1).deref().text
-            );
+        assert_eq!("foobar ".to_string(), description.at(0).deref().to_string());
+        assert_eq!("barfoo".to_string(), description.at(1).deref().text);
     }
 }

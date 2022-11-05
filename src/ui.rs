@@ -1,5 +1,3 @@
-
-
 use crate::parser::TimeRange;
 
 use super::app;
@@ -23,10 +21,7 @@ use tui::{
 pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
     let rows = Layout::default()
         .margin(0)
-        .constraints([
-            Constraint::Length(2),
-            Constraint::Min(4)
-        ].as_ref())
+        .constraints([Constraint::Length(2), Constraint::Min(4)].as_ref())
         .split(f.size());
 
     f.render_widget(navigation(app), rows[0]);
@@ -135,14 +130,14 @@ pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
     }
 
     rows.push(Row::new([
-       Cell::default(),
-       Cell::default(),
-       Cell::default(),
+        Cell::default(),
+        Cell::default(),
+        Cell::default(),
     ]));
     rows.push(Row::new([
-       Cell::from(Span::raw("Total:")),
-       Cell::from(Span::raw(entry.duration_total_as_string())),
-       Cell::default(),
+        Cell::from(Span::raw("Total:")),
+        Cell::from(Span::raw(entry.duration_total_as_string())),
+        Cell::default(),
     ]));
 
     Table::new(rows)

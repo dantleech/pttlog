@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, Local};
+use chrono::{Local, NaiveDateTime};
 
 use super::parser;
 
@@ -18,13 +18,13 @@ impl App {
             current_time: Local::now().naive_local(),
             loader,
             current_entry: 0,
-            entries: parser::Entries{
-                entries: vec![parser::Entry::placeholder()]
+            entries: parser::Entries {
+                entries: vec![parser::Entry::placeholder()],
             },
             notification: Notification {
                 notification: "".to_string(),
                 lifetime: 0,
-            }
+            },
         }
     }
 
@@ -98,28 +98,29 @@ impl Notification {
 mod tests {
     use crate::parser::{self, Entry};
 
-    use super::{App, loader::FuncLoader};
+    use super::{loader::FuncLoader, App};
 
     #[test]
-    pub fn test_replace_entries_resets_current_entry_if_out_of_bounds()
-    {
-        let mut app = App::new(FuncLoader::new(Box::new(|| parser::Entries{entries: vec![
-            Entry{
-                date: parser::Date::from_ymd(2022, 01, 01),
-                logs: vec![]
-            },
-            Entry{
-                date: parser::Date::from_ymd(2022, 01, 02),
-                logs: vec![]
-            },
-        ]})));
+    pub fn test_replace_entries_resets_current_entry_if_out_of_bounds() {
+        let mut app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
+            entries: vec![
+                Entry {
+                    date: parser::Date::from_ymd(2022, 01, 01),
+                    logs: vec![],
+                },
+                Entry {
+                    date: parser::Date::from_ymd(2022, 01, 02),
+                    logs: vec![],
+                },
+            ],
+        })));
         app.entry_next();
-        app.with_entries(parser::Entries{ entries: vec![
-            Entry{
+        app.with_entries(parser::Entries {
+            entries: vec![Entry {
                 date: parser::Date::from_ymd(2022, 01, 01),
-                logs: vec![]
-            },
-        ]});
+                logs: vec![],
+            }],
+        });
         app.current_entry();
     }
 }
