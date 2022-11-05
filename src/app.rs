@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, Utc, Local};
 
 use super::parser;
 
@@ -15,7 +15,7 @@ pub struct App {
 impl App {
     pub fn new(loader: Box<dyn loader::Loader>) -> App {
         App {
-            current_time: Utc::now().naive_utc(),
+            current_time: Local::now().naive_local(),
             loader,
             current_entry: 0,
             entries: parser::Entries{
@@ -59,6 +59,7 @@ impl App {
     }
 
     pub fn tick(&mut self) {
+        self.current_time = Local::now().naive_local();
         self.notification.tick();
     }
 
