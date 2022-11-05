@@ -39,21 +39,21 @@ impl App {
         self.entries.entries.len()
     }
 
-    pub(crate) fn entry_previous(&mut self) {
+    pub fn entry_previous(&mut self) {
         if self.current_entry == 0 {
             return;
         }
         self.current_entry -= 1;
     }
 
-    pub(crate) fn entry_next(&mut self) {
+    pub fn entry_next(&mut self) {
         if self.current_entry == self.entries.entries.len() - 1 {
             return;
         }
         self.current_entry += 1;
     }
 
-    pub(crate) fn notify(&mut self, message: String, lifetime: i16) {
+    pub fn notify(&mut self, message: String, lifetime: i16) {
         self.notification.notification = message;
         self.notification.lifetime = lifetime;
     }

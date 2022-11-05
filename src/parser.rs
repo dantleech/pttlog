@@ -57,8 +57,23 @@ pub struct Time {
 }
 
 impl Time {
+    /// # Example
+    ///
+    /// ```rust
+    /// use pttlogger::parser::Time;
+    ///
+    /// let t = Time::from_hm(10,10);
+    /// assert_eq!("10:10", t.to_string());
+    /// ```
+    ///
+    /// ```rust
+    /// use pttlogger::parser::Time;
+    ///
+    /// let t = Time::from_hm(24,10);
+    /// assert_eq!("00:10", t.to_string());
+    /// ```
     pub fn from_hm(h: u32, m: u32) -> Time {
-        Time{time: NaiveTime::from_hms(h, m, 0)}
+        Time{time: NaiveTime::from_hms(h % 24, m % 60, 0)}
     }
     pub fn hour(&self) -> u32 {
         self.time.hour()
