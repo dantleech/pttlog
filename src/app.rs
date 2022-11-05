@@ -1,16 +1,24 @@
+use self::loader::VecLoader;
+
 use super::parser;
+
+pub mod loader;
 
 pub struct App {
     current_entry: usize,
     pub entries: parser::Entries,
     pub notification: Notification,
+    loader: Box<dyn loader::Loader>,
 }
 
 impl App {
-    pub fn new(entries: parser::Entries) -> App {
+    pub fn new(loader: Box<dyn loader::Loader>) -> App {
         App {
-            current_entry: entries.entries.len() - 1,
-            entries,
+            loader,
+            current_entry: 0,
+            entries: parser::Entries{
+                entries: vec![parser::Entry::placeholder()]
+            },
             notification: Notification {
                 notification: "".to_string(),
                 lifetime: 0,
@@ -55,8 +63,16 @@ impl App {
         self.notification.tick();
     }
 
-    pub(crate) fn with_entries(&mut self, entries: parser::Entries) {
+    pub fn with_entries(&mut self, entries: parser::Entries) {
         self.entries = entries;
+    }
+
+    pub fn reload(&mut self) {
+        self.loader.load();
+    }
+
+    pub fn from_factory(factory: Box<dyn Fn() -> parser::Entries>) -> App {
+        App::new(Box::new(VecLoader{entries: factory}))
     }
 }
 
@@ -86,7 +102,7 @@ mod tests {
     #[test]
     pub fn test_replace_entries_resets_current_entry_if_out_of_bounds()
     {
-        let mut app = App::new(parser::Entries{ entries: vec![
+        let mut app = App::from_factory(Box::new(|| parser::Entries{entries: vec![
             Entry{
                 date: parser::Date { year: 2022, month: 01, day: 01 },
                 logs: vec![]
@@ -95,7 +111,7 @@ mod tests {
                 date: parser::Date { year: 2022, month: 01, day: 02 },
                 logs: vec![]
             },
-        ]});
+        ]}));
         app.entry_next();
         app.with_entries(parser::Entries{ entries: vec![
             Entry{

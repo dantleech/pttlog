@@ -2,6 +2,7 @@ pub mod app;
 pub mod parser;
 pub mod ui;
 
+use app::loader::FileLoader;
 use clap::Parser;
 use crossterm::event;
 use crossterm::event::poll;
@@ -10,8 +11,6 @@ use crossterm::event::KeyCode;
 use crossterm::execute;
 use crossterm::terminal::disable_raw_mode;
 use crossterm::terminal::enable_raw_mode;
-use parser::parse;
-use std::fs;
 use std::io;
 use std::time::Duration;
 use tui::{backend::CrosstermBackend, Terminal};
@@ -32,14 +31,15 @@ fn main() -> Result<(), io::Error> {
     let mut terminal = Terminal::new(backend)?;
     enable_raw_mode()?;
     terminal.clear()?;
-    let mut app = app::App::new(load_entries(path)?);
+    let mut app = app::App::new(Box::new(FileLoader{path: path.to_string()}));
+    app.reload();
 
     loop {
         let cmd = main_loop(&mut terminal, &mut app)?;
         match cmd {
             Cmd::Quit => break,
             Cmd::Reload => {
-                app.with_entries(load_entries(path)?);
+                app.reload();
                 continue;
             }
         }
@@ -49,15 +49,6 @@ fn main() -> Result<(), io::Error> {
     execute!(terminal.backend_mut(),)?;
 
     Ok(())
-}
-
-fn load_entries(path: &str) -> io::Result<parser::Entries> {
-    let contents = fs::read_to_string(path)?;
-    let (_, entries) = parse(&contents).expect("Could not parse file");
-    if entries.entries.len() == 0 {
-        return Ok(parser::Entries{entries: vec![parser::Entry::placeholder()]});
-    }
-    Ok(entries)
 }
 
 enum Cmd {

@@ -70,7 +70,7 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
     }
 }
 
-fn navigation(app: &app::App) -> Paragraph {
+fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
     let text: Vec<Spans> = vec![Spans::from(vec![
         Span::raw(format!(
             "{}/{} ",
