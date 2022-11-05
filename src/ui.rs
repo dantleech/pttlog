@@ -23,7 +23,10 @@ use tui::{
 pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
     let rows = Layout::default()
         .margin(0)
-        .constraints([Constraint::Min(2), Constraint::Percentage(100)].as_ref())
+        .constraints([
+            Constraint::Length(2),
+            Constraint::Min(4)
+        ].as_ref())
         .split(f.size());
 
     f.render_widget(navigation(app), rows[0]);
@@ -142,9 +145,9 @@ pub fn table(entry: &parser::Entry) -> Table {
                 .style(Style::default()),
         )
         .widths(&[
-            Constraint::Min(12),
-            Constraint::Min(14),
-            Constraint::Percentage(100),
+            Constraint::Percentage(15),
+            Constraint::Percentage(15),
+            Constraint::Percentage(70),
         ])
 }
 
