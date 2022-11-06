@@ -36,8 +36,8 @@ pub struct LogView<'a> {
     desription: &'a Tokens,
 }
 impl LogView<'_> {
-    pub fn percentage_of_day(&self) -> f32 {
-        0.0
+    pub fn percentage_of_day(&self, day_total: i64) -> f64 {
+        return (self.time_range.duration().num_minutes() as f64 / day_total as f64) * 100.0;
     }
 
     pub fn time_range(&self) -> &TimeRangeView {
@@ -68,7 +68,7 @@ pub struct DurationView {
     duration: Duration,
 }
 impl DurationView {
-    fn num_minutes(&self) -> i64 {
+    pub fn num_minutes(&self) -> i64 {
         self.duration.num_minutes()
     }
 }

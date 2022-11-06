@@ -89,36 +89,42 @@ fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
     Paragraph::new(text)
 }
 
-pub fn table<'a>(_app: &app::App, entry: &'a EntryView) -> Table<'a> {
+pub fn table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
     let mut rows = vec![];
-    let headers = ["Time", "Duration", "Description"]
+    let headers = ["Time", "Duration", "Description", ""]
         .iter()
         .map(|header| Cell::from(*header));
     let _duration_total = entry.duration_total();
 
     for log in entry.logs().iter() {
         rows.push(Row::new([
-            Cell::from((|time: &TimeRangeView| {
+            Cell::from((|time_range: &TimeRangeView| {
                 // 1. if today and end time not set show "now"
                 // 2. Show clock animation
                 Spans::from(vec![
-                    Span::raw(time.start.format("%H:%M").to_string()),
+                    Span::raw(time_range.start.format("%H:%M").to_string()),
                     Span::styled("-", Style::default().fg(Color::DarkGray)),
                     Span::styled(
-                        if time.ongoing {
+                        if time_range.ongoing {
                             "now".to_string()
                         } else {
-                            time.end.format("%H:%M").to_string()
+                            time_range.end.format("%H:%M").to_string()
                         },
                         Style::default().fg(Color::DarkGray),
                     ),
+                    (|| {
+                        if time_range.ongoing {
+                            return Span::raw(format!(" {}", clock_animation(app.iteration)));
+                        }
+                        Span::raw("")
+                    })(),
                 ])
             })(&log.time_range())),
             Cell::from((|range: &TimeRangeView| -> Spans {
                 Spans::from(vec![
                     Span::raw(range.duration().to_string()),
                     Span::styled(
-                        format!(" {:.2}%", log.percentage_of_day()),
+                        format!(" {:.2}%", log.percentage_of_day(entry.duration_total().num_minutes())),
                         Style::default().fg(Color::DarkGray),
                     ),
                 ])
@@ -148,11 +154,11 @@ pub fn table<'a>(_app: &app::App, entry: &'a EntryView) -> Table<'a> {
         .widths(&[
             Constraint::Percentage(15),
             Constraint::Percentage(15),
-            Constraint::Percentage(70),
+            Constraint::Percentage(65),
         ])
 }
 
-fn description(tokens: &parser::Tokens) -> Spans<'static> {
+fn description(tokens: &parser::Tokens) -> Spans {
     let foo = tokens
         .to_vec()
         .iter()
