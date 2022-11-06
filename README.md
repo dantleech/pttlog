@@ -1,54 +1,35 @@
 Plain Text Time Logger
 ======================
 
-This is an educational project to create a plain text time logger in Rust.
+This is a project to create a plain text time logger in Rust.
 
-Semantics
----------
+![Plain Text Time Logger](https://user-images.githubusercontent.com/530801/200184958-74cb3ea9-7c53-4ed1-b0f8-2fedcbdc60fb.png)
 
-- `2022-01-01` Start a new day entry
-- `10:00 Hello World` Start a new time log with description `Hello World`
-- `11:00` (nothing more) End a time log (no further activity)
-- `JIRA-1234` parse ticket numbers.
-- `#pairing #firefighting` parse tags.
+- Create a (read-only) TUI for a plain-text timesheet.
+- Add tags to categorise your entries.
+- Show total time for a given day.
+- Show percentage of total time per entry.
 
-Example
--------
+Usage
+-----
 
-Given the following text file:
-
-```
-2022-01-01
-
-10:00 Doing something
-10:30 Doing something
-
-2022-01-02
-
-10:00 Doing something
-10:30 Doing something
-15:00
-```
-
-Generate a report:
+Create a plain text file, and add entries to it, an entry is a `YYYY-MM-DD`
+date followed by time ranges and descriptions. The `@` symbol can be used to
+categorise the entry:
 
 ```
-2022-01-01:
-+-------+-------+-----------------+
-| star  | hours | description     |
-+-------+-------+-----------------+
-| 10:00 | 0.5   | Doing something |
-+-------+-------+-----------------+
-| Total | 0.5   |
-+-------+-------+
+2022-11-06
 
-2022-01-02:
-+-------+-------+-----------------+
-| star  | hours | description     |
-+-------+-------+-----------------+
-| 10:00 | 0.5   | Doing something |
-| 10:30 | 3.5   | Doing something |
-+-------+-------+-----------------+
-| Total | 4     |
-+-------+-------+
+09:00 talking to family @personal
+09:10 walking the cat @personal
+10:45-12:00 working on @pttlog
+15:00 pairing on that difficult task @pairing
+15:23 reviewing JIRA-1234 @reviewing
+16:00 @commuting to the office
+```
+
+Now run `pttlog`:
+
+```
+$ pttlog mytimesheet
 ```
