@@ -1,8 +1,12 @@
+use crate::parser::Time;
 use crate::parser::TimeRange;
 
 use super::app;
 
 use super::parser;
+use chrono::Timelike;
+use nom::ToUsize;
+use crate::parser::Log;
 use tui::layout::Alignment;
 use tui::layout::Margin;
 use tui::style::Color;
@@ -98,59 +102,77 @@ pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
     for log in entry.logs.iter() {
         rows.push(Row::new([
             Cell::from((|time: &TimeRange| {
+                if time.end.is_none() && entry.date.is(app.current_date()) {
+                    return Spans::from(vec![
+                                       Span::raw(time.start.to_string()),
+                                       Span::styled("-", Style::default().fg(Color::DarkGray)),
+                                       Span::styled(
+                                           "now",
+                                           Style::default().fg(Color::DarkGray),
+                                           ),
+                                       Span::raw(" "),
+                                       Span::raw(clock_animation(app.iteration)),
+                    ]);
+                }
                 if time.end.is_none() {
                     return Spans::from(vec![Span::raw(time.start.to_string())]);
                 }
                 Spans::from(vec![
-                    Span::raw(time.start.to_string()),
-                    Span::styled("-", Style::default().fg(Color::DarkGray)),
-                    Span::styled(
-                        time.end.unwrap().to_string(),
-                        Style::default().fg(Color::DarkGray),
-                    ),
+                            Span::raw(time.start.to_string()),
+                            Span::styled("-", Style::default().fg(Color::DarkGray)),
+                            Span::styled(
+                                time.end.unwrap().to_string(),
+                                Style::default().fg(Color::DarkGray),
+                                ),
                 ])
             })(&log.time)),
             Cell::from((|time: &TimeRange| {
                 if time.end.is_none() && entry.date.is(app.current_date()) {
                     return Spans::from(vec![
-                        // TODO: refactor to use DateTime
-                        Span::raw("now"),
+                                       Span::raw(
+                                           Log::duration_to_string(time.duration_until(
+                                                   Time::from_hm(
+                                                       app.current_date().hour(),
+                                                       app.current_date().minute(),
+                                                       )
+                                                   ))
+                                           ),
                     ]);
                 }
                 Spans::from(vec![
-                    Span::raw(log.duration_as_string()),
-                    Span::styled(
-                        format!(" {:.2}%", log.as_percentage(entry_duration)),
-                        Style::default().fg(Color::DarkGray),
-                    ),
+                            Span::raw(log.duration_as_string()),
+                            Span::styled(
+                                format!(" {:.2}%", log.as_percentage(entry_duration)),
+                                Style::default().fg(Color::DarkGray),
+                                ),
                 ])
             })(&log.time)),
             Cell::from(description(&log.description)),
-        ]));
+            ]));
     }
 
     rows.push(Row::new([
-        Cell::default(),
-        Cell::default(),
-        Cell::default(),
+                       Cell::default(),
+                       Cell::default(),
+                       Cell::default(),
     ]));
     rows.push(Row::new([
-        Cell::from(Span::raw("Total:")),
-        Cell::from(Span::raw(entry.duration_total_as_string())),
-        Cell::default(),
+                       Cell::from(Span::raw("Total:")),
+                       Cell::from(Span::raw(entry.duration_total_as_string())),
+                       Cell::default(),
     ]));
 
     Table::new(rows)
         .header(
             Row::new(headers)
-                .height(1)
-                .bottom_margin(1)
-                .style(Style::default()),
-        )
+            .height(1)
+            .bottom_margin(1)
+            .style(Style::default()),
+            )
         .widths(&[
-            Constraint::Percentage(15),
-            Constraint::Percentage(15),
-            Constraint::Percentage(70),
+                Constraint::Percentage(15),
+                Constraint::Percentage(15),
+                Constraint::Percentage(70),
         ])
 }
 
@@ -162,9 +184,40 @@ fn description(tokens: &parser::Tokens) -> Spans<'static> {
             parser::TokenKind::Tag => Span::styled(
                 format!("@{}", t.to_string().to_owned()),
                 Style::default().fg(Color::Green),
-            ),
+                ),
             parser::TokenKind::Prose => Span::raw(t.to_string().to_owned()),
         })
-        .collect::<Vec<_>>();
+    .collect::<Vec<_>>();
     Spans::from(foo)
+}
+
+fn clock_animation(iteration: u8) -> String {
+    let faces: Vec<&str> = vec![
+        "🕐",
+        "🕜",
+        "🕑",
+        "🕝",
+        "🕒",
+        "🕞",
+        "🕓",
+        "🕟",
+        "🕔",
+        "🕠",
+        "🕕",
+        "🕡",
+        "🕖",
+        "🕢",
+        "🕗",
+        "🕣",
+        "🕘",
+        "🕤",
+        "🕙",
+        "🕥",
+        "🕚",
+        "🕦",
+        "🕛",
+        "🕧",
+        ];
+
+    faces[iteration.to_usize() % faces.len()].to_string()
 }

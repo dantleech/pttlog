@@ -63,7 +63,7 @@ fn main_loop(
     loop {
         app.tick();
         terminal.draw(|frame| ui::layout(frame, app))?;
-        if (poll(Duration::from_millis(10)))? {
+        if (poll(Duration::from_millis(1000)))? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => return Ok(Cmd::Quit),

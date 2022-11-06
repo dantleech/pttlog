@@ -164,14 +164,17 @@ impl TimeRange {
         }
         let end = self.end.unwrap();
 
-        // end is after start
-        if end > self.start {
-            return end.subt(self.start);
-        }
+        self.duration_until(end)
+    }
 
+    pub fn duration_until(&self, epoch: Time) -> Duration {
+        // end is after start
+        if epoch > self.start {
+            return epoch.subt(self.start);
+        }
         // end is before start, assume rollover
         let m_to_mid = 1440 - (self.start.hour() * 60 + self.start.minute());
-        let m_past_mid = end.hour() * 60 + end.minute();
+        let m_past_mid = epoch.hour() * 60 + epoch.minute(); 
 
         Duration::minutes(m_to_mid as i64 + m_past_mid as i64)
     }
@@ -265,8 +268,12 @@ impl Log {
         self.time.end = Some(*end_time);
     }
     pub fn duration_as_string(&self) -> String {
-        let quot = self.time.duration().num_minutes() / 60;
-        let rem = self.time.duration().num_minutes() % 60;
+        Log::duration_to_string(self.time.duration())
+    }
+
+    pub fn duration_to_string(duration: Duration) -> String {
+        let quot = duration.num_minutes() / 60;
+        let rem = duration.num_minutes() % 60;
 
         return format!("{}h{}m", quot, rem);
     }

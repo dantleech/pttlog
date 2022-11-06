@@ -5,6 +5,7 @@ use super::parser;
 pub mod loader;
 
 pub struct App {
+    pub iteration: u8,
     current_time: NaiveDateTime,
     current_entry: usize,
     pub entries: parser::Entries,
@@ -15,6 +16,7 @@ pub struct App {
 impl App {
     pub fn new(loader: Box<dyn loader::Loader>) -> App {
         App {
+            iteration: 0,
             current_time: Local::now().naive_local(),
             loader,
             current_entry: 0,
@@ -61,6 +63,7 @@ impl App {
     pub fn tick(&mut self) {
         self.current_time = Local::now().naive_local();
         self.notification.tick();
+        self.iteration = (self.iteration % 127) + 1;
     }
 
     pub fn with_entries(&mut self, entries: parser::Entries) {
