@@ -4,8 +4,8 @@ use self::entry_view::EntryView;
 
 use super::parser;
 
-pub mod loader;
 pub mod entry_view;
+pub mod loader;
 
 pub struct App {
     pub iteration: u8,

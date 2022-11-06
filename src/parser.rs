@@ -73,8 +73,6 @@ impl Time {
     pub(crate) fn time(&self) -> NaiveTime {
         self.time
     }
-
-
 }
 
 impl PartialEq for Time {
@@ -182,7 +180,7 @@ impl TimeRange {
         }
         // end is before start, assume rollover
         let m_to_mid = 1440 - (self.start.hour() * 60 + self.start.minute());
-        let m_past_mid = epoch.hour() * 60 + epoch.minute(); 
+        let m_past_mid = epoch.hour() * 60 + epoch.minute();
 
         Duration::minutes(m_to_mid as i64 + m_past_mid as i64)
     }

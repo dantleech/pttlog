@@ -1,11 +1,11 @@
-use chrono::{Datelike, Timelike};
-use chrono::{NaiveDate, Duration, NaiveDateTime, NaiveTime};
-use crate::parser::{Entry, Tokens};
 use super::App;
+use crate::parser::{Entry, Tokens};
+use chrono::{Datelike, Timelike};
+use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
 pub struct EntryView<'a> {
     logs: Vec<LogView<'a>>,
-    date: EntryDateView<'a>
+    date: EntryDateView<'a>,
 }
 impl EntryView<'_> {
     pub fn create<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
@@ -46,7 +46,7 @@ impl LogView<'_> {
 }
 pub struct EntryDateView<'a> {
     now: &'a NaiveDateTime,
-    date: NaiveDate
+    date: NaiveDate,
 }
 
 impl EntryDateView<'_> {
@@ -59,11 +59,9 @@ impl EntryDateView<'_> {
     pub(crate) fn to_verbose_string(&self) -> String {
         self.date.format("%A %e %B, %Y").to_string()
     }
-
-
 }
 pub struct DurationView {
-    duration: Duration
+    duration: Duration,
 }
 impl ToString for DurationView {
     fn to_string(&self) -> String {
@@ -86,46 +84,46 @@ fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView {
     // 4. if end date not set and not today, then end date = start date
     for log in entry.logs.iter().rev() {
         if log.time.end.is_some() {
-            logs.push(LogView{
-                time_range: TimeRangeView{
+            logs.push(LogView {
+                time_range: TimeRangeView {
                     start: log.time.start.time(),
                     end: log.time.end.unwrap().time(),
                     ongoing: false,
                 },
-                desription: &log.description
+                desription: &log.description,
             });
             continue;
         }
         if logs.last().is_some() {
-            logs.push(LogView{
-                time_range: TimeRangeView{
+            logs.push(LogView {
+                time_range: TimeRangeView {
                     start: log.time.start.time(),
                     end: logs.last().unwrap().time_range().start,
                     ongoing: false,
                 },
-                desription: &log.description
+                desription: &log.description,
             });
             continue;
         }
         if app.current_date().date() == entry.date_object() {
-            logs.push(LogView{
-                time_range: TimeRangeView{
+            logs.push(LogView {
+                time_range: TimeRangeView {
                     start: log.time.start.time(),
                     end: app.current_date().time(),
                     ongoing: true,
                 },
-                desription: &log.description
+                desription: &log.description,
             });
             continue;
         }
 
-        logs.push(LogView{
-            time_range: TimeRangeView{
+        logs.push(LogView {
+            time_range: TimeRangeView {
                 start: log.time.start.time(),
                 end: log.time.start.time(),
                 ongoing: false,
             },
-            desription: &log.description
+            desription: &log.description,
         });
     }
     logs.reverse();
@@ -134,8 +132,8 @@ fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView {
         logs,
         date: EntryDateView {
             now: app.current_date(),
-            date: entry.date_object()
-        }
+            date: entry.date_object(),
+        },
     }
 }
 
@@ -146,7 +144,7 @@ pub struct TimeRangeView {
 }
 
 impl TimeRangeView {
-    pub fn to_string(&self) -> String{
+    pub fn to_string(&self) -> String {
         format!("{}-{}", self.start, self.end)
     }
     /// Return duration elapsed between the time ranges
@@ -173,7 +171,7 @@ impl TimeRangeView {
         }
         // end is before start, assume rollover
         let m_to_mid = 1440 - (self.start.hour() * 60 + self.start.minute());
-        let m_past_mid = self.end.hour() * 60 + self.end.minute(); 
+        let m_past_mid = self.end.hour() * 60 + self.end.minute();
 
         Duration::minutes(m_to_mid as i64 + m_past_mid as i64)
     }

@@ -1,8 +1,6 @@
 use crate::app::entry_view::EntryView;
 use crate::app::entry_view::TimeRangeView;
 
-
-
 use super::app;
 
 use super::parser;
@@ -43,9 +41,9 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
         }));
 
     let current_entry = app.current_entry();
-    let container = Block::default().borders(Borders::ALL).title(
-        current_entry.date().to_verbose_string(),
-    );
+    let container = Block::default()
+        .borders(Borders::ALL)
+        .title(current_entry.date().to_verbose_string());
 
     f.render_widget(table(&app, &current_entry), columns[0]);
     f.render_widget(
@@ -107,9 +105,13 @@ pub fn table<'a>(_app: &app::App, entry: &'a EntryView) -> Table<'a> {
                     Span::raw(time.start.format("%H-%I").to_string()),
                     Span::styled("-", Style::default().fg(Color::DarkGray)),
                     Span::styled(
-                        if time.ongoing { "now".to_string() } else { time.end.format("%H-%I").to_string() },
+                        if time.ongoing {
+                            "now".to_string()
+                        } else {
+                            time.end.format("%H-%I").to_string()
+                        },
                         Style::default().fg(Color::DarkGray),
-                        ),
+                    ),
                 ])
             })(&log.time_range())),
             Cell::from((|range: &TimeRangeView| -> Spans {
@@ -118,35 +120,35 @@ pub fn table<'a>(_app: &app::App, entry: &'a EntryView) -> Table<'a> {
                     Span::styled(
                         format!(" {:.2}%", log.percentage_of_day()),
                         Style::default().fg(Color::DarkGray),
-                        ),
+                    ),
                 ])
             })(&log.time_range())),
             Cell::from(description(&log.description())),
-            ]));
+        ]));
     }
 
     rows.push(Row::new([
-                       Cell::default(),
-                       Cell::default(),
-                       Cell::default(),
+        Cell::default(),
+        Cell::default(),
+        Cell::default(),
     ]));
     rows.push(Row::new([
-                       Cell::from(Span::raw("Total:")),
-                       Cell::from(Span::raw(entry.duration_total().to_string())),
-                       Cell::default(),
+        Cell::from(Span::raw("Total:")),
+        Cell::from(Span::raw(entry.duration_total().to_string())),
+        Cell::default(),
     ]));
 
     Table::new(rows)
         .header(
             Row::new(headers)
-            .height(1)
-            .bottom_margin(1)
-            .style(Style::default()),
-            )
+                .height(1)
+                .bottom_margin(1)
+                .style(Style::default()),
+        )
         .widths(&[
-                Constraint::Percentage(15),
-                Constraint::Percentage(15),
-                Constraint::Percentage(70),
+            Constraint::Percentage(15),
+            Constraint::Percentage(15),
+            Constraint::Percentage(70),
         ])
 }
 
@@ -158,40 +160,18 @@ fn description(tokens: &parser::Tokens) -> Spans<'static> {
             parser::TokenKind::Tag => Span::styled(
                 format!("@{}", t.to_string().to_owned()),
                 Style::default().fg(Color::Green),
-                ),
+            ),
             parser::TokenKind::Prose => Span::raw(t.to_string().to_owned()),
         })
-    .collect::<Vec<_>>();
+        .collect::<Vec<_>>();
     Spans::from(foo)
 }
 
 fn clock_animation(iteration: u8) -> String {
     let faces: Vec<&str> = vec![
-        "🕐",
-        "🕜",
-        "🕑",
-        "🕝",
-        "🕒",
-        "🕞",
-        "🕓",
-        "🕟",
-        "🕔",
-        "🕠",
-        "🕕",
-        "🕡",
-        "🕖",
-        "🕢",
-        "🕗",
-        "🕣",
-        "🕘",
-        "🕤",
-        "🕙",
-        "🕥",
-        "🕚",
-        "🕦",
-        "🕛",
-        "🕧",
-        ];
+        "🕐", "🕜", "🕑", "🕝", "🕒", "🕞", "🕓", "🕟", "🕔", "🕠", "🕕", "🕡", "🕖", "🕢", "🕗",
+        "🕣", "🕘", "🕤", "🕙", "🕥", "🕚", "🕦", "🕛", "🕧",
+    ];
 
     faces[iteration.to_usize() % faces.len()].to_string()
 }
