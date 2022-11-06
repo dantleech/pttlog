@@ -159,6 +159,9 @@ impl Token {
     pub fn to_string(&self) -> String {
         format!("{}{}", self.text.to_string(), self.whitespace.to_string())
     }
+    pub fn text(&self) -> &str {
+        &self.text
+    }
 }
 
 #[derive(Debug)]

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::App;
 use crate::parser::{Entry, Tokens};
 use chrono::{Datelike, Timelike};
@@ -10,6 +12,10 @@ pub struct EntryView<'a> {
 impl EntryView<'_> {
     pub fn create<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
         process_entry(app, entry)
+    }
+
+    pub fn tags(&self) -> Vec<TagMeta> {
+        todo!()
     }
 
     pub fn duration_total(&self) -> DurationView {
@@ -29,6 +35,12 @@ impl EntryView<'_> {
     pub fn date(&self) -> &EntryDateView {
         &self.date
     }
+}
+
+pub struct TagMeta {
+    tag: String,
+    duration: DurationView,
+    count: usize,
 }
 
 pub struct LogView<'a> {

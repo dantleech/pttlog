@@ -30,11 +30,13 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
 
     f.render_widget(navigation(app), rows[0]);
 
-    // By day view
     let columns = Layout::default()
         .direction(tui::layout::Direction::Horizontal)
         .margin(0)
-        .constraints([Constraint::Percentage(100)])
+        .constraints([
+            Constraint::Percentage(70),
+            Constraint::Percentage(30),
+        ])
         .split(rows[1].inner(&Margin {
             vertical: 2,
             horizontal: 2,
@@ -45,7 +47,8 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
         .borders(Borders::ALL)
         .title(current_entry.date().to_verbose_string());
 
-    f.render_widget(table(&app, &current_entry), columns[0]);
+    f.render_widget(log_table(&app, &current_entry), columns[0]);
+    f.render_widget(summmary_table(&app, &current_entry), columns[1]);
     f.render_widget(
         container,
         rows[1].inner(&Margin {
@@ -89,7 +92,26 @@ fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
     Paragraph::new(text)
 }
 
-pub fn table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
+fn summmary_table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
+    let rows = vec![];
+    let headers = ["Category", "Duration"]
+        .iter()
+        .map(|header| Cell::from(*header));
+
+    Table::new(rows)
+        .header(
+            Row::new(headers)
+                .height(1)
+                .bottom_margin(1)
+                .style(Style::default()),
+        )
+        .widths(&[
+            Constraint::Percentage(50),
+            Constraint::Percentage(50),
+        ])
+}
+
+pub fn log_table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
     let mut rows = vec![];
     let headers = ["Time", "Duration", "Description", ""]
         .iter()
