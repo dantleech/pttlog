@@ -160,27 +160,7 @@ impl TimeRangeView {
     /// if the end time is before the last time it is assumed that
     /// the time rolled over.
     ///
-    /// ```
-    /// use pttlogger::app::{TimeRangeView};
     ///
-    /// let t = TimeRangeView{
-    ///     start: NaiveTime::from_hms(10,30,0),
-    ///     end: NaiveTime::from_hms(12,0,0),
-    ///     ongoing: false,
-    /// };
-    /// assert_eq!(90, t.duration().num_minutes());
-    /// ```
-    ///
-    /// ```
-    /// use pttlogger::app::{TimeRange,Time};
-    ///
-    /// let t = TimeRangeView{
-    ///     start: NaiveTime::from_hms(23,30, 0),
-    ///     end: NaiveTime::from_hms(0, 30, 0),
-    ///     ongoing: false,
-    /// };
-    /// assert_eq!(60, t.duration().num_minutes());
-    /// ```
     pub fn duration(&self) -> DurationView {
         // end is after start
         if self.end >= self.start {
@@ -213,6 +193,26 @@ mod tests {
             desription: &Tokens::from_prose("foo".to_string())
         };
         assert_eq!(50.0, l.percentage_of_day(1440));
+    }
+
+    #[test]
+    fn time_range_view_duration() {
+        let t = TimeRangeView{
+            start: NaiveTime::from_hms(10,30,0),
+            end: NaiveTime::from_hms(12,0,0),
+            ongoing: false,
+        };
+        assert_eq!(90, t.duration().num_minutes());
+    }
+
+    #[test]
+    fn time_range_view_duration_overflow() {
+        let t = TimeRangeView{
+            start: NaiveTime::from_hms(23,30, 0),
+            end: NaiveTime::from_hms(0, 30, 0),
+            ongoing: false,
+        };
+        assert_eq!(60, t.duration().num_minutes());
     }
 
     #[test]
