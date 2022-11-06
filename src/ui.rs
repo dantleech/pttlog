@@ -102,13 +102,13 @@ pub fn table<'a>(_app: &app::App, entry: &'a EntryView) -> Table<'a> {
                 // 1. if today and end time not set show "now"
                 // 2. Show clock animation
                 Spans::from(vec![
-                    Span::raw(time.start.format("%H-%I").to_string()),
+                    Span::raw(time.start.format("%H:%M").to_string()),
                     Span::styled("-", Style::default().fg(Color::DarkGray)),
                     Span::styled(
                         if time.ongoing {
                             "now".to_string()
                         } else {
-                            time.end.format("%H-%I").to_string()
+                            time.end.format("%H:%M").to_string()
                         },
                         Style::default().fg(Color::DarkGray),
                     ),
@@ -116,7 +116,7 @@ pub fn table<'a>(_app: &app::App, entry: &'a EntryView) -> Table<'a> {
             })(&log.time_range())),
             Cell::from((|range: &TimeRangeView| -> Spans {
                 Spans::from(vec![
-                    Span::raw(range.to_string()),
+                    Span::raw(range.duration().to_string()),
                     Span::styled(
                         format!(" {:.2}%", log.percentage_of_day()),
                         Style::default().fg(Color::DarkGray),

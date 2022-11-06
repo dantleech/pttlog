@@ -12,10 +12,14 @@ impl EntryView<'_> {
         process_entry(app, entry)
     }
 
-    pub fn duration_total(&self) -> i64 {
-        self.logs()
-            .iter()
-            .fold(0, |c, l| c + l.time_range().duration().num_minutes())
+    pub fn duration_total(&self) -> DurationView {
+        DurationView{
+            duration: Duration::minutes(
+                self.logs()
+                    .iter()
+                    .fold(0, |c, l| c + l.time_range().duration().num_minutes())
+            )
+        }
     }
 
     pub fn logs(&self) -> &Vec<LogView> {
@@ -62,6 +66,11 @@ impl EntryDateView<'_> {
 }
 pub struct DurationView {
     duration: Duration,
+}
+impl DurationView {
+    fn num_minutes(&self) -> i64 {
+        self.duration.num_minutes()
+    }
 }
 impl ToString for DurationView {
     fn to_string(&self) -> String {
@@ -164,15 +173,17 @@ impl TimeRangeView {
     /// let t = TimeRange::from_start_end(Time::from_hm(23, 30), Time::from_hm(0,30));
     /// assert_eq!(60, t.duration().num_minutes());
     /// ```
-    pub fn duration(&self) -> Duration {
+    pub fn duration(&self) -> DurationView {
         // end is after start
         if self.end >= self.start {
-            return self.end - self.start;
+            return DurationView{duration:self.end - self.start};
         }
         // end is before start, assume rollover
         let m_to_mid = 1440 - (self.start.hour() * 60 + self.start.minute());
         let m_past_mid = self.end.hour() * 60 + self.end.minute();
 
-        Duration::minutes(m_to_mid as i64 + m_past_mid as i64)
+        DurationView{
+            duration: Duration::minutes(m_to_mid as i64 + m_past_mid as i64)
+        }
     }
 }
