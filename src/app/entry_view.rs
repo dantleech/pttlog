@@ -156,11 +156,7 @@ impl TimeRangeView {
     pub fn to_string(&self) -> String {
         format!("{}-{}", self.start, self.end)
     }
-    /// Return duration elapsed between the time ranges
-    /// if the end time is before the last time it is assumed that
-    /// the time rolled over.
-    ///
-    ///
+
     pub fn duration(&self) -> DurationView {
         // end is after start
         if self.end >= self.start {
