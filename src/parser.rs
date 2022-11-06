@@ -69,6 +69,14 @@ pub struct Time {
     time: NaiveTime,
 }
 
+impl Time {
+    pub(crate) fn time(&self) -> NaiveTime {
+        self.time
+    }
+
+
+}
+
 impl PartialEq for Time {
     fn eq(&self, other: &Self) -> bool {
         self.time.eq(&other.time)
@@ -507,18 +515,6 @@ pub fn parse(text: &str) -> nom::IResult<&str, Entries> {
 
 fn process_entries(entries: &mut Vec<Entry>) {
     entries.sort_by_key(|e| e.date.sort_value());
-
-    for entry in entries.iter_mut() {
-        let mut last_log: Option<&mut Log> = None;
-        for log in entry.logs.iter_mut() {
-            if last_log.is_none() {
-                last_log = Some(log);
-                continue;
-            }
-            last_log.unwrap().set_duration(&log.time.start);
-            last_log = Some(log);
-        }
-    }
 }
 
 #[cfg(test)]

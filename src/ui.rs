@@ -1,4 +1,5 @@
 use crate::app::entry_view::EntryView;
+use crate::app::entry_view::TimeRangeView;
 use crate::parser::Time;
 use crate::parser::TimeRange;
 
@@ -99,37 +100,25 @@ pub fn table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
 
     for log in entry.logs().iter() {
         rows.push(Row::new([
-            Cell::from((|time: &TimeRange| {
+            Cell::from((|time: &TimeRangeView| {
                 // 1. if today and end time not set show "now"
                 // 2. Show clock animation
                 Spans::from(vec![
-                    Span::raw(time.start.to_string()),
+                    Span::raw(time.start.format("%H-%I").to_string()),
                     Span::styled("-", Style::default().fg(Color::DarkGray)),
                     Span::styled(
-                        if time.end.is_none() { "???".to_string() } else { time.end.unwrap().to_string() },
+                        if time.ongoing { "now".to_string() } else { time.end.format("%H-%I").to_string() },
                         Style::default().fg(Color::DarkGray),
                         ),
                 ])
             })(&log.time_range())),
-            Cell::from((|time: &TimeRange| -> Spans {
-                if time.end.is_none() && entry.date().is_today() {
-                    return Spans::from(vec![
-                                       Span::raw(
-                                           Log::duration_to_string(time.duration_until(
-                                                   Time::from_hm(
-                                                       app.current_date().hour(),
-                                                       app.current_date().minute(),
-                                                       )
-                                                   ))
-                                           ),
-                    ]);
-                }
+            Cell::from((|range: &TimeRangeView| -> Spans {
                 Spans::from(vec![
-                            Span::raw(log.duration().to_string()),
-                            Span::styled(
-                                format!(" {:.2}%", log.percentage_of_day()),
-                                Style::default().fg(Color::DarkGray),
-                                ),
+                    Span::raw(range.to_string()),
+                    Span::styled(
+                        format!(" {:.2}%", log.percentage_of_day()),
+                        Style::default().fg(Color::DarkGray),
+                        ),
                 ])
             })(&log.time_range())),
             Cell::from(description(&log.description())),
