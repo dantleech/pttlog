@@ -37,6 +37,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
+        override: true
         toolchain: stable
 
     - name: Build
