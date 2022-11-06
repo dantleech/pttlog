@@ -1,14 +1,14 @@
 use crate::app::entry_view::EntryView;
 use crate::app::entry_view::TimeRangeView;
-use crate::parser::Time;
-use crate::parser::TimeRange;
+
+
 
 use super::app;
 
 use super::parser;
-use chrono::Timelike;
+
 use nom::ToUsize;
-use crate::parser::Log;
+
 use tui::layout::Alignment;
 use tui::layout::Margin;
 use tui::style::Color;
@@ -91,12 +91,12 @@ fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
     Paragraph::new(text)
 }
 
-pub fn table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
+pub fn table<'a>(_app: &app::App, entry: &'a EntryView) -> Table<'a> {
     let mut rows = vec![];
     let headers = ["Time", "Duration", "Description"]
         .iter()
         .map(|header| Cell::from(*header));
-    let duration_total = entry.duration_total();
+    let _duration_total = entry.duration_total();
 
     for log in entry.logs().iter() {
         rows.push(Row::new([
