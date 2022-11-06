@@ -1,6 +1,6 @@
-use chrono::{Local, NaiveDateTime};
 use self::entry_view::EntryView;
 use super::parser;
+use chrono::{Local, NaiveDateTime};
 pub mod entry_view;
 pub mod loader;
 

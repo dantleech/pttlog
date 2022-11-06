@@ -124,7 +124,10 @@ pub fn table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
                 Spans::from(vec![
                     Span::raw(range.duration().to_string()),
                     Span::styled(
-                        format!(" {:.2}%", log.percentage_of_day(entry.duration_total().num_minutes())),
+                        format!(
+                            " {:.2}%",
+                            log.percentage_of_day(entry.duration_total().num_minutes())
+                        ),
                         Style::default().fg(Color::DarkGray),
                     ),
                 ])

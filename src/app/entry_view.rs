@@ -13,12 +13,12 @@ impl EntryView<'_> {
     }
 
     pub fn duration_total(&self) -> DurationView {
-        DurationView{
+        DurationView {
             duration: Duration::minutes(
                 self.logs()
                     .iter()
-                    .fold(0, |c, l| c + l.time_range().duration().num_minutes())
-            )
+                    .fold(0, |c, l| c + l.time_range().duration().num_minutes()),
+            ),
         }
     }
 
@@ -160,14 +160,16 @@ impl TimeRangeView {
     pub fn duration(&self) -> DurationView {
         // end is after start
         if self.end >= self.start {
-            return DurationView{duration:self.end - self.start};
+            return DurationView {
+                duration: self.end - self.start,
+            };
         }
         // end is before start, assume rollover
         let m_to_mid = 1440 - (self.start.hour() * 60 + self.start.minute());
         let m_past_mid = self.end.hour() * 60 + self.end.minute();
 
-        DurationView{
-            duration: Duration::minutes(m_to_mid as i64 + m_past_mid as i64)
+        DurationView {
+            duration: Duration::minutes(m_to_mid as i64 + m_past_mid as i64),
         }
     }
 }
@@ -176,26 +178,33 @@ impl TimeRangeView {
 mod tests {
     use chrono::NaiveTime;
 
-    use crate::{app::{entry_view::{EntryView, LogView, TimeRangeView}, App, loader::FuncLoader}, parser::{self, Entry, Log, TimeRange, Tokens, Time, Date}};
+    use crate::{
+        app::{
+            entry_view::{EntryView, LogView, TimeRangeView},
+            loader::FuncLoader,
+            App,
+        },
+        parser::{self, Date, Entry, Log, Time, TimeRange, Tokens},
+    };
 
     #[test]
     fn log_view_percentage_of_day() {
-        let l = LogView{
-            time_range: TimeRangeView{
-                start: NaiveTime::from_hms(0,0,0),
-                end: NaiveTime::from_hms(12,0,0),
+        let l = LogView {
+            time_range: TimeRangeView {
+                start: NaiveTime::from_hms(0, 0, 0),
+                end: NaiveTime::from_hms(12, 0, 0),
                 ongoing: false,
             },
-            desription: &Tokens::from_prose("foo".to_string())
+            desription: &Tokens::from_prose("foo".to_string()),
         };
         assert_eq!(50.0, l.percentage_of_day(1440));
     }
 
     #[test]
     fn time_range_view_duration() {
-        let t = TimeRangeView{
-            start: NaiveTime::from_hms(10,30,0),
-            end: NaiveTime::from_hms(12,0,0),
+        let t = TimeRangeView {
+            start: NaiveTime::from_hms(10, 30, 0),
+            end: NaiveTime::from_hms(12, 0, 0),
             ongoing: false,
         };
         assert_eq!(90, t.duration().num_minutes());
@@ -203,8 +212,8 @@ mod tests {
 
     #[test]
     fn time_range_view_duration_overflow() {
-        let t = TimeRangeView{
-            start: NaiveTime::from_hms(23,30, 0),
+        let t = TimeRangeView {
+            start: NaiveTime::from_hms(23, 30, 0),
             end: NaiveTime::from_hms(0, 30, 0),
             ongoing: false,
         };
@@ -215,23 +224,22 @@ mod tests {
     fn test_calculates_duration() {
         {
             let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
-                entries: vec![
-                ],
+                entries: vec![],
             })));
             let entry = Entry {
                 date: Date::from_ymd(2022, 01, 01),
                 logs: vec![
-                    Log{
+                    Log {
                         time: TimeRange::from_start(Time::from_hm(10, 0)),
-                        description: Tokens::from_prose("foo".to_string())
+                        description: Tokens::from_prose("foo".to_string()),
                     },
-                    Log{
+                    Log {
                         time: TimeRange::from_start(Time::from_hm(11, 0)),
-                        description: Tokens::from_prose("foo".to_string())
+                        description: Tokens::from_prose("foo".to_string()),
                     },
-                    Log{
+                    Log {
                         time: TimeRange::from_start(Time::from_hm(13, 0)),
-                        description: Tokens::from_prose("foo".to_string())
+                        description: Tokens::from_prose("foo".to_string()),
                     },
                 ],
             };

@@ -126,10 +126,7 @@ impl TimeRange {
         }
     }
     pub fn from_start(start: Time) -> TimeRange {
-        TimeRange {
-            start,
-            end: None,
-        }
+        TimeRange { start, end: None }
     }
 
     pub fn to_string(&self) -> String {
