@@ -161,16 +161,24 @@ impl TimeRangeView {
     /// the time rolled over.
     ///
     /// ```
-    /// use pttlogger::parser::{TimeRange,Time};
+    /// use pttlogger::app::{TimeRangeView};
     ///
-    /// let t = TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(11,30));
+    /// let t = TimeRangeView{
+    ///     start: NaiveTime::from_hms(10,30,0),
+    ///     end: NaiveTime::from_hms(12,0,0),
+    ///     ongoing: false,
+    /// };
     /// assert_eq!(90, t.duration().num_minutes());
     /// ```
     ///
     /// ```
-    /// use pttlogger::parser::{TimeRange,Time};
+    /// use pttlogger::app::{TimeRange,Time};
     ///
-    /// let t = TimeRange::from_start_end(Time::from_hm(23, 30), Time::from_hm(0,30));
+    /// let t = TimeRangeView{
+    ///     start: NaiveTime::from_hms(23,30, 0),
+    ///     end: NaiveTime::from_hms(0, 30, 0),
+    ///     ongoing: false,
+    /// };
     /// assert_eq!(60, t.duration().num_minutes());
     /// ```
     pub fn duration(&self) -> DurationView {
@@ -184,6 +192,55 @@ impl TimeRangeView {
 
         DurationView{
             duration: Duration::minutes(m_to_mid as i64 + m_past_mid as i64)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::NaiveTime;
+
+    use crate::{app::{entry_view::{EntryView, LogView, TimeRangeView}, App, loader::FuncLoader}, parser::{self, Entry, Log, TimeRange, Tokens, Time, Date}};
+
+    #[test]
+    fn log_view_percentage_of_day() {
+        let l = LogView{
+            time_range: TimeRangeView{
+                start: NaiveTime::from_hms(0,0,0),
+                end: NaiveTime::from_hms(12,0,0),
+                ongoing: false,
+            },
+            desription: &Tokens::from_prose("foo".to_string())
+        };
+        assert_eq!(50.0, l.percentage_of_day(1440));
+    }
+
+    #[test]
+    fn test_calculates_duration() {
+        {
+            let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
+                entries: vec![
+                ],
+            })));
+            let entry = Entry {
+                date: Date::from_ymd(2022, 01, 01),
+                logs: vec![
+                    Log{
+                        time: TimeRange::from_start(Time::from_hm(10, 0)),
+                        description: Tokens::from_prose("foo".to_string())
+                    },
+                    Log{
+                        time: TimeRange::from_start(Time::from_hm(11, 0)),
+                        description: Tokens::from_prose("foo".to_string())
+                    },
+                    Log{
+                        time: TimeRange::from_start(Time::from_hm(13, 0)),
+                        description: Tokens::from_prose("foo".to_string())
+                    },
+                ],
+            };
+            let view = EntryView::create(&app, &entry);
+            assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
     }
 }

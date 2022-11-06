@@ -1,5 +1,5 @@
 use chrono::Datelike;
-use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
+use chrono::{NaiveDate, NaiveTime, Timelike};
 use core::fmt::Debug;
 use nom::bytes::complete;
 use nom::sequence;
@@ -56,12 +56,6 @@ impl Date {
             self.date.day()
         );
     }
-
-    pub(crate) fn is(&self, current_date: &NaiveDateTime) -> bool {
-        return self.date.year() == current_date.year()
-            && self.date.month() == current_date.month()
-            && self.date.day() == current_date.day();
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -116,9 +110,6 @@ impl Time {
     pub fn to_string(&self) -> String {
         self.time.format("%H:%M").to_string()
     }
-    pub fn subt(&self, t: Time) -> Duration {
-        self.time - t.time
-    }
 }
 
 #[derive(Debug)]
@@ -134,6 +125,12 @@ impl TimeRange {
             end: Some(end),
         }
     }
+    pub fn from_start(start: Time) -> TimeRange {
+        TimeRange {
+            start,
+            end: None,
+        }
+    }
 
     pub fn to_string(&self) -> String {
         if self.end.is_none() {
@@ -145,44 +142,6 @@ impl TimeRange {
             self.start.to_string(),
             self.end.as_ref().unwrap().to_string()
         );
-    }
-
-    /// Return duration elapsed between the time ranges
-    /// if the end time is before the last time it is assumed that
-    /// the time rolled over.
-    ///
-    /// ```
-    /// use pttlogger::parser::{TimeRange,Time};
-    ///
-    /// let t = TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(11,30));
-    /// assert_eq!(90, t.duration().num_minutes());
-    /// ```
-    ///
-    /// ```
-    /// use pttlogger::parser::{TimeRange,Time};
-    ///
-    /// let t = TimeRange::from_start_end(Time::from_hm(23, 30), Time::from_hm(0,30));
-    /// assert_eq!(60, t.duration().num_minutes());
-    /// ```
-    pub fn duration(&self) -> Duration {
-        if self.end.is_none() {
-            return Duration::zero();
-        }
-        let end = self.end.unwrap();
-
-        self.duration_until(end)
-    }
-
-    pub fn duration_until(&self, epoch: Time) -> Duration {
-        // end is after start
-        if epoch > self.start {
-            return epoch.subt(self.start);
-        }
-        // end is before start, assume rollover
-        let m_to_mid = 1440 - (self.start.hour() * 60 + self.start.minute());
-        let m_past_mid = epoch.hour() * 60 + epoch.minute();
-
-        Duration::minutes(m_to_mid as i64 + m_past_mid as i64)
     }
 }
 
@@ -260,47 +219,6 @@ pub struct Log {
     pub description: Tokens,
 }
 
-impl Log {
-    pub fn from_range_and_description(range: TimeRange, description: String) -> Log {
-        Log {
-            time: range,
-            description: Tokens::from_prose(description),
-        }
-    }
-    pub fn set_duration(&mut self, end_time: &Time) {
-        if self.time.end.is_some() {
-            return;
-        }
-        self.time.end = Some(*end_time);
-    }
-    pub fn duration_as_string(&self) -> String {
-        Log::duration_to_string(self.time.duration())
-    }
-
-    pub fn duration_to_string(duration: Duration) -> String {
-        let quot = duration.num_minutes() / 60;
-        let rem = duration.num_minutes() % 60;
-
-        return format!("{}h{}m", quot, rem);
-    }
-
-    /// ```
-    /// use pttlogger::parser::{Log,TimeRange,Time};
-    ///
-    /// let l = Log::from_range_and_description(
-    ///   TimeRange::from_start_end(
-    ///     Time::from_hm(0, 0),
-    ///     Time::from_hm(12,0),
-    ///   ),
-    ///   "this is my log".to_string(),
-    /// );
-    /// assert_eq!(50.0, l.as_percentage(1440));
-    /// ```
-    pub fn as_percentage(&self, duration_total: i64) -> f64 {
-        return (self.time.duration().num_minutes() as f64 / duration_total as f64) * 100.0;
-    }
-}
-
 #[derive(Debug)]
 pub struct Entry {
     pub date: Date,
@@ -311,19 +229,6 @@ impl Entry {
     pub fn date_object(&self) -> NaiveDate {
         NaiveDate::parse_from_str(&self.date.to_string(), "%Y-%m-%d").expect("Could not parse date")
     }
-    pub fn duration_total_as_string(&self) -> String {
-        let quot = self.duration_total() / 60;
-        let rem = self.duration_total() % 60;
-
-        return format!("{}h{}m", quot, rem);
-    }
-
-    pub fn duration_total(&self) -> i64 {
-        self.logs
-            .iter()
-            .fold(0, |c, l| c + l.time.duration().num_minutes())
-    }
-
     pub(crate) fn placeholder() -> Entry {
         Entry {
             date: Date {
@@ -622,17 +527,6 @@ mod tests {
                 "2022-01-01".to_string(),
                 entries.entries[0].date.to_string()
             );
-        }
-    }
-
-    #[test]
-    fn test_calculates_duration() {
-        {
-            let (_, entries) = parse("2022-01-01\n10:00 Working on foo\n11:00 Working on bar\n12:00 Doing something else").unwrap();
-            assert_eq!("10:00", entries.entries[0].logs[0].time.start.to_string());
-            assert_eq!("1h0m", entries.entries[0].logs[0].duration_as_string());
-            assert_eq!("11:00", entries.entries[0].logs[1].time.start.to_string());
-            assert_eq!("12:00", entries.entries[0].logs[2].time.start.to_string());
         }
     }
 
