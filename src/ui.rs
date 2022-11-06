@@ -25,7 +25,7 @@ use tui::{
 pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
     let rows = Layout::default()
         .margin(0)
-        .constraints([Constraint::Length(2), Constraint::Min(4)].as_ref())
+        .constraints([Constraint::Length(1), Constraint::Min(4)].as_ref())
         .split(f.size());
 
     f.render_widget(navigation(app), rows[0]);
@@ -97,21 +97,21 @@ pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
     let headers = ["Time", "Duration", "Description"]
         .iter()
         .map(|header| Cell::from(*header));
-    let entry_duration = entry.duration_total();
+    let duration_total = entry.duration_total();
 
     for log in entry.logs.iter() {
         rows.push(Row::new([
             Cell::from((|time: &TimeRange| {
                 if time.end.is_none() && entry.date.is(app.current_date()) {
                     return Spans::from(vec![
-                                       Span::raw(time.start.to_string()),
-                                       Span::styled("-", Style::default().fg(Color::DarkGray)),
-                                       Span::styled(
-                                           "now",
-                                           Style::default().fg(Color::DarkGray),
-                                           ),
-                                       Span::raw(" "),
-                                       Span::raw(clock_animation(app.iteration)),
+                        Span::raw(time.start.to_string()),
+                        Span::styled("-", Style::default().fg(Color::DarkGray)),
+                        Span::styled(
+                            "now",
+                            Style::default().fg(Color::DarkGray),
+                            ),
+                        Span::raw(" "),
+                        Span::raw(clock_animation(app.iteration)),
                     ]);
                 }
                 if time.end.is_none() {
@@ -142,7 +142,7 @@ pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
                 Spans::from(vec![
                             Span::raw(log.duration_as_string()),
                             Span::styled(
-                                format!(" {:.2}%", log.as_percentage(entry_duration)),
+                                format!(" {:.2}%", log.as_percentage(duration_total)),
                                 Style::default().fg(Color::DarkGray),
                                 ),
                 ])
