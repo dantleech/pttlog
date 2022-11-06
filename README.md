@@ -10,6 +10,13 @@ This is a project to create a plain text time logger in Rust.
 - Show total time for a given day.
 - Show percentage of total time per entry.
 
+Planned features:
+
+- TODO stack: support having a stack of bullet points in the timesheet that
+  act as a "TODO" list and are promenantly displayed.
+- Day summary: break down based on the tagged categories.
+- Week/Month/Year summarys.
+
 Usage
 -----
 
