@@ -20,21 +20,22 @@ jobs:
         include:
           - name: linux
             os: ubuntu-latest
-            artifact_name: target/release/<name>
-            asset_name: <name>-linux
+            artifact_name: target/release/pttlogger
+            asset_name: pttlogger-linux
           - name: windows
             os: windows-latest
-            artifact_name: target/release/<name>.exe
-            asset_name: <name>-windows
+            artifact_name: target/release/pttlogger.exe
+            asset_name: pttlogger-windows
           - name: macos
             os: macos-latest
-            artifact_name: target/release/<name>
-            asset_name: <name>-macos
+            artifact_name: target/release/pttlogger
+            asset_name: pttlogger-macos
 
     steps:
     - uses: actions/checkout@v3
     - name: Build
       run: cargo build --release --locked
+
     - name: Upload binaries to release
       uses: actions/upload-artifact@v2
       with:
