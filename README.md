@@ -26,6 +26,12 @@ categorise the entry:
 15:00 pairing on that difficult task @pairing
 15:23 reviewing JIRA-1234 @reviewing
 16:00 @commuting to the office
+
+2022-11-06
+
+09:00 shouting at clouds @personal
+09:30-09:40 eating breakfast @personal
+10:00 ...
 ```
 
 Now run `pttlog`:
