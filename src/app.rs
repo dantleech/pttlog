@@ -1,8 +1,11 @@
 use chrono::{Local, NaiveDateTime};
 
+use self::entry_view::EntryView;
+
 use super::parser;
 
 pub mod loader;
+pub mod entry_view;
 
 pub struct App {
     pub iteration: u8,
@@ -34,8 +37,8 @@ impl App {
         return self.current_entry + 1;
     }
 
-    pub fn current_entry(&self) -> &parser::Entry {
-        &self.entries.entries[self.current_entry]
+    pub fn current_entry(&self) -> EntryView {
+        EntryView::create(&self, &self.entries.entries[self.current_entry])
     }
     pub fn entry_count(&self) -> usize {
         self.entries.entries.len()

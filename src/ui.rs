@@ -1,3 +1,4 @@
+use crate::app::entry_view::EntryView;
 use crate::parser::Time;
 use crate::parser::TimeRange;
 
@@ -41,14 +42,11 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
         }));
 
     let current_entry = app.current_entry();
-
     let container = Block::default().borders(Borders::ALL).title(
-        current_entry
-            .date_object()
-            .format("%A %e %B, %Y")
-            .to_string(),
+        current_entry.date().to_verbose_string(),
     );
-    f.render_widget(table(&app, current_entry), columns[0]);
+
+    f.render_widget(table(&app, &current_entry), columns[0]);
     f.render_widget(
         container,
         rows[1].inner(&Margin {
@@ -92,42 +90,29 @@ fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
     Paragraph::new(text)
 }
 
-pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
+pub fn table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
     let mut rows = vec![];
     let headers = ["Time", "Duration", "Description"]
         .iter()
         .map(|header| Cell::from(*header));
     let duration_total = entry.duration_total();
 
-    for log in entry.logs.iter() {
+    for log in entry.logs().iter() {
         rows.push(Row::new([
             Cell::from((|time: &TimeRange| {
-                if time.end.is_none() && entry.date.is(app.current_date()) {
-                    return Spans::from(vec![
-                        Span::raw(time.start.to_string()),
-                        Span::styled("-", Style::default().fg(Color::DarkGray)),
-                        Span::styled(
-                            "now",
-                            Style::default().fg(Color::DarkGray),
-                            ),
-                        Span::raw(" "),
-                        Span::raw(clock_animation(app.iteration)),
-                    ]);
-                }
-                if time.end.is_none() {
-                    return Spans::from(vec![Span::raw(time.start.to_string())]);
-                }
+                // 1. if today and end time not set show "now"
+                // 2. Show clock animation
                 Spans::from(vec![
-                            Span::raw(time.start.to_string()),
-                            Span::styled("-", Style::default().fg(Color::DarkGray)),
-                            Span::styled(
-                                time.end.unwrap().to_string(),
-                                Style::default().fg(Color::DarkGray),
-                                ),
+                    Span::raw(time.start.to_string()),
+                    Span::styled("-", Style::default().fg(Color::DarkGray)),
+                    Span::styled(
+                        if time.end.is_none() { "???".to_string() } else { time.end.unwrap().to_string() },
+                        Style::default().fg(Color::DarkGray),
+                        ),
                 ])
-            })(&log.time)),
-            Cell::from((|time: &TimeRange| {
-                if time.end.is_none() && entry.date.is(app.current_date()) {
+            })(&log.time_range())),
+            Cell::from((|time: &TimeRange| -> Spans {
+                if time.end.is_none() && entry.date().is_today() {
                     return Spans::from(vec![
                                        Span::raw(
                                            Log::duration_to_string(time.duration_until(
@@ -140,14 +125,14 @@ pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
                     ]);
                 }
                 Spans::from(vec![
-                            Span::raw(log.duration_as_string()),
+                            Span::raw(log.duration().to_string()),
                             Span::styled(
-                                format!(" {:.2}%", log.as_percentage(duration_total)),
+                                format!(" {:.2}%", log.percentage_of_day()),
                                 Style::default().fg(Color::DarkGray),
                                 ),
                 ])
-            })(&log.time)),
-            Cell::from(description(&log.description)),
+            })(&log.time_range())),
+            Cell::from(description(&log.description())),
             ]));
     }
 
@@ -158,7 +143,7 @@ pub fn table<'a>(app: &app::App, entry: &'a parser::Entry) -> Table<'a> {
     ]));
     rows.push(Row::new([
                        Cell::from(Span::raw("Total:")),
-                       Cell::from(Span::raw(entry.duration_total_as_string())),
+                       Cell::from(Span::raw(entry.duration_total().to_string())),
                        Cell::default(),
     ]));
 
