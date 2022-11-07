@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use super::App;
-use crate::parser::{Entry, Tokens};
+use crate::parser::{Entry, Token, Tokens};
 use chrono::{Datelike, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
@@ -10,6 +12,38 @@ pub struct EntryView<'a> {
 impl EntryView<'_> {
     pub fn create<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
         process_entry(app, entry)
+    }
+
+    pub fn tag_summary(&self) -> Vec<TagMeta> {
+        let entry_map = self.logs().iter().fold(
+            HashMap::new(),
+            |entry_map: HashMap<String, TagMeta>, log: &LogView| {
+                log.description().tags().iter().fold(
+                    entry_map,
+                    |mut acc: HashMap<String, TagMeta>, tag: &&Token| {
+                        let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta {
+                            tag: tag.text().to_string(),
+                            duration: DurationView::from_minutes(0 as i64),
+                            count: 0,
+                        });
+                        meta.count += 1;
+                        meta.duration.duration = meta
+                            .duration
+                            .duration
+                            .checked_add(&log.time_range().duration().duration)
+                            .expect("overflow occurred");
+                        acc
+                    },
+                )
+            },
+        );
+
+        let mut tag_metas: Vec<TagMeta> = vec![];
+        for (_, v) in entry_map {
+            tag_metas.push(v)
+        }
+        tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
+        tag_metas
     }
 
     pub fn duration_total(&self) -> DurationView {
@@ -29,6 +63,12 @@ impl EntryView<'_> {
     pub fn date(&self) -> &EntryDateView {
         &self.date
     }
+}
+
+pub struct TagMeta {
+    pub tag: String,
+    pub duration: DurationView,
+    pub count: usize,
 }
 
 pub struct LogView<'a> {
@@ -70,6 +110,12 @@ pub struct DurationView {
 impl DurationView {
     pub fn num_minutes(&self) -> i64 {
         self.duration.num_minutes()
+    }
+
+    fn from_minutes(arg: i64) -> DurationView {
+        DurationView {
+            duration: Duration::minutes(arg),
+        }
     }
 }
 impl ToString for DurationView {
@@ -184,7 +230,7 @@ mod tests {
             loader::FuncLoader,
             App,
         },
-        parser::{self, Date, Entry, Log, Time, TimeRange, Tokens},
+        parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens},
     };
 
     #[test]
@@ -246,5 +292,40 @@ mod tests {
             let view = EntryView::create(&app, &entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
+    }
+
+    #[test]
+    fn test_entry_view_tag_summary() {
+        let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
+            entries: vec![],
+        })));
+        let entry = Entry {
+            date: Date::from_ymd(2022, 01, 01),
+            logs: vec![
+                Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(10, 30)),
+                    description: Tokens::new(vec![Token::tag("foobar".to_string())]),
+                },
+                Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(11, 0)),
+                    description: Tokens::new(vec![
+                        Token::tag("barfoo".to_string()),
+                        Token::tag("foobar".to_string()),
+                    ]),
+                },
+            ],
+        };
+        let view = EntryView::create(&app, &entry);
+
+        let summary = view.tag_summary();
+        assert_eq!(2, summary.len());
+
+        assert_eq!("barfoo".to_string(), summary[1].tag);
+        assert_eq!(1, summary[1].count);
+        assert_eq!(60, summary[1].duration.num_minutes());
+
+        assert_eq!("foobar".to_string(), summary[0].tag);
+        assert_eq!(2, summary[0].count);
+        assert_eq!(90, summary[0].duration.num_minutes());
     }
 }
