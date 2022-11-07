@@ -27,6 +27,7 @@ impl EntryView<'_> {
                             count: 0
                         });
                         meta.count += 1;
+                        meta.duration.duration = meta.duration.duration.checked_add(&log.time_range().duration().duration).expect("overflow occurred");
                         acc
                     }
                 );
@@ -38,6 +39,9 @@ impl EntryView<'_> {
         for (_, v) in entry_map {
             tag_metas.push(v)
         }
+        tag_metas.sort_by(|a, b|{
+            a.tag.cmp(&b.tag)
+        });
         tag_metas
     }
 
@@ -296,13 +300,13 @@ mod tests {
             date: Date::from_ymd(2022, 01, 01),
             logs: vec![
                 Log {
-                    time: TimeRange::from_start(Time::from_hm(10, 0)),
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(10, 30)),
                     description: Tokens::new(vec![
                         Token::tag("foobar".to_string())
                     ]),
                 },
                 Log {
-                    time: TimeRange::from_start(Time::from_hm(10, 0)),
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(11, 0)),
                     description: Tokens::new(vec![
                         Token::tag("barfoo".to_string()),
                         Token::tag("foobar".to_string()),
@@ -313,6 +317,15 @@ mod tests {
         let view = EntryView::create(&app, &entry);
         
         let summary = view.tag_summary();
-        assert_eq!(2, summary.len())
+        assert_eq!(2, summary.len());
+
+        assert_eq!("barfoo".to_string(), summary[0].tag);
+        assert_eq!(1, summary[0].count);
+        assert_eq!(60, summary[0].duration.num_minutes());
+
+        assert_eq!("foobar".to_string(), summary[1].tag);
+        assert_eq!(2, summary[1].count);
+        assert_eq!(90, summary[1].duration.num_minutes());
+
     }
 }
