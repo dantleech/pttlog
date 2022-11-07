@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::App;
 use crate::parser::{Entry, Tokens, Token};
@@ -18,10 +18,10 @@ impl EntryView<'_> {
         let entry_map = self.logs().iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String,TagMeta>, log: &LogView| {
-                let log_tag_map = log.description().tags().iter().fold(
+                log.description().tags().iter().fold(
                     entry_map,
                     |mut acc: HashMap<String,TagMeta>, tag: &&Token| {
-                        let meta = acc.entry(tag.to_string()).or_insert(TagMeta{
+                        let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta{
                             tag: tag.text().to_string(),
                             duration: DurationView::from_minutes(0 as i64),
                             count: 0
@@ -30,8 +30,7 @@ impl EntryView<'_> {
                         meta.duration.duration = meta.duration.duration.checked_add(&log.time_range().duration().duration).expect("overflow occurred");
                         acc
                     }
-                );
-                log_tag_map
+                )
             }
         );
 
@@ -40,7 +39,7 @@ impl EntryView<'_> {
             tag_metas.push(v)
         }
         tag_metas.sort_by(|a, b|{
-            a.tag.cmp(&b.tag)
+            b.duration.duration.cmp(&a.duration.duration)
         });
         tag_metas
     }
@@ -65,9 +64,9 @@ impl EntryView<'_> {
 }
 
 pub struct TagMeta {
-    tag: String,
-    duration: DurationView,
-    count: usize,
+    pub tag: String,
+    pub duration: DurationView,
+    pub count: usize,
 }
 
 pub struct LogView<'a> {
@@ -319,13 +318,13 @@ mod tests {
         let summary = view.tag_summary();
         assert_eq!(2, summary.len());
 
-        assert_eq!("barfoo".to_string(), summary[0].tag);
-        assert_eq!(1, summary[0].count);
-        assert_eq!(60, summary[0].duration.num_minutes());
+        assert_eq!("barfoo".to_string(), summary[1].tag);
+        assert_eq!(1, summary[1].count);
+        assert_eq!(60, summary[1].duration.num_minutes());
 
-        assert_eq!("foobar".to_string(), summary[1].tag);
-        assert_eq!(2, summary[1].count);
-        assert_eq!(90, summary[1].duration.num_minutes());
+        assert_eq!("foobar".to_string(), summary[0].tag);
+        assert_eq!(2, summary[0].count);
+        assert_eq!(90, summary[0].duration.num_minutes());
 
     }
 }

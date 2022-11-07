@@ -48,7 +48,7 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
         .title(current_entry.date().to_verbose_string());
 
     f.render_widget(log_table(&app, &current_entry), columns[0]);
-    f.render_widget(summmary_table(&app, &current_entry), columns[1]);
+    f.render_widget(summmary_table(&current_entry), columns[1]);
     f.render_widget(
         container,
         rows[1].inner(&Margin {
@@ -92,11 +92,25 @@ fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
     Paragraph::new(text)
 }
 
-fn summmary_table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
-    let rows = vec![];
-    let headers = ["Category", "Duration"]
+fn summmary_table<'a>(entry: &'a EntryView) -> Table<'a> {
+    let mut rows = vec![];
+    let headers = ["Tag", "Duration*", "Count"]
         .iter()
-        .map(|header| Cell::from(*header));
+        .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
+
+    for tag_meta in entry.tag_summary().iter() {
+        rows.push(Row::new([
+            Cell::from(Spans::from(vec![
+                Span::styled(
+                    "@",
+                    Style::default().fg(Color::DarkGray),
+                ),
+                Span::raw(tag_meta.tag.to_string()),
+            ])),
+            Cell::from(tag_meta.duration.to_string()),
+            Cell::from(tag_meta.count.to_string()),
+        ]));
+   }
 
     Table::new(rows)
         .header(
@@ -106,8 +120,9 @@ fn summmary_table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
                 .style(Style::default()),
         )
         .widths(&[
-            Constraint::Percentage(50),
-            Constraint::Percentage(50),
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
         ])
 }
 
@@ -115,7 +130,7 @@ pub fn log_table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
     let mut rows = vec![];
     let headers = ["Time", "Duration", "Description", ""]
         .iter()
-        .map(|header| Cell::from(*header));
+        .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
     let _duration_total = entry.duration_total();
 
     for log in entry.logs().iter() {
