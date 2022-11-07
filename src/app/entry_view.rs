@@ -15,26 +15,30 @@ impl EntryView<'_> {
     }
 
     pub fn tag_summary(&self) -> Vec<TagMeta> {
-        for log in self.logs().iter() {
+        let entry_map = self.logs().iter().fold(
+            HashMap::new(),
+            |entry_map: HashMap<String,TagMeta>, log: &LogView| {
+                let log_tag_map = log.description().tags().iter().fold(
+                    entry_map,
+                    |mut acc: HashMap<String,TagMeta>, tag: &&Token| {
+                        let meta = acc.entry(tag.to_string()).or_insert(TagMeta{
+                            tag: tag.text().to_string(),
+                            duration: DurationView::from_minutes(0 as i64),
+                            count: 0
+                        });
+                        meta.count += 1;
+                        acc
+                    }
+                );
+                log_tag_map
+            }
+        );
 
-            HashMap::new().insert("foo".to_string(), TagMeta{ tag: "foo".to_string(), duration: DurationView::from_minutes(1), count: 0 });
-            log.description().tags().iter().fold(
-                HashMap::new(),
-                |mut acc: HashMap<String,TagMeta>, tag: &&Token| {
-
-                    let meta = acc.entry(tag.to_string()).or_insert(TagMeta{
-                        tag: tag.text().to_string(),
-                        duration: DurationView::from_minutes(0 as i64),
-                        count: 0
-                    });
-
-                    meta.count += 1;
-                    acc
-                }
-            );
+        let mut tag_metas: Vec<TagMeta> = vec![];
+        for (_, v) in entry_map {
+            tag_metas.push(v)
         }
-
-        return vec![]
+        tag_metas
     }
 
     pub fn duration_total(&self) -> DurationView {
