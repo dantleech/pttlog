@@ -33,10 +33,7 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
     let columns = Layout::default()
         .direction(tui::layout::Direction::Horizontal)
         .margin(0)
-        .constraints([
-            Constraint::Percentage(70),
-            Constraint::Percentage(30),
-        ])
+        .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
         .split(rows[1].inner(&Margin {
             vertical: 2,
             horizontal: 2,
@@ -101,16 +98,13 @@ fn summmary_table<'a>(entry: &'a EntryView) -> Table<'a> {
     for tag_meta in entry.tag_summary().iter() {
         rows.push(Row::new([
             Cell::from(Spans::from(vec![
-                Span::styled(
-                    "@",
-                    Style::default().fg(Color::DarkGray),
-                ),
+                Span::styled("@", Style::default().fg(Color::DarkGray)),
                 Span::raw(tag_meta.tag.to_string()),
             ])),
             Cell::from(tag_meta.duration.to_string()),
             Cell::from(tag_meta.count.to_string()),
         ]));
-   }
+    }
 
     Table::new(rows)
         .header(

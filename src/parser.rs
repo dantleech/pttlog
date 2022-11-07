@@ -157,7 +157,7 @@ pub struct Token {
 
 impl Token {
     pub fn tag(text: String) -> Token {
-        Token{
+        Token {
             kind: TokenKind::Tag,
             text,
             whitespace: "".to_string(),

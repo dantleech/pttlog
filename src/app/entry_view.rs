@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::App;
-use crate::parser::{Entry, Tokens, Token};
+use crate::parser::{Entry, Token, Tokens};
 use chrono::{Datelike, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
@@ -17,30 +17,32 @@ impl EntryView<'_> {
     pub fn tag_summary(&self) -> Vec<TagMeta> {
         let entry_map = self.logs().iter().fold(
             HashMap::new(),
-            |entry_map: HashMap<String,TagMeta>, log: &LogView| {
+            |entry_map: HashMap<String, TagMeta>, log: &LogView| {
                 log.description().tags().iter().fold(
                     entry_map,
-                    |mut acc: HashMap<String,TagMeta>, tag: &&Token| {
-                        let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta{
+                    |mut acc: HashMap<String, TagMeta>, tag: &&Token| {
+                        let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta {
                             tag: tag.text().to_string(),
                             duration: DurationView::from_minutes(0 as i64),
-                            count: 0
+                            count: 0,
                         });
                         meta.count += 1;
-                        meta.duration.duration = meta.duration.duration.checked_add(&log.time_range().duration().duration).expect("overflow occurred");
+                        meta.duration.duration = meta
+                            .duration
+                            .duration
+                            .checked_add(&log.time_range().duration().duration)
+                            .expect("overflow occurred");
                         acc
-                    }
+                    },
                 )
-            }
+            },
         );
 
         let mut tag_metas: Vec<TagMeta> = vec![];
         for (_, v) in entry_map {
             tag_metas.push(v)
         }
-        tag_metas.sort_by(|a, b|{
-            b.duration.duration.cmp(&a.duration.duration)
-        });
+        tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
         tag_metas
     }
 
@@ -111,7 +113,9 @@ impl DurationView {
     }
 
     fn from_minutes(arg: i64) -> DurationView {
-        DurationView{ duration: Duration::minutes(arg) }
+        DurationView {
+            duration: Duration::minutes(arg),
+        }
     }
 }
 impl ToString for DurationView {
@@ -226,7 +230,7 @@ mod tests {
             loader::FuncLoader,
             App,
         },
-        parser::{self, Date, Entry, Log, Time, TimeRange, Tokens, Token},
+        parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens},
     };
 
     #[test]
@@ -300,9 +304,7 @@ mod tests {
             logs: vec![
                 Log {
                     time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(10, 30)),
-                    description: Tokens::new(vec![
-                        Token::tag("foobar".to_string())
-                    ]),
+                    description: Tokens::new(vec![Token::tag("foobar".to_string())]),
                 },
                 Log {
                     time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(11, 0)),
@@ -314,7 +316,7 @@ mod tests {
             ],
         };
         let view = EntryView::create(&app, &entry);
-        
+
         let summary = view.tag_summary();
         assert_eq!(2, summary.len());
 
@@ -325,6 +327,5 @@ mod tests {
         assert_eq!("foobar".to_string(), summary[0].tag);
         assert_eq!(2, summary[0].count);
         assert_eq!(90, summary[0].duration.num_minutes());
-
     }
 }
