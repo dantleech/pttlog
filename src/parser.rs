@@ -156,6 +156,13 @@ pub struct Token {
 }
 
 impl Token {
+    pub fn tag(text: String) -> Token {
+        Token{
+            kind: TokenKind::Tag,
+            text,
+            whitespace: "".to_string(),
+        }
+    }
     pub fn to_string(&self) -> String {
         format!("{}{}", self.text.to_string(), self.whitespace.to_string())
     }
@@ -204,7 +211,7 @@ impl Tokens {
         })
     }
 
-    fn new(tokens: Vec<Token>) -> Tokens {
+    pub fn new(tokens: Vec<Token>) -> Tokens {
         Tokens(tokens)
     }
 

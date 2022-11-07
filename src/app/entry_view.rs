@@ -219,7 +219,7 @@ mod tests {
             loader::FuncLoader,
             App,
         },
-        parser::{self, Date, Entry, Log, Time, TimeRange, Tokens},
+        parser::{self, Date, Entry, Log, Time, TimeRange, Tokens, Token},
     };
 
     #[test]
@@ -285,5 +285,30 @@ mod tests {
 
     #[test]
     fn test_entry_view_tag_summary() {
+        let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
+            entries: vec![],
+        })));
+        let entry = Entry {
+            date: Date::from_ymd(2022, 01, 01),
+            logs: vec![
+                Log {
+                    time: TimeRange::from_start(Time::from_hm(10, 0)),
+                    description: Tokens::new(vec![
+                        Token::tag("foobar".to_string())
+                    ]),
+                },
+                Log {
+                    time: TimeRange::from_start(Time::from_hm(10, 0)),
+                    description: Tokens::new(vec![
+                        Token::tag("barfoo".to_string()),
+                        Token::tag("foobar".to_string()),
+                    ]),
+                },
+            ],
+        };
+        let view = EntryView::create(&app, &entry);
+        
+        let summary = view.tag_summary();
+        assert_eq!(2, summary.len())
     }
 }
