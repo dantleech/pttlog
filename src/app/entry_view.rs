@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::App;
-use crate::parser::{Entry, Tokens};
+use crate::parser::{Entry, Tokens, Token};
 use chrono::{Datelike, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
@@ -14,8 +14,27 @@ impl EntryView<'_> {
         process_entry(app, entry)
     }
 
-    pub fn tags(&self) -> Vec<TagMeta> {
-        todo!()
+    pub fn tag_summary(&self) -> Vec<TagMeta> {
+        for log in self.logs().iter() {
+
+            HashMap::new().insert("foo".to_string(), TagMeta{ tag: "foo".to_string(), duration: DurationView::from_minutes(1), count: 0 });
+            log.description().tags().iter().fold(
+                HashMap::new(),
+                |mut acc: HashMap<String,TagMeta>, tag: &&Token| {
+
+                    let meta = acc.entry(tag.to_string()).or_insert(TagMeta{
+                        tag: tag.text().to_string(),
+                        duration: DurationView::from_minutes(0 as i64),
+                        count: 0
+                    });
+
+                    meta.count += 1;
+                    acc
+                }
+            );
+        }
+
+        return vec![]
     }
 
     pub fn duration_total(&self) -> DurationView {
@@ -82,6 +101,10 @@ pub struct DurationView {
 impl DurationView {
     pub fn num_minutes(&self) -> i64 {
         self.duration.num_minutes()
+    }
+
+    fn from_minutes(arg: i64) -> DurationView {
+        DurationView{ duration: Duration::minutes(arg) }
     }
 }
 impl ToString for DurationView {
@@ -258,5 +281,9 @@ mod tests {
             let view = EntryView::create(&app, &entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
+    }
+
+    #[test]
+    fn test_entry_view_tag_summary() {
     }
 }
