@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use super::App;
+use super::config::Config;
 use crate::parser::{Entry, Token, Tokens};
 use chrono::{Datelike, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
@@ -8,10 +9,11 @@ use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 pub struct EntryView<'a> {
     logs: Vec<LogView<'a>>,
     date: EntryDateView<'a>,
+    config: Config,
 }
 impl EntryView<'_> {
-    pub fn create<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
-        process_entry(app, entry)
+    pub fn create<'a>(app: &'a App, entry: &'a Entry, config: Config) -> EntryView<'a> {
+        process_entry(app, entry, config)
     }
 
     pub fn tag_summary(&self) -> Vec<TagMeta> {
@@ -130,7 +132,7 @@ impl ToString for DurationView {
     }
 }
 
-fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView {
+fn process_entry<'a>(app: &'a App, entry: &'a Entry, config: Config) -> EntryView {
     let mut logs: Vec<LogView> = vec![];
 
     // # resolve the end dates
@@ -192,6 +194,7 @@ fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView {
             now: app.current_date(),
             date: entry.date_object(),
         },
+        config,
     }
 }
 
@@ -292,7 +295,7 @@ mod tests {
                     },
                 ],
             };
-            let view = EntryView::create(&app, &entry);
+            let view = EntryView::create(&app, &entry, Config::empty());
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
     }
@@ -318,7 +321,7 @@ mod tests {
                 },
             ],
         };
-        let view = EntryView::create(&app, &entry);
+        let view = EntryView::create(&app, &entry, Config::empty());
 
         let summary = view.tag_summary();
         assert_eq!(2, summary.len());

@@ -38,7 +38,7 @@ impl App {
     }
 
     pub fn current_entry(&self) -> EntryView {
-        EntryView::create(&self, &self.entries.entries[self.current_entry])
+        EntryView::create(&self, &self.entries.entries[self.current_entry], self.config)
     }
     pub fn entry_count(&self) -> usize {
         self.entries.entries.len()
