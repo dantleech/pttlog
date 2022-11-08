@@ -122,8 +122,11 @@ impl ToString for DurationView {
     fn to_string(&self) -> String {
         let hours = self.duration.num_minutes() / 60;
         let mins = self.duration.num_minutes() % 60;
+        if 0 == hours {
+            return format!("{}m", mins);
+        }
 
-        return format!("{}h{}m", hours, mins);
+        format!("{}h{}m", hours, mins)
     }
 }
 

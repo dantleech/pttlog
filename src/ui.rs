@@ -98,8 +98,8 @@ fn summmary_table<'a>(entry: &'a EntryView) -> Table<'a> {
     for tag_meta in entry.tag_summary().iter() {
         rows.push(Row::new([
             Cell::from(Spans::from(vec![
-                Span::styled("@", Style::default().fg(Color::DarkGray)),
-                Span::raw(tag_meta.tag.to_string()),
+                Span::styled("@", Style::default().fg(Color::Green)),
+                Span::styled(tag_meta.tag.to_string(), Style::default().fg(Color::Green)),
             ])),
             Cell::from(tag_meta.duration.to_string()),
             Cell::from(tag_meta.count.to_string()),
