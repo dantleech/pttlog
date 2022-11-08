@@ -3,6 +3,7 @@ pub mod parser;
 pub mod ui;
 
 use app::loader::FileLoader;
+use app::config::Config;
 use clap::Parser;
 use crossterm::event;
 use crossterm::event::poll;
@@ -25,13 +26,15 @@ fn main() -> Result<(), io::Error> {
     let args = Args::parse();
     let path = &args.path;
 
+    let config: Config = confy::load("pttlog", "config").expect("Could not load config");
+
     let mut stdout = io::stdout();
     execute!(stdout)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     enable_raw_mode()?;
     terminal.clear()?;
-    let mut app = app::App::new(FileLoader::new(path.to_string()));
+    let mut app = app::App::new(FileLoader::new(path.to_string()), config);
     app.reload();
 
     loop {

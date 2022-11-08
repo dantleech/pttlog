@@ -1,8 +1,9 @@
-use self::entry_view::EntryView;
+use self::{entry_view::EntryView, config::Config};
 use super::parser;
 use chrono::{Local, NaiveDateTime};
 pub mod entry_view;
 pub mod loader;
+pub mod config;
 
 pub struct App {
     pub iteration: u8,
@@ -11,14 +12,16 @@ pub struct App {
     pub entries: parser::Entries,
     pub notification: Notification,
     loader: Box<dyn loader::Loader>,
+    config: Config,
 }
 
 impl App {
-    pub fn new(loader: Box<dyn loader::Loader>) -> App {
+    pub fn new(loader: Box<dyn loader::Loader>, config: Config) -> App {
         App {
             iteration: 0,
             current_time: Local::now().naive_local(),
             loader,
+            config,
             current_entry: 0,
             entries: parser::Entries {
                 entries: vec![parser::Entry::placeholder()],
@@ -101,7 +104,7 @@ impl Notification {
 mod tests {
     use crate::parser::{self, Entry};
 
-    use super::{loader::FuncLoader, App};
+    use super::{loader::FuncLoader, App, config::Config};
 
     #[test]
     pub fn test_replace_entries_resets_current_entry_if_out_of_bounds() {
@@ -116,7 +119,7 @@ mod tests {
                     logs: vec![],
                 },
             ],
-        })));
+        })), Config::empty());
         app.entry_next();
         app.with_entries(parser::Entries {
             entries: vec![Entry {

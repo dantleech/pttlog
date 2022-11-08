@@ -619,6 +619,47 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_ticket() {
+        {
+            let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar").unwrap();
+            assert_eq!(1, entries.entries.len());
+            assert_eq!(
+                "Foobar ".to_string(),
+                entries.entries[0].logs[0]
+                    .description
+                    .first()
+                    .deref()
+                    .to_string()
+            );
+            assert_eq!(
+                "foobar".to_string(),
+                entries.entries[0].logs[0].description.at(1).deref().text
+            );
+            assert_eq!(
+                TokenKind::Tag,
+                entries.entries[0].logs[0].description.at(1).deref().kind
+            );
+        }
+        {
+            let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar barfoo").unwrap();
+            assert_eq!(1, entries.entries.len());
+            assert_eq!(
+                "foobar".to_string(),
+                entries.entries[0].logs[0].description.at(1).deref().text
+            );
+            assert_eq!(
+                TokenKind::Tag,
+                entries.entries[0].logs[0].description.at(1).deref().kind
+            );
+
+            assert_eq!(
+                "barfoo".to_string(),
+                entries.entries[0].logs[0].description.at(2).deref().text
+            );
+        }
+    }
+
+    #[test]
     fn test_parse_tag_with_space() {
         let (_, entries) =
             parse("2022-01-01\n20:00 @foobar \n2022-02-02\n20:00 @barfoo\n").unwrap();

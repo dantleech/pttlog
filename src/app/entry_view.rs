@@ -231,7 +231,7 @@ mod tests {
         app::{
             entry_view::{EntryView, LogView, TimeRangeView},
             loader::FuncLoader,
-            App,
+            App, config::Config,
         },
         parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens},
     };
@@ -274,7 +274,7 @@ mod tests {
         {
             let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
                 entries: vec![],
-            })));
+            })), Config::empty());
             let entry = Entry {
                 date: Date::from_ymd(2022, 01, 01),
                 logs: vec![
@@ -301,7 +301,7 @@ mod tests {
     fn test_entry_view_tag_summary() {
         let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
             entries: vec![],
-        })));
+        })), Config::empty());
         let entry = Entry {
             date: Date::from_ymd(2022, 01, 01),
             logs: vec![
