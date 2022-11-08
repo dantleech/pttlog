@@ -91,7 +91,7 @@ fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
 
 fn summmary_table<'a>(entry: &'a EntryView) -> Table<'a> {
     let mut rows = vec![];
-    let headers = ["Tag", "Duration*", "Count"]
+    let headers = ["Tag", "Duration", "Count"]
         .iter()
         .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
 
@@ -173,7 +173,7 @@ pub fn log_table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
         Cell::default(),
     ]));
     rows.push(Row::new([
-        Cell::from(Span::raw("Total:")),
+        Cell::from(Span::styled("Total:", Style::default().fg(Color::DarkGray))),
         Cell::from(Span::raw(entry.duration_total().to_string())),
         Cell::default(),
     ]));
