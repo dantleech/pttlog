@@ -2,6 +2,7 @@ pub mod app;
 pub mod parser;
 pub mod ui;
 
+use app::config::Config;
 use app::loader::FileLoader;
 use clap::Parser;
 use crossterm::event;
@@ -31,7 +32,9 @@ fn main() -> Result<(), io::Error> {
     let mut terminal = Terminal::new(backend)?;
     enable_raw_mode()?;
     terminal.clear()?;
-    let mut app = app::App::new(FileLoader::new(path.to_string()));
+
+    let config: Config = confy::load("pttlog", "config").expect("Could not load config");
+    let mut app = app::App::new(FileLoader::new(path.to_string(), &config), &config);
     app.reload();
 
     loop {

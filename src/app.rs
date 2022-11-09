@@ -1,24 +1,27 @@
-use self::entry_view::EntryView;
+use self::{config::Config, entry_view::EntryView};
 use super::parser;
 use chrono::{Local, NaiveDateTime};
+pub mod config;
 pub mod entry_view;
 pub mod loader;
 
-pub struct App {
+pub struct App<'a> {
     pub iteration: u8,
     current_time: NaiveDateTime,
     current_entry: usize,
     pub entries: parser::Entries,
     pub notification: Notification,
-    loader: Box<dyn loader::Loader>,
+    loader: Box<dyn loader::Loader + 'a>,
+    _config: &'a Config,
 }
 
-impl App {
-    pub fn new(loader: Box<dyn loader::Loader>) -> App {
+impl App<'_> {
+    pub fn new<'a>(loader: Box<dyn loader::Loader + 'a>, config: &'a Config) -> App<'a> {
         App {
             iteration: 0,
             current_time: Local::now().naive_local(),
             loader,
+            _config: config,
             current_entry: 0,
             entries: parser::Entries {
                 entries: vec![parser::Entry::placeholder()],
@@ -101,22 +104,26 @@ impl Notification {
 mod tests {
     use crate::parser::{self, Entry};
 
-    use super::{loader::FuncLoader, App};
+    use super::{config::Config, loader::FuncLoader, App};
 
     #[test]
     pub fn test_replace_entries_resets_current_entry_if_out_of_bounds() {
-        let mut app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
-            entries: vec![
-                Entry {
-                    date: parser::Date::from_ymd(2022, 01, 01),
-                    logs: vec![],
-                },
-                Entry {
-                    date: parser::Date::from_ymd(2022, 01, 02),
-                    logs: vec![],
-                },
-            ],
-        })));
+        let config = Config::empty();
+        let mut app = App::new(
+            FuncLoader::new(Box::new(|| parser::Entries {
+                entries: vec![
+                    Entry {
+                        date: parser::Date::from_ymd(2022, 01, 01),
+                        logs: vec![],
+                    },
+                    Entry {
+                        date: parser::Date::from_ymd(2022, 01, 02),
+                        logs: vec![],
+                    },
+                ],
+            })),
+            &config,
+        );
         app.entry_next();
         app.with_entries(parser::Entries {
             entries: vec![Entry {

@@ -1,7 +1,8 @@
 use chrono::Datelike;
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use core::fmt::Debug;
-use nom::bytes::complete;
+use nom::bytes::complete::{self, tag};
+use nom::error::{Error, ErrorKind};
 use nom::sequence;
 use nom::{
     branch,
@@ -11,6 +12,8 @@ use nom::{
     sequence::tuple,
     Parser,
 };
+
+use crate::app::config::Config;
 
 #[derive(Debug)]
 pub struct Date {
@@ -142,10 +145,11 @@ impl TimeRange {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenKind {
     Prose,
     Tag,
+    Ticket,
 }
 
 #[derive(Debug)]
@@ -217,6 +221,10 @@ impl Tokens {
 
     pub fn tags(&self) -> Vec<&Token> {
         self.0.iter().filter(|t| t.kind == TokenKind::Tag).collect()
+    }
+
+    pub(crate) fn by_kind(&self, kind: TokenKind) -> Vec<&Token> {
+        self.0.iter().filter(|t| t.kind == kind).collect()
     }
 }
 
@@ -342,6 +350,31 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
         Err(err) => Err(err),
     }
 }
+fn ticket_token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
+    for project in config.projects.iter() {
+        let input = text.clone();
+        match tuple((
+            tag::<_, _, Error<&str>>(project.ticket_prefix.as_str()),
+            alphanumeric1,
+            space0,
+        ))(input)
+        {
+            Ok(ok) => {
+                return Ok((
+                    ok.0,
+                    Token {
+                        kind: TokenKind::Ticket,
+                        text: format!("{}{}", (ok.1).0.to_string(), (ok.1).1.to_string()),
+                        whitespace: (ok.1).2.to_string(),
+                    },
+                ))
+            }
+            Err(_err) => (),
+        }
+    }
+
+    Err(nom::Err::Error(Error::new(text, ErrorKind::Tag)))
+}
 
 fn prose_token(text: &str) -> nom::IResult<&str, Token> {
     let text = sequence::tuple((
@@ -369,12 +402,12 @@ fn prose_token(text: &str) -> nom::IResult<&str, Token> {
     }
 }
 
-fn token(text: &str) -> nom::IResult<&str, Token> {
-    branch::alt((tag_token, prose_token))(text)
+fn token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
+    branch::alt((tag_token, |input| ticket_token(input, config), prose_token))(text)
 }
 
-fn log(text: &str) -> nom::IResult<&str, Log> {
-    let entry = sequence::tuple((time_range, space0, many0(token)))(text);
+fn log<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Log> {
+    let entry = sequence::tuple((time_range, space0, many0(|input| token(input, config))))(text);
 
     match entry {
         Ok(ok) => Ok((
@@ -388,12 +421,12 @@ fn log(text: &str) -> nom::IResult<&str, Log> {
     }
 }
 
-fn entry(text: &str) -> nom::IResult<&str, Entry> {
+fn entry<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Entry> {
     let entry = sequence::tuple((
         date,
         line_ending,
         multispace0,
-        many0(sequence::tuple((log, opt(line_ending))).map(|t| t.0)),
+        many0(sequence::tuple((|input| log(input, config), opt(line_ending))).map(|t| t.0)),
     ))(text);
 
     match entry {
@@ -407,10 +440,10 @@ fn entry(text: &str) -> nom::IResult<&str, Entry> {
         Err(err) => Err(err),
     }
 }
-pub fn parse(text: &str) -> nom::IResult<&str, Entries> {
+pub fn parse<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Entries> {
     let entry = sequence::tuple((
         multispace0,
-        many0(sequence::tuple((entry, multispace0)).map(|t| t.0)),
+        many0(sequence::tuple((|input| entry(input, &config), multispace0)).map(|t| t.0)),
     ))(text);
 
     match entry {
@@ -430,6 +463,8 @@ fn process_entries(entries: &mut Vec<Entry>) {
 #[cfg(test)]
 mod tests {
     use std::ops::Deref;
+
+    use crate::app::config::Project;
 
     use super::*;
     #[test]
@@ -454,12 +489,12 @@ mod tests {
     #[test]
     fn test_parse_log() {
         {
-            let (_, entry) = log("10:00 Working on foo").unwrap();
+            let (_, entry) = log("10:00 Working on foo", &Config::empty()).unwrap();
             assert_eq!("Working on foo".to_string(), entry.description.to_string());
         }
 
         {
-            let (_, entry) = log("09:00    Working on foo").unwrap();
+            let (_, entry) = log("09:00    Working on foo", &Config::empty()).unwrap();
             assert_eq!("Working on foo".to_string(), entry.description.to_string());
         }
     }
@@ -467,7 +502,7 @@ mod tests {
     #[test]
     fn test_parse_entry() {
         {
-            let (_, entry) = entry("2022-01-01\n10:00 Working on foo").unwrap();
+            let (_, entry) = entry("2022-01-01\n10:00 Working on foo", &Config::empty()).unwrap();
             assert_eq!("2022-01-01".to_string(), entry.date.to_string());
             assert_eq!(
                 "Working on foo".to_string(),
@@ -476,7 +511,7 @@ mod tests {
         }
 
         {
-            let (_, entry) = entry("2022-01-01\n\n10:00 Working on foo").unwrap();
+            let (_, entry) = entry("2022-01-01\n\n10:00 Working on foo", &Config::empty()).unwrap();
             assert_eq!("2022-01-01", entry.date.to_string());
             assert_eq!(
                 "Working on foo".to_string(),
@@ -485,8 +520,11 @@ mod tests {
         }
 
         {
-            let (_, entry) =
-                entry("2022-01-01\n\n10:00 Working on foo\n11:00 Working on bar").unwrap();
+            let (_, entry) = entry(
+                "2022-01-01\n\n10:00 Working on foo\n11:00 Working on bar",
+                &Config::empty(),
+            )
+            .unwrap();
             assert_eq!("2022-01-01", entry.date.to_string());
             assert_eq!(
                 "Working on foo".to_string(),
@@ -502,8 +540,11 @@ mod tests {
     #[test]
     fn test_parse_entries() {
         {
-            let (_, entries) =
-                parse("2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
+            let (_, entries) = parse(
+                "2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo",
+                &Config::empty(),
+            )
+            .unwrap();
             assert_eq!(2, entries.entries.len());
             assert_eq!(
                 "2022-01-01".to_string(),
@@ -515,8 +556,11 @@ mod tests {
             );
         }
         {
-            let (_, entries) =
-                parse("2022-01-01\n\n\n10:00 Working on foo\n\n\n2022-02-02\n11:00 Foo").unwrap();
+            let (_, entries) = parse(
+                "2022-01-01\n\n\n10:00 Working on foo\n\n\n2022-02-02\n11:00 Foo",
+                &Config::empty(),
+            )
+            .unwrap();
             assert_eq!(
                 "2022-01-01".to_string(),
                 entries.entries[0].date.to_string()
@@ -528,8 +572,11 @@ mod tests {
         }
 
         {
-            let (_, entries) =
-                parse("\n\n2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo").unwrap();
+            let (_, entries) = parse(
+                "\n\n2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo",
+                &Config::empty(),
+            )
+            .unwrap();
             assert_eq!(
                 "2022-01-01".to_string(),
                 entries.entries[0].date.to_string()
@@ -540,7 +587,7 @@ mod tests {
     #[test]
     fn test_sorts_entries_by_date_asc() {
         {
-            let (_, entries) = parse("2022-01-01\n2021-01-01\n").unwrap();
+            let (_, entries) = parse("2022-01-01\n2021-01-01\n", &Config::empty()).unwrap();
             assert_eq!(2, entries.entries.len());
             assert_eq!(
                 "2021-01-01".to_string(),
@@ -552,7 +599,7 @@ mod tests {
             );
         }
         {
-            let (_, entries) = parse("2022-01-31\n2022-02-01\n").unwrap();
+            let (_, entries) = parse("2022-01-31\n2022-02-01\n", &Config::empty()).unwrap();
             assert_eq!(2, entries.entries.len());
             assert_eq!(
                 "2022-01-31".to_string(),
@@ -568,7 +615,7 @@ mod tests {
     #[test]
     fn test_parses_time_range() {
         {
-            let (_, entries) = parse("2022-01-01\n20:00-21:00").unwrap();
+            let (_, entries) = parse("2022-01-01\n20:00-21:00", &Config::empty()).unwrap();
             assert_eq!(1, entries.entries.len());
             assert_eq!(
                 "20:00-21:00".to_string(),
@@ -580,7 +627,8 @@ mod tests {
     #[test]
     fn test_parse_tag() {
         {
-            let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar").unwrap();
+            let (_, entries) =
+                parse("2022-01-01\n20:00-21:00 Foobar @foobar", &Config::empty()).unwrap();
             assert_eq!(1, entries.entries.len());
             assert_eq!(
                 "Foobar ".to_string(),
@@ -600,7 +648,11 @@ mod tests {
             );
         }
         {
-            let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar barfoo").unwrap();
+            let (_, entries) = parse(
+                "2022-01-01\n20:00-21:00 Foobar @foobar barfoo",
+                &Config::empty(),
+            )
+            .unwrap();
             assert_eq!(1, entries.entries.len());
             assert_eq!(
                 "foobar".to_string(),
@@ -619,9 +671,48 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_ticket() {
+        {
+            let config = Config {
+                projects: vec![
+                    Project {
+                        name: "myproject".to_string(),
+                        ticket_prefix: "PROJECT-".to_string(),
+                        tags: vec![],
+                    },
+                    Project {
+                        name: "myproject".to_string(),
+                        ticket_prefix: "BAR-".to_string(),
+                        tags: vec![],
+                    },
+                ],
+            };
+            let (_, entries) = parse(
+                "2022-01-01\n20:00-21:00 BAR-12 BAZ-15 PROJECT-1 @foobar",
+                &config,
+            )
+            .unwrap();
+            assert_eq!(1, entries.entries.len());
+            let description = &entries.entries[0].logs[0].description;
+
+            assert_eq!(TokenKind::Ticket, description.at(0).kind);
+            assert_eq!("BAR-12".to_string(), description.at(0).text());
+
+            assert_eq!(TokenKind::Prose, description.at(1).kind);
+            assert_eq!("BAZ-15".to_string(), description.at(1).text());
+
+            assert_eq!(TokenKind::Ticket, description.at(2).kind);
+            assert_eq!("PROJECT-1".to_string(), description.at(2).text());
+        }
+    }
+
+    #[test]
     fn test_parse_tag_with_space() {
-        let (_, entries) =
-            parse("2022-01-01\n20:00 @foobar \n2022-02-02\n20:00 @barfoo\n").unwrap();
+        let (_, entries) = parse(
+            "2022-01-01\n20:00 @foobar \n2022-02-02\n20:00 @barfoo\n",
+            &Config::empty(),
+        )
+        .unwrap();
         println!("{:?}", entries);
         assert_eq!(2, entries.entries.len());
         assert_eq!(
@@ -632,7 +723,7 @@ mod tests {
 
     #[test]
     fn test_parse_tag_with_space_and_subsequent_token() {
-        let (_, entries) = parse("2022-01-01\n20:00 @foobar barfoo").unwrap();
+        let (_, entries) = parse("2022-01-01\n20:00 @foobar barfoo", &Config::empty()).unwrap();
         println!("{:?}", entries);
         assert_eq!(1, entries.entries.len());
         let description = &entries.entries[0].logs[0].description;

@@ -1,5 +1,7 @@
 use crate::app::entry_view::EntryView;
+use crate::app::entry_view::TagMeta;
 use crate::app::entry_view::TimeRangeView;
+use crate::parser::TokenKind;
 
 use super::app;
 
@@ -33,7 +35,7 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
     let columns = Layout::default()
         .direction(tui::layout::Direction::Horizontal)
         .margin(0)
-        .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
         .split(rows[1].inner(&Margin {
             vertical: 2,
             horizontal: 2,
@@ -45,7 +47,21 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
         .title(current_entry.date().to_verbose_string());
 
     f.render_widget(log_table(&app, &current_entry), columns[0]);
-    f.render_widget(summmary_table(&current_entry), columns[1]);
+
+    let summary_rows = Layout::default()
+        .direction(tui::layout::Direction::Vertical)
+        .constraints([Constraint::Percentage(50), Constraint::Min(2)])
+        .split(columns[1]);
+
+    f.render_widget(
+        token_summmary_table(&current_entry, TokenKind::Tag, "Tag"),
+        summary_rows[0],
+    );
+    f.render_widget(
+        token_summmary_table(&current_entry, TokenKind::Ticket, "Ticket"),
+        summary_rows[1],
+    );
+
     f.render_widget(
         container,
         rows[1].inner(&Margin {
@@ -89,18 +105,24 @@ fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
     Paragraph::new(text)
 }
 
-fn summmary_table<'a>(entry: &'a EntryView) -> Table<'a> {
+fn token_summmary_table<'a>(entry: &'a EntryView, kind: TokenKind, title: &'a str) -> Table<'a> {
     let mut rows = vec![];
-    let headers = ["Tag", "Duration", "Count"]
+    let binding = [title, "Duration", "Count"];
+    let headers = binding
         .iter()
         .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
 
-    for tag_meta in entry.tag_summary().iter() {
+    for tag_meta in entry.tag_summary(kind).iter() {
         rows.push(Row::new([
-            Cell::from(Spans::from(vec![
-                Span::styled("@", Style::default().fg(Color::Green)),
-                Span::styled(tag_meta.tag.to_string(), Style::default().fg(Color::Green)),
-            ])),
+            Cell::from((|t: &TagMeta| match tag_meta.kind {
+                parser::TokenKind::Tag => {
+                    Span::styled(format!("@{}", t.tag), Style::default().fg(Color::Green))
+                }
+                parser::TokenKind::Prose => Span::raw(t.tag.to_owned()),
+                parser::TokenKind::Ticket => {
+                    Span::styled(format!("@{}", t.tag), Style::default().fg(Color::Cyan))
+                }
+            })(tag_meta)),
             Cell::from(tag_meta.duration.to_string()),
             Cell::from(tag_meta.count.to_string()),
         ]));
@@ -202,6 +224,10 @@ fn description(tokens: &parser::Tokens) -> Spans {
                 Style::default().fg(Color::Green),
             ),
             parser::TokenKind::Prose => Span::raw(t.to_string().to_owned()),
+            parser::TokenKind::Ticket => Span::styled(
+                format!("@{}", t.to_string().to_owned()),
+                Style::default().fg(Color::Cyan),
+            ),
         })
         .collect::<Vec<_>>();
     Spans::from(foo)
