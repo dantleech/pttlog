@@ -349,13 +349,13 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
 fn ticket_token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
     for project in config.projects.iter() {
         let input = text.clone();
-        match tag::<_, _, Error<&str>>(project.ticket_prefix.as_str())(input) {
+        match tuple((tag::<_, _, Error<&str>>(project.ticket_prefix.as_str()), alphanumeric1, space0))(input) {
             Ok(ok) => return Ok((
                 ok.0,
                 Token {
-                    kind: TokenKind::Tag,
-                    text: (ok.1).to_string(),
-                    whitespace: (ok.1).to_string(),
+                    kind: TokenKind::Ticket,
+                    text: format!("{}{}", (ok.1).0.to_string(), (ok.1).1.to_string()),
+                    whitespace: (ok.1).2.to_string(),
                 },
             )),
             Err(_err) => (),
@@ -392,7 +392,7 @@ fn prose_token(text: &str) -> nom::IResult<&str, Token> {
 }
 
 fn token<'a>(text: &'a str, config: & Config) -> nom::IResult<&'a str, Token> {
-    branch::alt((tag_token, prose_token, |input|ticket_token(input, config)))(text)
+    branch::alt((tag_token, |input|ticket_token(input, config), prose_token))(text)
 }
 
 fn log<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Log> {
@@ -650,15 +650,25 @@ mod tests {
                     name: "myproject".to_string(),
                     ticket_prefix: "PROJECT-".to_string(),
                     tags: vec![]
+                },
+                Project{
+                    name: "myproject".to_string(),
+                    ticket_prefix: "BAR-".to_string(),
+                    tags: vec![]
                 }
             ] };
-            let (_, entries) = parse("2022-01-01\n20:00-21:00 PROJECT-1 @foobar", &config).unwrap();
+            let (_, entries) = parse("2022-01-01\n20:00-21:00 BAR-12 BAZ-15 PROJECT-1 @foobar", &config).unwrap();
             assert_eq!(1, entries.entries.len());
-            let token = entries.entries[0].logs[0]
-                .description
-                .first();
-            assert_eq!(TokenKind::Ticket, token.kind);
-            assert_eq!("PROJECT-1".to_string(), token.to_string());
+            let description = &entries.entries[0].logs[0].description;
+
+            assert_eq!(TokenKind::Ticket, description.at(0).kind);
+            assert_eq!("BAR-12".to_string(), description.at(0).text());
+
+            assert_eq!(TokenKind::Prose, description.at(1).kind);
+            assert_eq!("BAZ-15".to_string(), description.at(1).text());
+
+            assert_eq!(TokenKind::Ticket, description.at(2).kind);
+            assert_eq!("PROJECT-1".to_string(), description.at(2).text());
         }
     }
 
