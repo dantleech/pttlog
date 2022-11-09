@@ -202,6 +202,7 @@ fn description(tokens: &parser::Tokens) -> Spans {
                 Style::default().fg(Color::Green),
             ),
             parser::TokenKind::Prose => Span::raw(t.to_string().to_owned()),
+            parser::TokenKind::Ticket => Span::raw(t.to_string().to_owned()),
         })
         .collect::<Vec<_>>();
     Spans::from(foo)

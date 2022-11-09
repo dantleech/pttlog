@@ -9,10 +9,10 @@ use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 pub struct EntryView<'a> {
     logs: Vec<LogView<'a>>,
     date: EntryDateView<'a>,
-    config: Config,
+    config: &'a Config,
 }
 impl EntryView<'_> {
-    pub fn create<'a>(app: &'a App, entry: &'a Entry, config: Config) -> EntryView<'a> {
+    pub fn create<'a>(app: &'a App, entry: &'a Entry, config: &'a Config) -> EntryView<'a> {
         process_entry(app, entry, config)
     }
 
@@ -132,7 +132,7 @@ impl ToString for DurationView {
     }
 }
 
-fn process_entry<'a>(app: &'a App, entry: &'a Entry, config: Config) -> EntryView {
+fn process_entry<'a>(app: &'a App, entry: &'a Entry, config: &'a Config) -> EntryView {
     let mut logs: Vec<LogView> = vec![];
 
     // # resolve the end dates
@@ -295,7 +295,8 @@ mod tests {
                     },
                 ],
             };
-            let view = EntryView::create(&app, &entry, Config::empty());
+            let config = Config::empty();
+            let view = EntryView::create(&app, &entry, &config);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
     }
@@ -321,7 +322,8 @@ mod tests {
                 },
             ],
         };
-        let view = EntryView::create(&app, &entry, Config::empty());
+        let binding = Config::empty();
+        let view = EntryView::create(&app, &entry, &binding);
 
         let summary = view.tag_summary();
         assert_eq!(2, summary.len());

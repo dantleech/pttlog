@@ -1,8 +1,9 @@
 use chrono::Datelike;
 use chrono::{NaiveDate, NaiveTime, Timelike};
+use nom::error::{Error, ErrorKind};
 use core::fmt::Debug;
 use nom::bytes::complete::{self, tag};
-use nom::{sequence, InputLength};
+use nom::{sequence, InputLength, IResult};
 use nom::{
     branch,
     character::complete::{alphanumeric1, char, digit1, line_ending, multispace0, space0},
@@ -148,6 +149,7 @@ impl TimeRange {
 pub enum TokenKind {
     Prose,
     Tag,
+    Ticket,
 }
 
 #[derive(Debug)]
@@ -345,23 +347,22 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
     }
 }
 fn ticket_token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
-    let parsers = config.projects.iter().fold(vec![], |acc, project| {
-        acc.push(sequence::tuple((tag(project.ticket_prefix.as_str()), alphanumeric1)));
-        acc
-    }).iter();
-
-
-    match token {
-        Ok(ok) => Ok((
-            ok.0,
-            Token {
-                kind: TokenKind::Tag,
-                text: (ok.1).1.to_string(),
-                whitespace: (ok.1).2.to_string(),
-            },
-        )),
-        Err(err) => Err(err),
+    for project in config.projects.iter() {
+        let input = text.clone();
+        match tag::<_, _, Error<&str>>(project.ticket_prefix.as_str())(input) {
+            Ok(ok) => return Ok((
+                ok.0,
+                Token {
+                    kind: TokenKind::Tag,
+                    text: (ok.1).to_string(),
+                    whitespace: (ok.1).to_string(),
+                },
+            )),
+            Err(_err) => (),
+        }
     }
+
+    Err(nom::Err::Error(Error::new(text, ErrorKind::Tag)))
 }
 
 fn prose_token(text: &str) -> nom::IResult<&str, Token> {
@@ -451,6 +452,8 @@ fn process_entries(entries: &mut Vec<Entry>) {
 #[cfg(test)]
 mod tests {
     use std::ops::Deref;
+
+    use crate::app::config::Project;
 
     use super::*;
     #[test]
@@ -642,41 +645,20 @@ mod tests {
     #[test]
     fn test_parse_ticket() {
         {
-            let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar", &Config::empty()).unwrap();
+            let config = Config{ projects: vec![
+                Project{
+                    name: "myproject".to_string(),
+                    ticket_prefix: "PROJECT-".to_string(),
+                    tags: vec![]
+                }
+            ] };
+            let (_, entries) = parse("2022-01-01\n20:00-21:00 PROJECT-1 @foobar", &config).unwrap();
             assert_eq!(1, entries.entries.len());
-            assert_eq!(
-                "Foobar ".to_string(),
-                entries.entries[0].logs[0]
-                    .description
-                    .first()
-                    .deref()
-                    .to_string()
-            );
-            assert_eq!(
-                "foobar".to_string(),
-                entries.entries[0].logs[0].description.at(1).deref().text
-            );
-            assert_eq!(
-                TokenKind::Tag,
-                entries.entries[0].logs[0].description.at(1).deref().kind
-            );
-        }
-        {
-            let (_, entries) = parse("2022-01-01\n20:00-21:00 Foobar @foobar barfoo", &Config::empty()).unwrap();
-            assert_eq!(1, entries.entries.len());
-            assert_eq!(
-                "foobar".to_string(),
-                entries.entries[0].logs[0].description.at(1).deref().text
-            );
-            assert_eq!(
-                TokenKind::Tag,
-                entries.entries[0].logs[0].description.at(1).deref().kind
-            );
-
-            assert_eq!(
-                "barfoo".to_string(),
-                entries.entries[0].logs[0].description.at(2).deref().text
-            );
+            let token = entries.entries[0].logs[0]
+                .description
+                .first();
+            assert_eq!(TokenKind::Ticket, token.kind);
+            assert_eq!("PROJECT-1".to_string(), token.to_string());
         }
     }
 
@@ -689,7 +671,7 @@ mod tests {
         assert_eq!(
             "barfoo".to_string(),
             entries.entries[1].logs[0].description.at(0).deref().text
-        );
+            );
     }
 
     #[test]
