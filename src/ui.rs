@@ -208,8 +208,8 @@ pub fn log_table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
                 .style(Style::default()),
         )
         .widths(&[
-            Constraint::Percentage(15),
-            Constraint::Percentage(15),
+            Constraint::Length(11),
+            Constraint::Length(11),
             Constraint::Percentage(65),
         ])
 }
