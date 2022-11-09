@@ -120,7 +120,7 @@ fn token_summmary_table<'a>(entry: &'a EntryView, kind: TokenKind, title: &'a st
                 }
                 parser::TokenKind::Prose => Span::raw(t.tag.to_owned()),
                 parser::TokenKind::Ticket => {
-                    Span::styled(format!("@{}", t.tag), Style::default().fg(Color::Cyan))
+                    Span::styled(format!("{}", t.tag), Style::default().fg(Color::Cyan))
                 }
             })(tag_meta)),
             Cell::from(tag_meta.duration.to_string()),
@@ -225,7 +225,7 @@ fn description(tokens: &parser::Tokens) -> Spans {
             ),
             parser::TokenKind::Prose => Span::raw(t.to_string().to_owned()),
             parser::TokenKind::Ticket => Span::styled(
-                format!("@{}", t.to_string().to_owned()),
+                format!("{}", t.to_string().to_owned()),
                 Style::default().fg(Color::Cyan),
             ),
         })
