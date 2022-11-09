@@ -2,8 +2,8 @@ pub mod app;
 pub mod parser;
 pub mod ui;
 
-use app::loader::FileLoader;
 use app::config::Config;
+use app::loader::FileLoader;
 use clap::Parser;
 use crossterm::event;
 use crossterm::event::poll;
@@ -34,10 +34,7 @@ fn main() -> Result<(), io::Error> {
     terminal.clear()?;
 
     let config: Config = confy::load("pttlog", "config").expect("Could not load config");
-    let mut app = app::App::new(
-        FileLoader::new(path.to_string(), &config),
-        &config
-    );
+    let mut app = app::App::new(FileLoader::new(path.to_string(), &config), &config);
     app.reload();
 
     loop {

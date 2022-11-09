@@ -1,9 +1,9 @@
-use self::{entry_view::EntryView, config::Config};
+use self::{config::Config, entry_view::EntryView};
 use super::parser;
 use chrono::{Local, NaiveDateTime};
+pub mod config;
 pub mod entry_view;
 pub mod loader;
-pub mod config;
 
 pub struct App<'a> {
     pub iteration: u8,
@@ -12,7 +12,7 @@ pub struct App<'a> {
     pub entries: parser::Entries,
     pub notification: Notification,
     loader: Box<dyn loader::Loader + 'a>,
-    config: &'a Config,
+    _config: &'a Config,
 }
 
 impl App<'_> {
@@ -21,7 +21,7 @@ impl App<'_> {
             iteration: 0,
             current_time: Local::now().naive_local(),
             loader,
-            config,
+            _config: config,
             current_entry: 0,
             entries: parser::Entries {
                 entries: vec![parser::Entry::placeholder()],
@@ -38,7 +38,7 @@ impl App<'_> {
     }
 
     pub fn current_entry(&self) -> EntryView {
-        EntryView::create(&self, &self.entries.entries[self.current_entry], &self.config)
+        EntryView::create(&self, &self.entries.entries[self.current_entry])
     }
     pub fn entry_count(&self) -> usize {
         self.entries.entries.len()
@@ -104,23 +104,26 @@ impl Notification {
 mod tests {
     use crate::parser::{self, Entry};
 
-    use super::{loader::FuncLoader, App, config::Config};
+    use super::{config::Config, loader::FuncLoader, App};
 
     #[test]
     pub fn test_replace_entries_resets_current_entry_if_out_of_bounds() {
         let config = Config::empty();
-        let mut app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
-            entries: vec![
-                Entry {
-                    date: parser::Date::from_ymd(2022, 01, 01),
-                    logs: vec![],
-                },
-                Entry {
-                    date: parser::Date::from_ymd(2022, 01, 02),
-                    logs: vec![],
-                },
-            ],
-        })), &config);
+        let mut app = App::new(
+            FuncLoader::new(Box::new(|| parser::Entries {
+                entries: vec![
+                    Entry {
+                        date: parser::Date::from_ymd(2022, 01, 01),
+                        logs: vec![],
+                    },
+                    Entry {
+                        date: parser::Date::from_ymd(2022, 01, 02),
+                        logs: vec![],
+                    },
+                ],
+            })),
+            &config,
+        );
         app.entry_next();
         app.with_entries(parser::Entries {
             entries: vec![Entry {

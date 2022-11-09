@@ -1,4 +1,4 @@
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -7,7 +7,7 @@ pub struct Config {
 
 impl Config {
     pub fn empty() -> Config {
-        Config{ projects: vec![] }
+        Config { projects: vec![] }
     }
 }
 

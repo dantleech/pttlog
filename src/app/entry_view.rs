@@ -1,19 +1,17 @@
 use std::collections::HashMap;
 
 use super::App;
-use super::config::Config;
-use crate::parser::{Entry, Token, Tokens, TokenKind};
+use crate::parser::{Entry, Token, TokenKind, Tokens};
 use chrono::{Datelike, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
 pub struct EntryView<'a> {
     logs: Vec<LogView<'a>>,
     date: EntryDateView<'a>,
-    config: &'a Config,
 }
 impl EntryView<'_> {
-    pub fn create<'a>(app: &'a App, entry: &'a Entry, config: &'a Config) -> EntryView<'a> {
-        process_entry(app, entry, config)
+    pub fn create<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
+        process_entry(app, entry)
     }
 
     pub fn tag_summary(&self, kind: TokenKind) -> Vec<TagMeta> {
@@ -134,7 +132,7 @@ impl ToString for DurationView {
     }
 }
 
-fn process_entry<'a>(app: &'a App, entry: &'a Entry, config: &'a Config) -> EntryView<'a> {
+fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
     let mut logs: Vec<LogView> = vec![];
 
     // # resolve the end dates
@@ -196,7 +194,6 @@ fn process_entry<'a>(app: &'a App, entry: &'a Entry, config: &'a Config) -> Entr
             now: app.current_date(),
             date: entry.date_object(),
         },
-        config,
     }
 }
 
@@ -234,9 +231,10 @@ mod tests {
 
     use crate::{
         app::{
+            config::Config,
             entry_view::{EntryView, LogView, TimeRangeView},
             loader::FuncLoader,
-            App, config::Config,
+            App,
         },
         parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens},
     };
@@ -278,9 +276,10 @@ mod tests {
     fn test_calculates_duration() {
         {
             let config = Config::empty();
-            let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
-                entries: vec![],
-            })), &config);
+            let app = App::new(
+                FuncLoader::new(Box::new(|| parser::Entries { entries: vec![] })),
+                &config,
+            );
             let entry = Entry {
                 date: Date::from_ymd(2022, 01, 01),
                 logs: vec![
@@ -298,8 +297,7 @@ mod tests {
                     },
                 ],
             };
-            let config = Config::empty();
-            let view = EntryView::create(&app, &entry, &config);
+            let view = EntryView::create(&app, &entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
     }
@@ -307,9 +305,10 @@ mod tests {
     #[test]
     fn test_entry_view_tag_summary() {
         let config = Config::empty();
-        let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
-            entries: vec![],
-        })), &config);
+        let app = App::new(
+            FuncLoader::new(Box::new(|| parser::Entries { entries: vec![] })),
+            &config,
+        );
         let entry = Entry {
             date: Date::from_ymd(2022, 01, 01),
             logs: vec![
@@ -326,8 +325,7 @@ mod tests {
                 },
             ],
         };
-        let binding = Config::empty();
-        let view = EntryView::create(&app, &entry, &binding);
+        let view = EntryView::create(&app, &entry);
 
         let summary = view.tag_summary(parser::TokenKind::Tag);
         assert_eq!(2, summary.len());

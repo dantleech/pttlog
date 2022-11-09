@@ -15,7 +15,7 @@ pub struct FileLoader<'a> {
 }
 impl FileLoader<'_> {
     pub fn new<'a>(path: String, config: &'a Config) -> Box<dyn Loader + 'a> {
-        Box::new(FileLoader { path , config})
+        Box::new(FileLoader { path, config })
     }
 }
 

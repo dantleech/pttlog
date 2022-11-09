@@ -53,8 +53,14 @@ pub fn layout<B: Backend>(f: &mut Frame<B>, app: &mut app::App) {
         .constraints([Constraint::Percentage(50), Constraint::Min(2)])
         .split(columns[1]);
 
-    f.render_widget(token_summmary_table(&current_entry, TokenKind::Tag, "Tag"), summary_rows[0]);
-    f.render_widget(token_summmary_table(&current_entry, TokenKind::Ticket, "Ticket"), summary_rows[1]);
+    f.render_widget(
+        token_summmary_table(&current_entry, TokenKind::Tag, "Tag"),
+        summary_rows[0],
+    );
+    f.render_widget(
+        token_summmary_table(&current_entry, TokenKind::Ticket, "Ticket"),
+        summary_rows[1],
+    );
 
     f.render_widget(
         container,
@@ -108,17 +114,13 @@ fn token_summmary_table<'a>(entry: &'a EntryView, kind: TokenKind, title: &'a st
 
     for tag_meta in entry.tag_summary(kind).iter() {
         rows.push(Row::new([
-            Cell::from((|t: &TagMeta| {
-                match tag_meta.kind {
-                    parser::TokenKind::Tag => Span::styled(
-                        format!("@{}", t.tag),
-                        Style::default().fg(Color::Green),
-                    ),
-                    parser::TokenKind::Prose => Span::raw(t.tag.to_owned()),
-                    parser::TokenKind::Ticket => Span::styled(
-                        format!("@{}", t.tag),
-                        Style::default().fg(Color::Cyan),
-                    ),
+            Cell::from((|t: &TagMeta| match tag_meta.kind {
+                parser::TokenKind::Tag => {
+                    Span::styled(format!("@{}", t.tag), Style::default().fg(Color::Green))
+                }
+                parser::TokenKind::Prose => Span::raw(t.tag.to_owned()),
+                parser::TokenKind::Ticket => {
+                    Span::styled(format!("@{}", t.tag), Style::default().fg(Color::Cyan))
                 }
             })(tag_meta)),
             Cell::from(tag_meta.duration.to_string()),
@@ -129,14 +131,14 @@ fn token_summmary_table<'a>(entry: &'a EntryView, kind: TokenKind, title: &'a st
     Table::new(rows)
         .header(
             Row::new(headers)
-            .height(1)
-            .bottom_margin(1)
-            .style(Style::default()),
-            )
+                .height(1)
+                .bottom_margin(1)
+                .style(Style::default()),
+        )
         .widths(&[
-                Constraint::Percentage(33),
-                Constraint::Percentage(33),
-                Constraint::Percentage(33),
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
         ])
 }
 
@@ -149,66 +151,66 @@ pub fn log_table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
 
     for log in entry.logs().iter() {
         rows.push(Row::new([
-                           Cell::from((|time_range: &TimeRangeView| {
-                               // 1. if today and end time not set show "now"
-                               // 2. Show clock animation
-                               Spans::from(vec![
-                                           Span::raw(time_range.start.format("%H:%M").to_string()),
-                                           Span::styled("-", Style::default().fg(Color::DarkGray)),
-                                           Span::styled(
-                                               if time_range.ongoing {
-                                                   "now".to_string()
-                                               } else {
-                                                   time_range.end.format("%H:%M").to_string()
-                                               },
-                                               Style::default().fg(Color::DarkGray),
-                                               ),
-                                               (|| {
-                                                   if time_range.ongoing {
-                                                       return Span::raw(format!(" {}", clock_animation(app.iteration)));
-                                                   }
-                                                   Span::raw("")
-                                               })(),
-                               ])
-                           })(&log.time_range())),
-                           Cell::from((|range: &TimeRangeView| -> Spans {
-                               Spans::from(vec![
-                                           Span::raw(range.duration().to_string()),
-                                           Span::styled(
-                                               format!(
-                                                   " {:.2}%",
-                                                   log.percentage_of_day(entry.duration_total().num_minutes())
-                                                   ),
-                                                   Style::default().fg(Color::DarkGray),
-                                                   ),
-                               ])
-                           })(&log.time_range())),
-                           Cell::from(description(&log.description())),
-                           ]));
+            Cell::from((|time_range: &TimeRangeView| {
+                // 1. if today and end time not set show "now"
+                // 2. Show clock animation
+                Spans::from(vec![
+                    Span::raw(time_range.start.format("%H:%M").to_string()),
+                    Span::styled("-", Style::default().fg(Color::DarkGray)),
+                    Span::styled(
+                        if time_range.ongoing {
+                            "now".to_string()
+                        } else {
+                            time_range.end.format("%H:%M").to_string()
+                        },
+                        Style::default().fg(Color::DarkGray),
+                    ),
+                    (|| {
+                        if time_range.ongoing {
+                            return Span::raw(format!(" {}", clock_animation(app.iteration)));
+                        }
+                        Span::raw("")
+                    })(),
+                ])
+            })(&log.time_range())),
+            Cell::from((|range: &TimeRangeView| -> Spans {
+                Spans::from(vec![
+                    Span::raw(range.duration().to_string()),
+                    Span::styled(
+                        format!(
+                            " {:.2}%",
+                            log.percentage_of_day(entry.duration_total().num_minutes())
+                        ),
+                        Style::default().fg(Color::DarkGray),
+                    ),
+                ])
+            })(&log.time_range())),
+            Cell::from(description(&log.description())),
+        ]));
     }
 
     rows.push(Row::new([
-                       Cell::default(),
-                       Cell::default(),
-                       Cell::default(),
+        Cell::default(),
+        Cell::default(),
+        Cell::default(),
     ]));
     rows.push(Row::new([
-                       Cell::from(Span::styled("Total:", Style::default().fg(Color::DarkGray))),
-                       Cell::from(Span::raw(entry.duration_total().to_string())),
-                       Cell::default(),
+        Cell::from(Span::styled("Total:", Style::default().fg(Color::DarkGray))),
+        Cell::from(Span::raw(entry.duration_total().to_string())),
+        Cell::default(),
     ]));
 
     Table::new(rows)
         .header(
             Row::new(headers)
-            .height(1)
-            .bottom_margin(1)
-            .style(Style::default()),
-            )
+                .height(1)
+                .bottom_margin(1)
+                .style(Style::default()),
+        )
         .widths(&[
-                Constraint::Percentage(15),
-                Constraint::Percentage(15),
-                Constraint::Percentage(65),
+            Constraint::Percentage(15),
+            Constraint::Percentage(15),
+            Constraint::Percentage(65),
         ])
 }
 
@@ -220,14 +222,14 @@ fn description(tokens: &parser::Tokens) -> Spans {
             parser::TokenKind::Tag => Span::styled(
                 format!("@{}", t.to_string().to_owned()),
                 Style::default().fg(Color::Green),
-                ),
+            ),
             parser::TokenKind::Prose => Span::raw(t.to_string().to_owned()),
             parser::TokenKind::Ticket => Span::styled(
                 format!("@{}", t.to_string().to_owned()),
                 Style::default().fg(Color::Cyan),
-                ),
+            ),
         })
-    .collect::<Vec<_>>();
+        .collect::<Vec<_>>();
     Spans::from(foo)
 }
 
