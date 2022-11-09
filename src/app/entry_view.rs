@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::App;
 use super::config::Config;
-use crate::parser::{Entry, Token, Tokens};
+use crate::parser::{Entry, Token, Tokens, TokenKind};
 use chrono::{Datelike, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
@@ -16,15 +16,16 @@ impl EntryView<'_> {
         process_entry(app, entry, config)
     }
 
-    pub fn tag_summary(&self) -> Vec<TagMeta> {
+    pub fn tag_summary(&self, kind: TokenKind) -> Vec<TagMeta> {
         let entry_map = self.logs().iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagMeta>, log: &LogView| {
-                log.description().tags().iter().fold(
+                log.description().by_kind(kind).iter().fold(
                     entry_map,
                     |mut acc: HashMap<String, TagMeta>, tag: &&Token| {
                         let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta {
                             tag: tag.text().to_string(),
+                            kind: tag.kind,
                             duration: DurationView::from_minutes(0 as i64),
                             count: 0,
                         });
@@ -69,6 +70,7 @@ impl EntryView<'_> {
 
 pub struct TagMeta {
     pub tag: String,
+    pub kind: TokenKind,
     pub duration: DurationView,
     pub count: usize,
 }
@@ -327,7 +329,7 @@ mod tests {
         let binding = Config::empty();
         let view = EntryView::create(&app, &entry, &binding);
 
-        let summary = view.tag_summary();
+        let summary = view.tag_summary(parser::TokenKind::Tag);
         assert_eq!(2, summary.len());
 
         assert_eq!("barfoo".to_string(), summary[1].tag);

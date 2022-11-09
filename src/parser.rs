@@ -145,7 +145,7 @@ impl TimeRange {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenKind {
     Prose,
     Tag,
@@ -221,6 +221,10 @@ impl Tokens {
 
     pub fn tags(&self) -> Vec<&Token> {
         self.0.iter().filter(|t| t.kind == TokenKind::Tag).collect()
+    }
+
+    pub(crate) fn by_kind(&self, kind: TokenKind) -> Vec<&Token> {
+        self.0.iter().filter(|t| t.kind == kind).collect()
     }
 }
 
