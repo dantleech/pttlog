@@ -132,7 +132,7 @@ impl ToString for DurationView {
     }
 }
 
-fn process_entry<'a>(app: &'a App, entry: &'a Entry, config: &'a Config) -> EntryView {
+fn process_entry<'a>(app: &'a App, entry: &'a Entry, config: &'a Config) -> EntryView<'a> {
     let mut logs: Vec<LogView> = vec![];
 
     // # resolve the end dates
@@ -275,9 +275,10 @@ mod tests {
     #[test]
     fn test_calculates_duration() {
         {
+            let config = Config::empty();
             let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
                 entries: vec![],
-            })), Config::empty());
+            })), &config);
             let entry = Entry {
                 date: Date::from_ymd(2022, 01, 01),
                 logs: vec![
@@ -303,9 +304,10 @@ mod tests {
 
     #[test]
     fn test_entry_view_tag_summary() {
+        let config = Config::empty();
         let app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
             entries: vec![],
-        })), Config::empty());
+        })), &config);
         let entry = Entry {
             date: Date::from_ymd(2022, 01, 01),
             logs: vec![

@@ -9,19 +9,20 @@ pub trait Loader {
     fn load(&self) -> Entries;
 }
 
-pub struct FileLoader {
+pub struct FileLoader<'a> {
     path: String,
+    config: &'a Config,
 }
-impl FileLoader {
-    pub fn new(path: String) -> Box<dyn Loader> {
-        Box::new(FileLoader { path })
+impl FileLoader<'_> {
+    pub fn new<'a>(path: String, config: &'a Config) -> Box<dyn Loader + 'a> {
+        Box::new(FileLoader { path , config})
     }
 }
 
-impl Loader for FileLoader {
+impl Loader for FileLoader<'_> {
     fn load(&self) -> Entries {
         let contents = fs::read_to_string(&self.path).expect("Could not read file");
-        let (_, entries) = parse(&contents, &Config::empty()).expect("Could not parse file");
+        let (_, entries) = parse(&contents, &self.config).expect("Could not parse file");
         if entries.entries.len() == 0 {
             return Entries {
                 entries: vec![Entry::placeholder()],

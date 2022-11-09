@@ -26,15 +26,18 @@ fn main() -> Result<(), io::Error> {
     let args = Args::parse();
     let path = &args.path;
 
-    let config: Config = confy::load("pttlog", "config").expect("Could not load config");
-
     let mut stdout = io::stdout();
     execute!(stdout)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     enable_raw_mode()?;
     terminal.clear()?;
-    let mut app = app::App::new(FileLoader::new(path.to_string()), config);
+
+    let config: Config = confy::load("pttlog", "config").expect("Could not load config");
+    let mut app = app::App::new(
+        FileLoader::new(path.to_string(), &config),
+        &config
+    );
     app.reload();
 
     loop {

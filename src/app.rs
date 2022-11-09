@@ -5,18 +5,18 @@ pub mod entry_view;
 pub mod loader;
 pub mod config;
 
-pub struct App {
+pub struct App<'a> {
     pub iteration: u8,
     current_time: NaiveDateTime,
     current_entry: usize,
     pub entries: parser::Entries,
     pub notification: Notification,
-    loader: Box<dyn loader::Loader>,
-    config: Config,
+    loader: Box<dyn loader::Loader + 'a>,
+    config: &'a Config,
 }
 
-impl App {
-    pub fn new(loader: Box<dyn loader::Loader>, config: Config) -> App {
+impl App<'_> {
+    pub fn new<'a>(loader: Box<dyn loader::Loader + 'a>, config: &'a Config) -> App<'a> {
         App {
             iteration: 0,
             current_time: Local::now().naive_local(),
@@ -108,6 +108,7 @@ mod tests {
 
     #[test]
     pub fn test_replace_entries_resets_current_entry_if_out_of_bounds() {
+        let config = Config::empty();
         let mut app = App::new(FuncLoader::new(Box::new(|| parser::Entries {
             entries: vec![
                 Entry {
@@ -119,7 +120,7 @@ mod tests {
                     logs: vec![],
                 },
             ],
-        })), Config::empty());
+        })), &config);
         app.entry_next();
         app.with_entries(parser::Entries {
             entries: vec![Entry {
