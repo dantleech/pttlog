@@ -1,20 +1,34 @@
 use std::collections::HashMap;
 use std::slice::Iter;
 
-use crate::parser::{Entry, Token, TokenKind, Tokens};
+use crate::parser::{Entries, Entry, Token, TokenKind, Tokens};
 use chrono::{Datelike, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
-pub struct LogEntries<'a> {
+pub struct LogDays<'a> {
+    current_date: NaiveDateTime,
+    entries: &'a Entries,
+}
+
+impl LogDays<'_> {
+    pub fn new<'a>(current_date: NaiveDateTime, entries: &'a Entries) -> LogDays<'a> {
+        LogDays {
+            current_date,
+            entries,
+        }
+    }
+}
+
+pub struct LogDay<'a> {
     logs: Vec<LogEntry<'a>>,
     date: LogDate<'a>,
 }
 
-impl LogEntries<'_> {
-    pub fn iter(&mut self) -> Iter<LogEntry> {
+impl LogDay<'_> {
+    pub fn iter(&self) -> Iter<LogEntry> {
         self.logs().into_iter()
     }
-    pub fn create<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogEntries<'a> {
+    pub fn create<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogDay<'a> {
         process_entry(current_date, entry)
     }
 
@@ -145,7 +159,7 @@ impl ToString for LogDuration {
     }
 }
 
-fn process_entry<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogEntries<'a> {
+fn process_entry<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogDay<'a> {
     let mut logs: Vec<LogEntry> = vec![];
 
     // # resolve the end dates
@@ -201,7 +215,7 @@ fn process_entry<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogEn
     }
     logs.reverse();
 
-    LogEntries {
+    LogDay {
         logs,
         date: LogDate {
             now: current_date,
@@ -307,7 +321,7 @@ mod tests {
                 ],
             };
             let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
-            let view = LogEntries::create(&time, &entry);
+            let view = LogDay::create(&time, &entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
     }
@@ -332,7 +346,7 @@ mod tests {
             ],
         };
         let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
-        let mut view = LogEntries::create(&time, &entry);
+        let mut view = LogDay::create(&time, &entry);
         let summary = view.tag_summary(parser::TokenKind::Tag);
 
         assert_eq!(2, summary.len());

@@ -105,42 +105,7 @@ fn navigation<'a>(app: &'a app::App) -> Paragraph<'a> {
     Paragraph::new(text)
 }
 
-fn token_summmary_table<'a>(entry: &'a EntryView, kind: TokenKind, title: &'a str) -> Table<'a> {
-    let mut rows = vec![];
-    let binding = [title, "Duration", "Count"];
-    let headers = binding
-        .iter()
-        .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
-
-    for tag_meta in entry.tag_summary(kind).iter() {
-        rows.push(Row::new([
-            Cell::from((|t: &TagMeta| match tag_meta.kind {
-                parser::TokenKind::Tag => {
-                    Span::styled(format!("@{}", t.tag), Style::default().fg(Color::Green))
-                }
-                parser::TokenKind::Prose => Span::raw(t.tag.to_owned()),
-                parser::TokenKind::Ticket => {
-                    Span::styled(format!("{}", t.tag), Style::default().fg(Color::Cyan))
-                }
-            })(tag_meta)),
-            Cell::from(tag_meta.duration.to_string()),
-            Cell::from(tag_meta.count.to_string()),
-        ]));
-    }
-
-    Table::new(rows)
-        .header(
-            Row::new(headers)
-                .height(1)
-                .bottom_margin(1)
-                .style(Style::default()),
-        )
-        .widths(&[
-            Constraint::Percentage(33),
-            Constraint::Percentage(33),
-            Constraint::Percentage(33),
-        ])
-}
+fn token_summmary_table<'a>(entry: &'a EntryView, kind: TokenKind, title: &'a str) -> Table<'a> {}
 
 pub fn log_table<'a>(app: &app::App, entry: &'a EntryView) -> Table<'a> {
     let mut rows = vec![];

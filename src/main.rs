@@ -1,8 +1,8 @@
 pub mod app;
-pub mod parser;
-pub mod ui;
 pub mod component;
 pub mod model;
+pub mod parser;
+pub mod ui;
 
 use app::config::Config;
 use app::loader::FileLoader;

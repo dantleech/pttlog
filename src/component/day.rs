@@ -6,12 +6,12 @@ use tui::{
     Frame,
 };
 
-use crate::{model::entries::LogEntries, parser::TokenKind};
+use crate::{model::entries::LogDay, parser::TokenKind};
 
 use super::{log_table::LogTable, token_summary_table::TokenSummaryTable, Component};
 
 pub struct Day<'a> {
-    pub entries: LogEntries<'a>,
+    pub entries: LogDay<'a>,
     pub index: usize,
     pub log_table: LogTable<'a>,
     pub tag_summary: TokenSummaryTable<'a>,
@@ -19,7 +19,7 @@ pub struct Day<'a> {
 }
 
 impl Day<'_> {
-    pub fn new(entries: LogEntries) -> Day {
+    pub fn new(entries: LogDay) -> Day {
         Day {
             entries,
             index: 0,

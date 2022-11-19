@@ -1,3 +1,7 @@
+use crate::{component::log_table::LogTable, model::entries::LogDays};
+
+use super::component::day::Day;
+
 use self::{config::Config, entry_view::EntryView};
 use super::parser;
 use chrono::{Local, NaiveDateTime};
@@ -9,26 +13,38 @@ pub struct App<'a> {
     pub iteration: u8,
     current_time: NaiveDateTime,
     current_entry: usize,
-    pub entries: parser::Entries,
+    pub log_days: LogDays<'a>,
     pub notification: Notification,
     loader: Box<dyn loader::Loader + 'a>,
     _config: &'a Config,
+    pub day: Day<'a>,
 }
 
 impl App<'_> {
     pub fn new<'a>(loader: Box<dyn loader::Loader + 'a>, config: &'a Config) -> App<'a> {
+        let log_days = LogDays::new(
+            Local::now().naive_local(),
+            &parser::Entries {
+                entries: vec![parser::Entry::placeholder()],
+            },
+        );
         App {
             iteration: 0,
             current_time: Local::now().naive_local(),
             loader,
             _config: config,
             current_entry: 0,
-            entries: parser::Entries {
-                entries: vec![parser::Entry::placeholder()],
-            },
+            log_days,
             notification: Notification {
                 notification: "".to_string(),
                 lifetime: 0,
+            },
+            day: Day::new(log_days) {
+                entries: log_days,
+                index: 0,
+                log_table: LogTable::new(log_days },
+                tag_summary: TagSummaryTable {},
+                ticket_summary: (),
             },
         }
     }
@@ -38,10 +54,10 @@ impl App<'_> {
     }
 
     pub fn current_entry(&self) -> EntryView {
-        EntryView::create(&self, &self.entries.entries[self.current_entry])
+        EntryView::create(&self, &self.log_days.entries[self.current_entry])
     }
     pub fn entry_count(&self) -> usize {
-        self.entries.entries.len()
+        self.log_days.entries.len()
     }
 
     pub fn entry_previous(&mut self) {
@@ -52,7 +68,7 @@ impl App<'_> {
     }
 
     pub fn entry_next(&mut self) {
-        if self.current_entry == self.entries.entries.len() - 1 {
+        if self.current_entry == self.log_days.entries.len() - 1 {
             return;
         }
         self.current_entry += 1;
@@ -70,12 +86,12 @@ impl App<'_> {
     }
 
     pub fn with_entries(&mut self, entries: parser::Entries) {
-        self.entries = entries;
+        self.log_days = entries;
     }
 
     pub fn reload(&mut self) {
-        self.entries = self.loader.load();
-        self.current_entry = self.entries.entries.len() - 1
+        self.log_days = self.loader.load();
+        self.current_entry = self.log_days.entries.len() - 1
     }
 
     pub fn current_date(&self) -> &NaiveDateTime {

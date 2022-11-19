@@ -7,14 +7,14 @@ use tui::{
 };
 
 use crate::{
-    model::entries::{LogEntries, TimeRangeView},
+    model::entries::{LogDay, TimeRangeView},
     parser,
 };
 
 use super::Component;
 
 pub struct LogTable<'a> {
-    entries: LogEntries<'a>,
+    entries: LogDay<'a>,
 }
 
 impl Component for LogTable<'_> {

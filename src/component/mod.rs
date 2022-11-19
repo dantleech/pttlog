@@ -1,6 +1,6 @@
-mod day;
-mod log_table;
-mod token_summary_table;
+pub mod day;
+pub mod log_table;
+pub mod token_summary_table;
 use anyhow::Result;
 use tui::{backend::Backend, layout::Rect, Frame};
 

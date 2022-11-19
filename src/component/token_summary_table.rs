@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    model::entries::{LogEntries, TagMeta},
+    model::entries::{LogDay, TagMeta},
     parser::TokenKind,
 };
 
@@ -16,15 +16,11 @@ use super::Component;
 pub struct TokenSummaryTable<'a> {
     title: &'a str,
     kind: TokenKind,
-    entries: LogEntries<'a>,
+    entries: LogDay<'a>,
 }
 
 impl TokenSummaryTable<'_> {
-    pub fn new<'a>(
-        title: &'a str,
-        kind: TokenKind,
-        entries: LogEntries<'a>,
-    ) -> TokenSummaryTable<'a> {
+    pub fn new<'a>(title: &'a str, kind: TokenKind, entries: LogDay<'a>) -> TokenSummaryTable<'a> {
         TokenSummaryTable {
             title,
             kind,
