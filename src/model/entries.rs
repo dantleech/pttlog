@@ -11,7 +11,7 @@ pub struct LogEntries<'a> {
 }
 
 impl LogEntries<'_> {
-    fn iter(&mut self) -> Iter<LogEntry> {
+    pub fn iter(&mut self) -> Iter<LogEntry> {
         self.logs().into_iter()
     }
     pub fn create<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogEntries<'a> {
@@ -35,39 +35,47 @@ impl LogEntries<'_> {
     pub fn date(&self) -> &LogDate {
         &self.date
     }
-}
 
-pub fn tag_summary(logs: &mut LogEntries, kind: TokenKind) -> Vec<TagMeta> {
-    let entry_map = logs.iter().fold(
-        HashMap::new(),
-        |entry_map: HashMap<String, TagMeta>, log: &LogEntry| {
-            log.description().by_kind(kind).iter().fold(
-                entry_map,
-                |mut acc: HashMap<String, TagMeta>, tag: &&Token| {
-                    let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta {
-                        tag: tag.text().to_string(),
-                        kind: tag.kind,
-                        duration: LogDuration::from_minutes(0 as i64),
-                        count: 0,
-                    });
-                    meta.count += 1;
-                    meta.duration.duration = meta
-                        .duration
-                        .duration
-                        .checked_add(&log.time_range().duration().duration)
-                        .expect("overflow occurred");
-                    acc
-                },
+    pub(crate) fn at(&self, index: usize) -> &LogEntry {
+        self.logs.get(index).expect("Index out of range")
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.len()
+    }
+
+    pub fn tag_summary(&self, kind: TokenKind) -> Vec<TagMeta> {
+        let entry_map = self.iter().fold(
+            HashMap::new(),
+            |entry_map: HashMap<String, TagMeta>, log: &LogEntry| {
+                log.description().by_kind(kind).iter().fold(
+                    entry_map,
+                    |mut acc: HashMap<String, TagMeta>, tag: &&Token| {
+                        let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta {
+                            tag: tag.text().to_string(),
+                            kind: tag.kind,
+                            duration: LogDuration::from_minutes(0 as i64),
+                            count: 0,
+                        });
+                        meta.count += 1;
+                        meta.duration.duration = meta
+                            .duration
+                            .duration
+                            .checked_add(&log.time_range().duration().duration)
+                            .expect("overflow occurred");
+                        acc
+                    },
                 )
-        },
+            },
         );
 
-    let mut tag_metas: Vec<TagMeta> = vec![];
-    for (_, v) in entry_map {
-        tag_metas.push(v)
+        let mut tag_metas: Vec<TagMeta> = vec![];
+        for (_, v) in entry_map {
+            tag_metas.push(v)
+        }
+        tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
+        tag_metas
     }
-    tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
-    tag_metas
 }
 
 pub struct TagMeta {
@@ -232,15 +240,11 @@ impl TimeRangeView {
 
 #[cfg(test)]
 mod tests {
-    use chrono::NaiveTime;
     use super::*;
+    use chrono::NaiveTime;
 
     use crate::{
-        app::{
-            config::Config,
-            loader::FuncLoader,
-            App,
-        },
+        app::{config::Config, loader::FuncLoader, App},
         parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens},
     };
 
@@ -284,7 +288,7 @@ mod tests {
             let app = App::new(
                 FuncLoader::new(Box::new(|| parser::Entries { entries: vec![] })),
                 &config,
-                );
+            );
             let entry = Entry {
                 date: Date::from_ymd(2022, 01, 01),
                 logs: vec![
@@ -302,7 +306,7 @@ mod tests {
                     },
                 ],
             };
-            let time = NaiveDate::from_ymd(2022,01,01).and_hms(0,0,0);
+            let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
             let view = LogEntries::create(&time, &entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
@@ -311,10 +315,6 @@ mod tests {
     #[test]
     fn test_view_tag_summary() {
         let config = Config::empty();
-        let app = App::new(
-            FuncLoader::new(Box::new(|| parser::Entries { entries: vec![] })),
-            &config,
-            );
         let entry = Entry {
             date: Date::from_ymd(2022, 01, 01),
             logs: vec![
@@ -325,15 +325,15 @@ mod tests {
                 Log {
                     time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(11, 0)),
                     description: Tokens::new(vec![
-                                             Token::tag("barfoo".to_string()),
-                                             Token::tag("foobar".to_string()),
+                        Token::tag("barfoo".to_string()),
+                        Token::tag("foobar".to_string()),
                     ]),
                 },
             ],
         };
-        let time = NaiveDate::from_ymd(2022,01,01).and_hms(0,0,0);
+        let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
         let mut view = LogEntries::create(&time, &entry);
-        let summary = tag_summary(&mut view, parser::TokenKind::Tag);
+        let summary = view.tag_summary(parser::TokenKind::Tag);
 
         assert_eq!(2, summary.len());
 
@@ -346,4 +346,3 @@ mod tests {
         assert_eq!(90, summary[0].duration.num_minutes());
     }
 }
-

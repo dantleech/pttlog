@@ -232,12 +232,3 @@ fn description(tokens: &parser::Tokens) -> Spans {
         .collect::<Vec<_>>();
     Spans::from(foo)
 }
-
-fn clock_animation(iteration: u8) -> String {
-    let faces: Vec<&str> = vec![
-        "🕐", "🕜", "🕑", "🕝", "🕒", "🕞", "🕓", "🕟", "🕔", "🕠", "🕕", "🕡", "🕖", "🕢", "🕗",
-        "🕣", "🕘", "🕤", "🕙", "🕥", "🕚", "🕦", "🕛", "🕧",
-    ];
-
-    faces[iteration.to_usize() % faces.len()].to_string()
-}
