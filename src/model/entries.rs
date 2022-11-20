@@ -29,14 +29,38 @@ impl LogDays {
     }
 
     pub(crate) fn tag_summary(&self, tag: TokenKind) -> Vec<TagMeta> {
-        self.entries.entries.iter().fold(
+        let entry_map = self.entries.entries.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagMeta>, entry: &Entry| {
                 let view = LogDay::new(&self.current_date, &entry);
-                entry_map
+                view.tag_summary(tag)
+                    .iter()
+                    .fold(entry_map, |mut entry_map, tag_meta| {
+                        let meta = entry_map
+                            .entry(tag_meta.tag.to_string())
+                            .or_insert(TagMeta {
+                                tag: tag_meta.tag.to_string(),
+                                kind: tag_meta.kind,
+                                duration: LogDuration::from_minutes(0 as i64),
+                                count: 0,
+                            });
+                        meta.count += 1;
+                        meta.duration.duration = meta
+                            .duration
+                            .duration
+                            .checked_add(&tag_meta.duration.duration)
+                            .expect("Could not add");
+                        entry_map
+                    })
             },
         );
-        vec![]
+
+        let mut tag_metas: Vec<TagMeta> = vec![];
+        for (_, v) in entry_map {
+            tag_metas.push(v)
+        }
+        tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
+        tag_metas
     }
 }
 
