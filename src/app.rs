@@ -40,7 +40,9 @@ impl App<'_> {
         }
     }
 
-    pub fn draw<B: Backend>(&self, f: &mut Frame<B>) -> Result<(), Error> {
+    pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) -> Result<(), Error> {
+        self.notification.tick();
+
         let rows = Layout::default()
             .margin(0)
             .constraints([Constraint::Length(1), Constraint::Min(4)].as_ref())
@@ -72,10 +74,6 @@ impl App<'_> {
     pub fn notify(&mut self, message: String, lifetime: i16) {
         self.notification.notification = message;
         self.notification.lifetime = lifetime;
-    }
-
-    pub fn tick(&mut self) {
-        self.notification.tick();
     }
 
     pub fn reload(&mut self) {
