@@ -8,7 +8,7 @@ use tui::{
     Frame,
 };
 
-use crate::{component::week::Week, model::entries::LogDays};
+use crate::{component::week::IntervalView, model::entries::LogDays};
 
 use super::component::day::Day;
 
@@ -27,7 +27,7 @@ pub struct App<'a> {
     loader: Box<dyn loader::Loader + 'a>,
     pub log_days: LogDays,
     day: Day<'a>,
-    week: Week,
+    week: IntervalView,
     view: AppView,
 }
 
@@ -45,7 +45,7 @@ impl App<'_> {
             },
             day: Day::new(),
             view: AppView::Day,
-            week: Week::new(),
+            week: IntervalView::new(),
         }
     }
 
@@ -137,7 +137,7 @@ fn navigation<'a>() -> Paragraph<'a> {
         Span::styled("[d]", Style::default().fg(Color::Green)),
         Span::raw("ay "),
         Span::styled("[w]", Style::default().fg(Color::Green)),
-        Span::raw("week "),
+        Span::raw("eek "),
         Span::styled("[q]", Style::default().fg(Color::Green)),
         Span::raw("uit"),
     ])];
