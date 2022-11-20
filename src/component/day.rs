@@ -23,8 +23,8 @@ impl Day<'_> {
         Day {
             index: 0,
             log_table: LogTable {},
-            tag_summary: TokenSummaryTable::new("Tags", TokenKind::Tag),
-            ticket_summary: TokenSummaryTable::new("Tickets", TokenKind::Ticket),
+            tag_summary: TokenSummaryTable::new("Tags"),
+            ticket_summary: TokenSummaryTable::new("Tickets"),
             initialized: false,
         }
     }

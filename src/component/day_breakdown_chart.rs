@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use anyhow::{Ok, Result};
 use tui::{
     backend::Backend,
     layout::{Margin, Rect},
     style::{Color, Style},
-    widgets::{BarChart, Chart},
+    widgets::BarChart,
     Frame,
 };
 

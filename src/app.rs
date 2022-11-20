@@ -52,7 +52,7 @@ impl App<'_> {
                 Duration::weeks(1),
             ),
             year: IntervalView::new(
-                NaiveDate::from_ymd(now.year(), now.month(), now.day()),
+                NaiveDate::from_ymd(now.year(), now.month(), now.day() + 1),
                 Duration::days(365),
             ),
         }

@@ -9,7 +9,10 @@ use tui::{
 
 use crate::{app::config::KeyMap, model::entries::LogDays, parser::TokenKind};
 
-use super::{day_breakdown_chart::DayBreakdownChart, token_summary_table::TokenSummaryTable};
+use super::{
+    day_breakdown_chart::DayBreakdownChart, day_breakdown_table::DayBreakdownTable,
+    token_summary_table::TokenSummaryTable,
+};
 
 pub struct IntervalView<'a> {
     initialized: bool,
@@ -19,6 +22,7 @@ pub struct IntervalView<'a> {
     ticket_summary: TokenSummaryTable<'a>,
     duration: Duration,
     day_breakdown_chart: DayBreakdownChart,
+    day_breakdown_table: DayBreakdownTable,
 }
 
 impl IntervalView<'_> {
@@ -28,9 +32,10 @@ impl IntervalView<'_> {
             duration,
             date_start: start_date - duration,
             date_end: start_date,
-            tag_summary: TokenSummaryTable::new("Tags", TokenKind::Tag),
-            ticket_summary: TokenSummaryTable::new("Tickets", TokenKind::Ticket),
+            tag_summary: TokenSummaryTable::new("Tags"),
+            ticket_summary: TokenSummaryTable::new("Tickets"),
             day_breakdown_chart: DayBreakdownChart {},
+            day_breakdown_table: DayBreakdownTable {},
         }
     }
 
@@ -71,7 +76,17 @@ impl IntervalView<'_> {
                 horizontal: 2,
             }));
 
-        let summary_rows = Layout::default()
+        let left_rows = Layout::default()
+            .direction(tui::layout::Direction::Vertical)
+            .constraints([Constraint::Percentage(50), Constraint::Min(2)])
+            .split(columns[0].inner(&Margin {
+                vertical: 2,
+                horizontal: 2,
+            }));
+        self.day_breakdown_chart.draw(f, left_rows[0], &log_days)?;
+        self.day_breakdown_table.draw(f, left_rows[1], &log_days)?;
+
+        let right_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Min(2)])
             .split(columns[1].inner(&Margin {
@@ -79,11 +94,10 @@ impl IntervalView<'_> {
                 horizontal: 2,
             }));
 
-        self.day_breakdown_chart.draw(f, area, &log_days)?;
         self.tag_summary
-            .draw(f, summary_rows[0], &log_days.tag_summary(TokenKind::Tag))?;
+            .draw(f, right_rows[0], &log_days.tag_summary(TokenKind::Tag))?;
         self.ticket_summary
-            .draw(f, summary_rows[1], &log_days.tag_summary(TokenKind::Ticket))?;
+            .draw(f, right_rows[1], &log_days.tag_summary(TokenKind::Ticket))?;
 
         Ok(())
     }

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::slice::Iter;
 
-use crate::parser::{Entries, Entry, Token, TokenKind, Tokens};
+use crate::parser::{Entry, Token, TokenKind, Tokens};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
@@ -224,7 +224,7 @@ impl LogDuration {
         self.duration.num_minutes()
     }
 
-    fn from_minutes(arg: i64) -> LogDuration {
+    pub fn from_minutes(arg: i64) -> LogDuration {
         LogDuration {
             duration: Duration::minutes(arg),
         }
@@ -454,6 +454,6 @@ mod tests {
 
         let minutes_by_weekday = log_days.minutes_by_weekday();
         println!("{:?}", minutes_by_weekday);
-        assert_eq!(&("Fri", 600), minutes_by_weekday.first().unwrap());
+        assert_eq!(&("Mon", 600), minutes_by_weekday.first().unwrap());
     }
 }

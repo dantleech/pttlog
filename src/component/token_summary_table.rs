@@ -6,19 +6,15 @@ use tui::{
     widgets::{Cell, Row, Table},
 };
 
-use crate::{
-    model::entries::{LogDay, TagMeta},
-    parser::TokenKind,
-};
+use crate::{model::entries::TagMeta, parser::TokenKind};
 
 pub struct TokenSummaryTable<'a> {
     title: &'a str,
-    kind: TokenKind,
 }
 
 impl TokenSummaryTable<'_> {
-    pub fn new<'a>(title: &'a str, kind: TokenKind) -> TokenSummaryTable<'a> {
-        TokenSummaryTable { title, kind }
+    pub fn new<'a>(title: &'a str) -> TokenSummaryTable<'a> {
+        TokenSummaryTable { title }
     }
 
     pub fn draw<B: tui::backend::Backend>(
