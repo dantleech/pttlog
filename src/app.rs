@@ -1,61 +1,75 @@
-use self::{config::Config, entry_view::EntryView};
+use anyhow::{Error, Result};
+use tui::{
+    backend::Backend,
+    layout::{Alignment, Constraint, Layout, Margin},
+    style::{Color, Style},
+    text::{Span, Spans},
+    widgets::Paragraph,
+    Frame,
+};
+
+use crate::model::entries::LogDays;
+
+use super::component::day::Day;
+
+use self::config::{Config, KeyMap};
 use super::parser;
-use chrono::{Local, NaiveDateTime};
 pub mod config;
-pub mod entry_view;
 pub mod loader;
 
 pub struct App<'a> {
-    pub iteration: u8,
-    current_time: NaiveDateTime,
-    current_entry: usize,
-    pub entries: parser::Entries,
     pub notification: Notification,
     loader: Box<dyn loader::Loader + 'a>,
-    _config: &'a Config,
+    pub log_days: LogDays,
+    pub day: Day<'a>,
 }
 
 impl App<'_> {
-    pub fn new<'a>(loader: Box<dyn loader::Loader + 'a>, config: &'a Config) -> App<'a> {
+    pub fn new<'a>(loader: Box<dyn loader::Loader + 'a>, _config: &'a Config) -> App<'a> {
+        let log_days = LogDays::new(parser::Entries {
+            entries: vec![parser::Entry::placeholder()],
+        });
         App {
-            iteration: 0,
-            current_time: Local::now().naive_local(),
+            log_days,
             loader,
-            _config: config,
-            current_entry: 0,
-            entries: parser::Entries {
-                entries: vec![parser::Entry::placeholder()],
-            },
             notification: Notification {
                 notification: "".to_string(),
                 lifetime: 0,
             },
+            day: Day::new(),
         }
     }
 
-    pub fn current_entry_number(&self) -> usize {
-        return self.current_entry + 1;
-    }
+    pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) -> Result<(), Error> {
+        self.notification.tick();
 
-    pub fn current_entry(&self) -> EntryView {
-        EntryView::create(&self, &self.entries.entries[self.current_entry])
-    }
-    pub fn entry_count(&self) -> usize {
-        self.entries.entries.len()
-    }
+        let rows = Layout::default()
+            .margin(0)
+            .constraints([Constraint::Length(1), Constraint::Min(4)].as_ref())
+            .split(f.size());
 
-    pub fn entry_previous(&mut self) {
-        if self.current_entry == 0 {
-            return;
+        f.render_widget(navigation(), rows[0]);
+
+        self.day.draw(f, rows[1], &self.log_days)?;
+
+        if self.notification.should_display() {
+            let text: Vec<Spans> = vec![Spans::from(vec![Span::raw(
+                &self.notification.notification,
+            )])];
+
+            let notification = Paragraph::new(text)
+                .alignment(Alignment::Right)
+                .style(Style::default().fg(Color::DarkGray));
+
+            f.render_widget(
+                notification,
+                rows[0].inner(&Margin {
+                    vertical: 0,
+                    horizontal: 0,
+                }),
+            )
         }
-        self.current_entry -= 1;
-    }
-
-    pub fn entry_next(&mut self) {
-        if self.current_entry == self.entries.entries.len() - 1 {
-            return;
-        }
-        self.current_entry += 1;
+        Ok(())
     }
 
     pub fn notify(&mut self, message: String, lifetime: i16) {
@@ -63,23 +77,12 @@ impl App<'_> {
         self.notification.lifetime = lifetime;
     }
 
-    pub fn tick(&mut self) {
-        self.current_time = Local::now().naive_local();
-        self.notification.tick();
-        self.iteration = (self.iteration % 127) + 1;
-    }
-
-    pub fn with_entries(&mut self, entries: parser::Entries) {
-        self.entries = entries;
-    }
-
     pub fn reload(&mut self) {
-        self.entries = self.loader.load();
-        self.current_entry = self.entries.entries.len() - 1
+        self.log_days = LogDays::new(self.loader.load());
     }
 
-    pub fn current_date(&self) -> &NaiveDateTime {
-        &self.current_time
+    pub(crate) fn handle(&mut self, key: KeyMap) {
+        self.day.handle(key);
     }
 }
 
@@ -100,37 +103,17 @@ impl Notification {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::parser::{self, Entry};
+fn navigation<'a>() -> Paragraph<'a> {
+    let text: Vec<Spans> = vec![Spans::from(vec![
+        Span::styled("[p]", Style::default().fg(Color::Green)),
+        Span::raw("rev "),
+        Span::styled("[n]", Style::default().fg(Color::Green)),
+        Span::raw("ext "),
+        Span::styled("[r]", Style::default().fg(Color::Green)),
+        Span::raw("eload"),
+        Span::styled(" [q]", Style::default().fg(Color::Green)),
+        Span::raw("uit"),
+    ])];
 
-    use super::{config::Config, loader::FuncLoader, App};
-
-    #[test]
-    pub fn test_replace_entries_resets_current_entry_if_out_of_bounds() {
-        let config = Config::empty();
-        let mut app = App::new(
-            FuncLoader::new(Box::new(|| parser::Entries {
-                entries: vec![
-                    Entry {
-                        date: parser::Date::from_ymd(2022, 01, 01),
-                        logs: vec![],
-                    },
-                    Entry {
-                        date: parser::Date::from_ymd(2022, 01, 02),
-                        logs: vec![],
-                    },
-                ],
-            })),
-            &config,
-        );
-        app.entry_next();
-        app.with_entries(parser::Entries {
-            entries: vec![Entry {
-                date: parser::Date::from_ymd(2022, 01, 01),
-                logs: vec![],
-            }],
-        });
-        app.current_entry();
-    }
+    Paragraph::new(text)
 }

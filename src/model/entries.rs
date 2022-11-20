@@ -1,30 +1,74 @@
 use std::collections::HashMap;
+use std::slice::Iter;
 
-use super::App;
-use crate::parser::{Entry, Token, TokenKind, Tokens};
-use chrono::{Datelike, Timelike};
+use crate::parser::{Entries, Entry, Token, TokenKind, Tokens};
+use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
-pub struct EntryView<'a> {
-    logs: Vec<LogView<'a>>,
-    date: EntryDateView<'a>,
+pub struct LogDays {
+    current_date: NaiveDateTime,
+    entries: Entries,
 }
-impl EntryView<'_> {
-    pub fn create<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
-        process_entry(app, entry)
+
+impl LogDays {
+    pub fn new<'a>(entries: Entries) -> LogDays {
+        LogDays {
+            current_date: Local::now().naive_local(),
+            entries,
+        }
+    }
+
+    pub(crate) fn at(&self, index: usize) -> LogDay {
+        LogDay::new(&self.current_date, &self.entries.entries[index])
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.entries.entries.len()
+    }
+}
+
+pub struct LogDay<'a> {
+    logs: Vec<LogEntry<'a>>,
+    date: LogDate<'a>,
+}
+
+impl LogDay<'_> {
+    pub fn iter(&self) -> Iter<LogEntry> {
+        self.logs().into_iter()
+    }
+    pub fn new<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogDay<'a> {
+        process_entry(current_date, entry)
+    }
+
+    pub fn duration_total(&self) -> LogDuration {
+        LogDuration {
+            duration: Duration::minutes(
+                self.logs()
+                    .iter()
+                    .fold(0, |c, l| c + l.time_range().duration().num_minutes()),
+            ),
+        }
+    }
+
+    pub fn logs(&self) -> &Vec<LogEntry> {
+        &self.logs
+    }
+
+    pub fn date(&self) -> &LogDate {
+        &self.date
     }
 
     pub fn tag_summary(&self, kind: TokenKind) -> Vec<TagMeta> {
-        let entry_map = self.logs().iter().fold(
+        let entry_map = self.iter().fold(
             HashMap::new(),
-            |entry_map: HashMap<String, TagMeta>, log: &LogView| {
+            |entry_map: HashMap<String, TagMeta>, log: &LogEntry| {
                 log.description().by_kind(kind).iter().fold(
                     entry_map,
                     |mut acc: HashMap<String, TagMeta>, tag: &&Token| {
                         let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta {
                             tag: tag.text().to_string(),
                             kind: tag.kind,
-                            duration: DurationView::from_minutes(0 as i64),
+                            duration: LogDuration::from_minutes(0 as i64),
                             count: 0,
                         });
                         meta.count += 1;
@@ -46,38 +90,21 @@ impl EntryView<'_> {
         tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
         tag_metas
     }
-
-    pub fn duration_total(&self) -> DurationView {
-        DurationView {
-            duration: Duration::minutes(
-                self.logs()
-                    .iter()
-                    .fold(0, |c, l| c + l.time_range().duration().num_minutes()),
-            ),
-        }
-    }
-
-    pub fn logs(&self) -> &Vec<LogView> {
-        &self.logs
-    }
-
-    pub fn date(&self) -> &EntryDateView {
-        &self.date
-    }
 }
 
 pub struct TagMeta {
     pub tag: String,
     pub kind: TokenKind,
-    pub duration: DurationView,
+    pub duration: LogDuration,
     pub count: usize,
 }
 
-pub struct LogView<'a> {
+pub struct LogEntry<'a> {
     time_range: TimeRangeView,
     desription: &'a Tokens,
 }
-impl LogView<'_> {
+
+impl LogEntry<'_> {
     pub fn percentage_of_day(&self, day_total: i64) -> f64 {
         return (self.time_range.duration().num_minutes() as f64 / day_total as f64) * 100.0;
     }
@@ -90,12 +117,12 @@ impl LogView<'_> {
         self.desription
     }
 }
-pub struct EntryDateView<'a> {
+pub struct LogDate<'a> {
     now: &'a NaiveDateTime,
     date: NaiveDate,
 }
 
-impl EntryDateView<'_> {
+impl LogDate<'_> {
     pub fn is_today(&self) -> bool {
         return self.date.year() == self.now.year()
             && self.date.month() == self.now.month()
@@ -106,21 +133,21 @@ impl EntryDateView<'_> {
         self.date.format("%A %e %B, %Y").to_string()
     }
 }
-pub struct DurationView {
+pub struct LogDuration {
     duration: Duration,
 }
-impl DurationView {
+impl LogDuration {
     pub fn num_minutes(&self) -> i64 {
         self.duration.num_minutes()
     }
 
-    fn from_minutes(arg: i64) -> DurationView {
-        DurationView {
+    fn from_minutes(arg: i64) -> LogDuration {
+        LogDuration {
             duration: Duration::minutes(arg),
         }
     }
 }
-impl ToString for DurationView {
+impl ToString for LogDuration {
     fn to_string(&self) -> String {
         let hours = self.duration.num_minutes() / 60;
         let mins = self.duration.num_minutes() % 60;
@@ -132,8 +159,8 @@ impl ToString for DurationView {
     }
 }
 
-fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
-    let mut logs: Vec<LogView> = vec![];
+fn process_entry<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogDay<'a> {
+    let mut logs: Vec<LogEntry> = vec![];
 
     // # resolve the end dates
     //
@@ -144,7 +171,7 @@ fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
     // 4. if end date not set and not today, then end date = start date
     for log in entry.logs.iter().rev() {
         if log.time.end.is_some() {
-            logs.push(LogView {
+            logs.push(LogEntry {
                 time_range: TimeRangeView {
                     start: log.time.start.time(),
                     end: log.time.end.unwrap().time(),
@@ -155,7 +182,7 @@ fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
             continue;
         }
         if logs.last().is_some() {
-            logs.push(LogView {
+            logs.push(LogEntry {
                 time_range: TimeRangeView {
                     start: log.time.start.time(),
                     end: logs.last().unwrap().time_range().start,
@@ -165,11 +192,11 @@ fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
             });
             continue;
         }
-        if app.current_date().date() == entry.date_object() {
-            logs.push(LogView {
+        if current_date.date() == entry.date_object() {
+            logs.push(LogEntry {
                 time_range: TimeRangeView {
                     start: log.time.start.time(),
-                    end: app.current_date().time(),
+                    end: current_date.time(),
                     ongoing: true,
                 },
                 desription: &log.description,
@@ -177,7 +204,7 @@ fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
             continue;
         }
 
-        logs.push(LogView {
+        logs.push(LogEntry {
             time_range: TimeRangeView {
                 start: log.time.start.time(),
                 end: log.time.start.time(),
@@ -188,10 +215,10 @@ fn process_entry<'a>(app: &'a App, entry: &'a Entry) -> EntryView<'a> {
     }
     logs.reverse();
 
-    EntryView {
+    LogDay {
         logs,
-        date: EntryDateView {
-            now: app.current_date(),
+        date: LogDate {
+            now: current_date,
             date: entry.date_object(),
         },
     }
@@ -208,10 +235,10 @@ impl TimeRangeView {
         format!("{}-{}", self.start, self.end)
     }
 
-    pub fn duration(&self) -> DurationView {
+    pub fn duration(&self) -> LogDuration {
         // end is after start
         if self.end >= self.start {
-            return DurationView {
+            return LogDuration {
                 duration: self.end - self.start,
             };
         }
@@ -219,7 +246,7 @@ impl TimeRangeView {
         let m_to_mid = 1440 - (self.start.hour() * 60 + self.start.minute());
         let m_past_mid = self.end.hour() * 60 + self.end.minute();
 
-        DurationView {
+        LogDuration {
             duration: Duration::minutes(m_to_mid as i64 + m_past_mid as i64),
         }
     }
@@ -227,21 +254,14 @@ impl TimeRangeView {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use chrono::NaiveTime;
 
-    use crate::{
-        app::{
-            config::Config,
-            entry_view::{EntryView, LogView, TimeRangeView},
-            loader::FuncLoader,
-            App,
-        },
-        parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens},
-    };
+    use crate::parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens};
 
     #[test]
     fn log_view_percentage_of_day() {
-        let l = LogView {
+        let l = LogEntry {
             time_range: TimeRangeView {
                 start: NaiveTime::from_hms(0, 0, 0),
                 end: NaiveTime::from_hms(12, 0, 0),
@@ -275,11 +295,6 @@ mod tests {
     #[test]
     fn test_calculates_duration() {
         {
-            let config = Config::empty();
-            let app = App::new(
-                FuncLoader::new(Box::new(|| parser::Entries { entries: vec![] })),
-                &config,
-            );
             let entry = Entry {
                 date: Date::from_ymd(2022, 01, 01),
                 logs: vec![
@@ -297,18 +312,14 @@ mod tests {
                     },
                 ],
             };
-            let view = EntryView::create(&app, &entry);
+            let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
+            let view = LogDay::new(&time, &entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
     }
 
     #[test]
-    fn test_entry_view_tag_summary() {
-        let config = Config::empty();
-        let app = App::new(
-            FuncLoader::new(Box::new(|| parser::Entries { entries: vec![] })),
-            &config,
-        );
+    fn test_view_tag_summary() {
         let entry = Entry {
             date: Date::from_ymd(2022, 01, 01),
             logs: vec![
@@ -325,9 +336,10 @@ mod tests {
                 },
             ],
         };
-        let view = EntryView::create(&app, &entry);
-
+        let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
+        let view = LogDay::new(&time, &entry);
         let summary = view.tag_summary(parser::TokenKind::Tag);
+
         assert_eq!(2, summary.len());
 
         assert_eq!("barfoo".to_string(), summary[1].tag);

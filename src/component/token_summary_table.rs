@@ -1,0 +1,67 @@
+use anyhow::Ok;
+use tui::{
+    layout::Constraint,
+    style::{Color, Style},
+    text::Span,
+    widgets::{Cell, Row, Table},
+};
+
+use crate::{
+    model::entries::{LogDay, TagMeta},
+    parser::TokenKind,
+};
+
+pub struct TokenSummaryTable<'a> {
+    title: &'a str,
+    kind: TokenKind,
+}
+
+impl TokenSummaryTable<'_> {
+    pub fn new<'a>(title: &'a str, kind: TokenKind) -> TokenSummaryTable<'a> {
+        TokenSummaryTable { title, kind }
+    }
+
+    pub fn draw<B: tui::backend::Backend>(
+        &self,
+        f: &mut tui::Frame<B>,
+        area: tui::layout::Rect,
+        log_day: &LogDay,
+    ) -> anyhow::Result<()> {
+        let mut rows = vec![];
+        let binding = [self.title, "Duration", "Count"];
+        let headers = binding
+            .iter()
+            .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
+
+        for tag_meta in log_day.tag_summary(self.kind).iter() {
+            rows.push(Row::new([
+                Cell::from((|t: &TagMeta| match tag_meta.kind {
+                    TokenKind::Tag => {
+                        Span::styled(format!("@{}", t.tag), Style::default().fg(Color::Green))
+                    }
+                    TokenKind::Prose => Span::raw(t.tag.to_owned()),
+                    TokenKind::Ticket => {
+                        Span::styled(format!("{}", t.tag), Style::default().fg(Color::Cyan))
+                    }
+                })(tag_meta)),
+                Cell::from(tag_meta.duration.to_string()),
+                Cell::from(tag_meta.count.to_string()),
+            ]));
+        }
+
+        let table = Table::new(rows)
+            .header(
+                Row::new(headers)
+                    .height(1)
+                    .bottom_margin(1)
+                    .style(Style::default()),
+            )
+            .widths(&[
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+            ]);
+        f.render_widget(table, area);
+        Ok(())
+    }
+}

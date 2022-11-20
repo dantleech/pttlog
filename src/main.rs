@@ -1,14 +1,18 @@
 pub mod app;
+pub mod component;
+pub mod model;
 pub mod parser;
-pub mod ui;
 
+use anyhow::Error;
+use anyhow::Result;
+use app::config::map_key_event;
 use app::config::Config;
+use app::config::KeyMap;
 use app::loader::FileLoader;
 use clap::Parser;
 use crossterm::event;
 use crossterm::event::poll;
 use crossterm::event::Event;
-use crossterm::event::KeyCode;
 use crossterm::execute;
 use crossterm::terminal::disable_raw_mode;
 use crossterm::terminal::enable_raw_mode;
@@ -22,7 +26,7 @@ struct Args {
     path: String,
 }
 
-fn main() -> Result<(), io::Error> {
+fn main() -> Result<(), Error> {
     let args = Args::parse();
     let path = &args.path;
 
@@ -45,7 +49,7 @@ fn main() -> Result<(), io::Error> {
                 app.reload();
                 continue;
             }
-        }
+        };
     }
 
     disable_raw_mode()?;
@@ -62,21 +66,24 @@ enum Cmd {
 fn main_loop(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     app: &mut app::App,
-) -> io::Result<Cmd> {
+) -> Result<Cmd, Error> {
     loop {
-        app.tick();
-        terminal.draw(|frame| ui::layout(frame, app))?;
+        terminal.draw(|f| app.draw(f).expect("Coudl not draw"))?;
+
         if (poll(Duration::from_millis(1000)))? {
             if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => return Ok(Cmd::Quit),
-                    KeyCode::Char('p') => app.entry_previous(),
-                    KeyCode::Char('n') => app.entry_next(),
-                    KeyCode::Char('r') => {
+                let key = map_key_event(key);
+                match key {
+                    KeyMap::Quit => return Ok(Cmd::Quit),
+                    //KeyCode::Char('p') => app.entry_previous(),
+                    //KeyCode::Char('n') => app.entry_next(),
+                    KeyMap::Reload => {
                         app.notify("reloaded timesheet".to_string(), 2);
                         return Ok(Cmd::Reload);
                     }
-                    _ => {}
+                    _ => {
+                        app.handle(key);
+                    }
                 }
             }
         }
