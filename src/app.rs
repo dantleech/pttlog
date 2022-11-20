@@ -17,11 +17,16 @@ use super::parser;
 pub mod config;
 pub mod loader;
 
+enum AppView {
+    Day,
+}
+
 pub struct App<'a> {
     pub notification: Notification,
     loader: Box<dyn loader::Loader + 'a>,
     pub log_days: LogDays,
     pub day: Day<'a>,
+    view: AppView,
 }
 
 impl App<'_> {
@@ -37,6 +42,7 @@ impl App<'_> {
                 lifetime: 0,
             },
             day: Day::new(),
+            view: AppView::Day,
         }
     }
 
@@ -50,7 +56,9 @@ impl App<'_> {
 
         f.render_widget(navigation(), rows[0]);
 
-        self.day.draw(f, rows[1], &self.log_days)?;
+        match self.view {
+            AppView::Day => self.day.draw(f, rows[1], &self.log_days)?,
+        };
 
         if self.notification.should_display() {
             let text: Vec<Spans> = vec![Spans::from(vec![Span::raw(
@@ -81,8 +89,16 @@ impl App<'_> {
         self.log_days = LogDays::new(self.loader.load());
     }
 
+    fn set_view(&mut self, view: AppView) {
+        self.view = view
+    }
+
     pub(crate) fn handle(&mut self, key: KeyMap) {
-        self.day.handle(key);
+        match key {
+            KeyMap::DayView => self.set_view(AppView::Day),
+            KeyMap::MonthView => todo!(),
+            _ => self.day.handle(key),
+        };
     }
 }
 

@@ -75,8 +75,6 @@ fn main_loop(
                 let key = map_key_event(key);
                 match key {
                     KeyMap::Quit => return Ok(Cmd::Quit),
-                    //KeyCode::Char('p') => app.entry_previous(),
-                    //KeyCode::Char('n') => app.entry_next(),
                     KeyMap::Reload => {
                         app.notify("reloaded timesheet".to_string(), 2);
                         return Ok(Cmd::Reload);
