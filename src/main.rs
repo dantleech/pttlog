@@ -2,8 +2,9 @@ pub mod app;
 pub mod component;
 pub mod model;
 pub mod parser;
-pub mod ui;
 
+use anyhow::Error;
+use anyhow::Result;
 use app::config::Config;
 use app::loader::FileLoader;
 use clap::Parser;
@@ -24,7 +25,7 @@ struct Args {
     path: String,
 }
 
-fn main() -> Result<(), io::Error> {
+fn main() -> Result<(), Error> {
     let args = Args::parse();
     let path = &args.path;
 
@@ -47,7 +48,7 @@ fn main() -> Result<(), io::Error> {
                 app.reload();
                 continue;
             }
-        }
+        };
     }
 
     disable_raw_mode()?;
@@ -64,10 +65,10 @@ enum Cmd {
 fn main_loop(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     app: &mut app::App,
-) -> io::Result<Cmd> {
+) -> Result<Cmd, Error> {
     loop {
-        app.tick();
-        terminal.draw(|frame| ui::layout(frame, app))?;
+        terminal.draw(|f| app.draw(f).expect("Coudl not draw"))?;
+
         if (poll(Duration::from_millis(1000)))? {
             if let Event::Key(key) = event::read()? {
                 match key.code {

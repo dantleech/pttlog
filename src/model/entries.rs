@@ -54,14 +54,6 @@ impl LogDay<'_> {
         &self.date
     }
 
-    pub(crate) fn at(&self, index: usize) -> &LogEntry {
-        self.logs.get(index).expect("Index out of range")
-    }
-
-    pub(crate) fn len(&self) -> usize {
-        self.len()
-    }
-
     pub fn tag_summary(&self, kind: TokenKind) -> Vec<TagMeta> {
         let entry_map = self.iter().fold(
             HashMap::new(),
@@ -261,10 +253,7 @@ mod tests {
     use super::*;
     use chrono::NaiveTime;
 
-    use crate::{
-        app::{config::Config, loader::FuncLoader, App},
-        parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens},
-    };
+    use crate::parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens};
 
     #[test]
     fn log_view_percentage_of_day() {
@@ -302,11 +291,6 @@ mod tests {
     #[test]
     fn test_calculates_duration() {
         {
-            let config = Config::empty();
-            let app = App::new(
-                FuncLoader::new(Box::new(|| parser::Entries { entries: vec![] })),
-                &config,
-            );
             let entry = Entry {
                 date: Date::from_ymd(2022, 01, 01),
                 logs: vec![
@@ -332,7 +316,6 @@ mod tests {
 
     #[test]
     fn test_view_tag_summary() {
-        let config = Config::empty();
         let entry = Entry {
             date: Date::from_ymd(2022, 01, 01),
             logs: vec![
@@ -350,7 +333,7 @@ mod tests {
             ],
         };
         let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
-        let mut view = LogDay::new(&time, &entry);
+        let view = LogDay::new(&time, &entry);
         let summary = view.tag_summary(parser::TokenKind::Tag);
 
         assert_eq!(2, summary.len());
