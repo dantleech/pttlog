@@ -27,6 +27,7 @@ pub enum KeyMap {
     Reload,
     DayView,
     WeekView,
+    YearView,
 }
 
 pub fn map_key_event(key: KeyEvent) -> KeyMap {
@@ -37,6 +38,7 @@ pub fn map_key_event(key: KeyEvent) -> KeyMap {
         KeyCode::Char('p') => KeyMap::PreviousPage,
         KeyCode::Char('w') => KeyMap::WeekView,
         KeyCode::Char('d') => KeyMap::DayView,
+        KeyCode::Char('y') => KeyMap::YearView,
         _ => KeyMap::Unknown,
     }
 }

@@ -8,7 +8,6 @@ use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 pub struct LogDays {
     current_date: NaiveDateTime,
     entries: Vec<Entry>,
-    index: usize,
 }
 
 impl LogDays {
@@ -16,7 +15,6 @@ impl LogDays {
         LogDays {
             current_date: Local::now().naive_local(),
             entries,
-            index: 0,
         }
     }
 
@@ -76,7 +74,6 @@ impl LogDays {
                 })
                 .cloned()
                 .collect(),
-            index: 0,
         }
     }
 }

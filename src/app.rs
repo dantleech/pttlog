@@ -21,6 +21,7 @@ pub mod loader;
 enum AppView {
     Day,
     Week,
+    Year,
 }
 
 pub struct App<'a> {
@@ -29,6 +30,7 @@ pub struct App<'a> {
     pub log_days: LogDays,
     day: Day<'a>,
     week: IntervalView<'a>,
+    year: IntervalView<'a>,
     view: AppView,
 }
 
@@ -49,6 +51,10 @@ impl App<'_> {
                 NaiveDate::from_isoywd(now.year(), now.iso_week().week(), chrono::Weekday::Mon),
                 Duration::weeks(1),
             ),
+            year: IntervalView::new(
+                NaiveDate::from_ymd(now.year(), now.month(), now.day()),
+                Duration::days(365),
+            ),
         }
     }
 
@@ -65,6 +71,7 @@ impl App<'_> {
         match self.view {
             AppView::Day => self.day.draw(f, rows[1], &self.log_days)?,
             AppView::Week => self.week.draw(f, rows[1], &self.log_days)?,
+            AppView::Year => self.year.draw(f, rows[1], &self.log_days)?,
         };
 
         if self.notification.should_display() {
@@ -104,9 +111,11 @@ impl App<'_> {
         match key {
             KeyMap::DayView => self.set_view(AppView::Day),
             KeyMap::WeekView => self.set_view(AppView::Week),
+            KeyMap::YearView => self.set_view(AppView::Year),
             _ => {
                 self.day.handle(&key);
                 self.week.handle(&key);
+                self.year.handle(&key);
             }
         };
     }
@@ -141,6 +150,8 @@ fn navigation<'a>() -> Paragraph<'a> {
         Span::raw("ay "),
         Span::styled("[w]", Style::default().fg(Color::Green)),
         Span::raw("eek "),
+        Span::styled("[y]", Style::default().fg(Color::Green)),
+        Span::raw("ear "),
         Span::styled("[q]", Style::default().fg(Color::Green)),
         Span::raw("uit"),
     ])];

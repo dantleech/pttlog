@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use chrono::{Duration, Local, NaiveDate};
+use chrono::{Duration, NaiveDate};
 use tui::{
     backend::Backend,
     layout::{Constraint, Layout, Margin, Rect},
@@ -45,10 +45,11 @@ impl IntervalView<'_> {
         let log_days = log_days.between(self.date_start, self.date_end);
 
         let container = Block::default().borders(Borders::ALL).title(format!(
-            "{} from {} until {}",
+            "{} from {} {} until {}",
             self.duration.to_string(),
-            self.date_start.format("%A %e %B"),
-            self.date_end.format("%A %e %B, %Y"),
+            self.date_start.format("%A"),
+            self.date_start.to_string(),
+            self.date_end.to_string()
         ));
 
         f.render_widget(
@@ -59,10 +60,19 @@ impl IntervalView<'_> {
             }),
         );
 
+        let columns = Layout::default()
+            .direction(tui::layout::Direction::Horizontal)
+            .margin(0)
+            .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+            .split(area.inner(&Margin {
+                vertical: 2,
+                horizontal: 2,
+            }));
+
         let summary_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Min(2)])
-            .split(area.inner(&Margin {
+            .split(columns[1].inner(&Margin {
                 vertical: 2,
                 horizontal: 2,
             }));
