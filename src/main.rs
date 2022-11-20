@@ -5,7 +5,9 @@ pub mod parser;
 
 use anyhow::Error;
 use anyhow::Result;
+use app::config::map_key_event;
 use app::config::Config;
+use app::config::KeyMap;
 use app::loader::FileLoader;
 use clap::Parser;
 use crossterm::event;
@@ -71,15 +73,18 @@ fn main_loop(
 
         if (poll(Duration::from_millis(1000)))? {
             if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => return Ok(Cmd::Quit),
+                let key = map_key_event(key);
+                match key {
+                    KeyMap::Quit => return Ok(Cmd::Quit),
                     //KeyCode::Char('p') => app.entry_previous(),
                     //KeyCode::Char('n') => app.entry_next(),
-                    KeyCode::Char('r') => {
+                    KeyMap::Reload => {
                         app.notify("reloaded timesheet".to_string(), 2);
                         return Ok(Cmd::Reload);
                     }
-                    _ => {}
+                    _ => {
+                        app.handle(key);
+                    }
                 }
             }
         }

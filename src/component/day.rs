@@ -1,4 +1,5 @@
 use anyhow::{Error, Result};
+use crossterm::event::KeyEvent;
 use tui::{
     backend::Backend,
     layout::{Constraint, Layout, Margin, Rect},
@@ -6,7 +7,7 @@ use tui::{
     Frame,
 };
 
-use crate::{model::entries::LogDays, parser::TokenKind};
+use crate::{app::config::KeyMap, model::entries::LogDays, parser::TokenKind};
 
 use super::{log_table::LogTable, token_summary_table::TokenSummaryTable, Component};
 
@@ -15,6 +16,7 @@ pub struct Day<'a> {
     pub log_table: LogTable,
     pub tag_summary: TokenSummaryTable<'a>,
     pub ticket_summary: TokenSummaryTable<'a>,
+    pub initialized: bool,
 }
 
 impl Day<'_> {
@@ -24,16 +26,28 @@ impl Day<'_> {
             log_table: LogTable {},
             tag_summary: TokenSummaryTable::new("Tags", TokenKind::Tag),
             ticket_summary: TokenSummaryTable::new("Tickets", TokenKind::Ticket),
+            initialized: false,
         }
     }
 
     pub fn draw<B: Backend>(
-        &self,
+        &mut self,
         f: &mut Frame<B>,
         area: Rect,
         log_days: &LogDays,
     ) -> Result<(), Error> {
+        // default to lastest entry
+        if !self.initialized {
+            self.index = log_days.len();
+            self.initialized = true;
+        }
+        // do not allow overflow
+        if self.index >= log_days.len() {
+            self.index = log_days.len() - 1
+        }
+
         let log_day = log_days.at(self.index);
+
         let columns = Layout::default()
             .direction(tui::layout::Direction::Horizontal)
             .margin(0)
@@ -43,9 +57,12 @@ impl Day<'_> {
                 horizontal: 2,
             }));
 
-        let container = Block::default()
-            .borders(Borders::ALL)
-            .title(log_day.date().to_verbose_string());
+        let container = Block::default().borders(Borders::ALL).title(format!(
+            "{}/{} {}",
+            self.index + 1,
+            log_days.len(),
+            log_day.date().to_verbose_string()
+        ));
 
         let summary_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
@@ -66,6 +83,24 @@ impl Day<'_> {
         );
 
         Ok(())
+    }
+
+    fn next(&mut self) {
+        self.index += 1
+    }
+
+    fn previous(&mut self) {
+        if self.index > 0 {
+            self.index -= 1
+        }
+    }
+
+    pub(crate) fn handle(&mut self, key: KeyMap) {
+        match key {
+            KeyMap::PreviousPage => self.previous(),
+            KeyMap::NextPage => self.next(),
+            _ => (),
+        };
     }
 }
 

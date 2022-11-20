@@ -12,7 +12,7 @@ use crate::model::entries::LogDays;
 
 use super::component::day::Day;
 
-use self::config::Config;
+use self::config::{Config, KeyMap};
 use super::parser;
 pub mod config;
 pub mod loader;
@@ -56,6 +56,7 @@ impl App<'_> {
             let text: Vec<Spans> = vec![Spans::from(vec![Span::raw(
                 &self.notification.notification,
             )])];
+
             let notification = Paragraph::new(text)
                 .alignment(Alignment::Right)
                 .style(Style::default().fg(Color::DarkGray));
@@ -78,6 +79,10 @@ impl App<'_> {
 
     pub fn reload(&mut self) {
         self.log_days = LogDays::new(self.loader.load());
+    }
+
+    pub(crate) fn handle(&mut self, key: KeyMap) {
+        self.day.handle(key);
     }
 }
 

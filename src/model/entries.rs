@@ -21,6 +21,10 @@ impl LogDays {
     pub(crate) fn at(&self, index: usize) -> LogDay {
         LogDay::new(&self.current_date, &self.entries.entries[index])
     }
+
+    pub(crate) fn len(&self) -> usize {
+        self.entries.entries.len()
+    }
 }
 
 pub struct LogDay<'a> {
