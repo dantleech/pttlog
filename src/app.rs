@@ -8,7 +8,7 @@ use tui::{
     Frame,
 };
 
-use crate::{component::week::IntervalView, model::entries::LogDays};
+use crate::{component::interval_view::IntervalView, model::entries::LogDays};
 
 use super::component::day::Day;
 

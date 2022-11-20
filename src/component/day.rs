@@ -70,8 +70,10 @@ impl Day<'_> {
 
         self.log_table.draw(f, columns[0], &log_day)?;
 
-        self.tag_summary.draw(f, summary_rows[0], &log_day)?;
-        self.ticket_summary.draw(f, summary_rows[1], &log_day)?;
+        self.tag_summary
+            .draw(f, summary_rows[0], &log_day.tag_summary(TokenKind::Tag))?;
+        self.ticket_summary
+            .draw(f, summary_rows[1], &log_day.tag_summary(TokenKind::Ticket))?;
 
         f.render_widget(
             container,

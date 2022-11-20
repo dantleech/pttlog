@@ -25,7 +25,7 @@ impl TokenSummaryTable<'_> {
         &self,
         f: &mut tui::Frame<B>,
         area: tui::layout::Rect,
-        log_day: &LogDay,
+        tag_metas: &Vec<TagMeta>,
     ) -> anyhow::Result<()> {
         let mut rows = vec![];
         let binding = [self.title, "Duration", "Count"];
@@ -33,7 +33,7 @@ impl TokenSummaryTable<'_> {
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
 
-        for tag_meta in log_day.tag_summary(self.kind).iter() {
+        for tag_meta in tag_metas.iter() {
             rows.push(Row::new([
                 Cell::from((|t: &TagMeta| match tag_meta.kind {
                     TokenKind::Tag => {
