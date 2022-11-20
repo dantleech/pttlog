@@ -9,7 +9,7 @@ use tui::{
 
 use crate::{app::config::KeyMap, model::entries::LogDays, parser::TokenKind};
 
-use super::{day_breakdown::DayBreakdownChart, token_summary_table::TokenSummaryTable};
+use super::{day_breakdown_chart::DayBreakdownChart, token_summary_table::TokenSummaryTable};
 
 pub struct IntervalView<'a> {
     initialized: bool,
