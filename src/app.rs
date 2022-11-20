@@ -8,7 +8,7 @@ use tui::{
     Frame,
 };
 
-use crate::model::entries::LogDays;
+use crate::{component::week::Week, model::entries::LogDays};
 
 use super::component::day::Day;
 
@@ -19,13 +19,15 @@ pub mod loader;
 
 enum AppView {
     Day,
+    Week,
 }
 
 pub struct App<'a> {
     pub notification: Notification,
     loader: Box<dyn loader::Loader + 'a>,
     pub log_days: LogDays,
-    pub day: Day<'a>,
+    day: Day<'a>,
+    week: Week,
     view: AppView,
 }
 
@@ -43,6 +45,7 @@ impl App<'_> {
             },
             day: Day::new(),
             view: AppView::Day,
+            week: Week::new(),
         }
     }
 
@@ -58,6 +61,7 @@ impl App<'_> {
 
         match self.view {
             AppView::Day => self.day.draw(f, rows[1], &self.log_days)?,
+            AppView::Week => self.week.draw(f, rows[1], &self.log_days)?,
         };
 
         if self.notification.should_display() {
@@ -96,8 +100,11 @@ impl App<'_> {
     pub(crate) fn handle(&mut self, key: KeyMap) {
         match key {
             KeyMap::DayView => self.set_view(AppView::Day),
-            KeyMap::MonthView => todo!(),
-            _ => self.day.handle(key),
+            KeyMap::WeekView => self.set_view(AppView::Week),
+            _ => {
+                self.day.handle(&key);
+                self.week.handle(&key);
+            }
         };
     }
 }
@@ -126,8 +133,12 @@ fn navigation<'a>() -> Paragraph<'a> {
         Span::styled("[n]", Style::default().fg(Color::Green)),
         Span::raw("ext "),
         Span::styled("[r]", Style::default().fg(Color::Green)),
-        Span::raw("eload"),
-        Span::styled(" [q]", Style::default().fg(Color::Green)),
+        Span::raw("eload "),
+        Span::styled("[d]", Style::default().fg(Color::Green)),
+        Span::raw("ay "),
+        Span::styled("[w]", Style::default().fg(Color::Green)),
+        Span::raw("week "),
+        Span::styled("[q]", Style::default().fg(Color::Green)),
         Span::raw("uit"),
     ])];
 

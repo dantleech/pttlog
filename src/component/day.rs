@@ -94,7 +94,7 @@ impl Day<'_> {
         }
     }
 
-    pub(crate) fn handle(&mut self, key: KeyMap) {
+    pub(crate) fn handle(&mut self, key: &KeyMap) {
         match key {
             KeyMap::PreviousPage => self.previous(),
             KeyMap::NextPage => self.next(),
