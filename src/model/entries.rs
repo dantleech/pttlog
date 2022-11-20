@@ -29,6 +29,7 @@ impl LogDays {
     }
 
     pub(crate) fn tag_summary(&self, tag: TokenKind) -> Vec<TagMeta> {
+        // TODO: this is pretty duplicated with view.tag_summary
         let entry_map = self.entries.entries.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagMeta>, entry: &Entry| {

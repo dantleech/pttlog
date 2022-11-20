@@ -2,7 +2,8 @@ use anyhow::{Error, Result};
 use chrono::{Duration, Local, NaiveDate};
 use tui::{
     backend::Backend,
-    layout::{Constraint, Layout, Rect},
+    layout::{Constraint, Layout, Margin, Rect},
+    widgets::{Block, Borders},
     Frame,
 };
 
@@ -39,11 +40,27 @@ impl IntervalView<'_> {
         if !self.initialized {
             self.initialized = true;
         }
+        let container = Block::default().borders(Borders::ALL).title(format!(
+            "{} - {}",
+            self.date_start.to_string(),
+            self.date_end.to_string(),
+        ));
+
+        f.render_widget(
+            container,
+            area.inner(&Margin {
+                vertical: 0,
+                horizontal: 0,
+            }),
+        );
 
         let summary_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Min(2)])
-            .split(area);
+            .split(area.inner(&Margin {
+                vertical: 2,
+                horizontal: 2,
+            }));
 
         self.tag_summary
             .draw(f, summary_rows[0], &log_days.tag_summary(TokenKind::Tag))?;
