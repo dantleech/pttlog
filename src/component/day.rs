@@ -63,12 +63,12 @@ impl Day<'_> {
             log_day.date().to_verbose_string()
         ));
 
+        self.log_table.draw(f, columns[0], &log_day)?;
+
         let summary_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Min(2)])
             .split(columns[1]);
-
-        self.log_table.draw(f, columns[0], &log_day)?;
 
         self.tag_summary
             .draw(f, summary_rows[0], &log_day.tag_summary(TokenKind::Tag))?;

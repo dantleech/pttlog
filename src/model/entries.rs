@@ -8,6 +8,7 @@ use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 pub struct LogDays {
     current_date: NaiveDateTime,
     entries: Entries,
+    index: usize,
 }
 
 impl LogDays {
@@ -15,6 +16,7 @@ impl LogDays {
         LogDays {
             current_date: Local::now().naive_local(),
             entries,
+            index: 0,
         }
     }
 
@@ -24,6 +26,17 @@ impl LogDays {
 
     pub(crate) fn len(&self) -> usize {
         self.entries.entries.len()
+    }
+
+    pub(crate) fn tag_summary(&self, tag: TokenKind) -> Vec<TagMeta> {
+        self.entries.entries.iter().fold(
+            HashMap::new(),
+            |entry_map: HashMap<String, TagMeta>, entry: &Entry| {
+                let view = LogDay::new(&self.current_date, &entry);
+                entry_map
+            },
+        );
+        vec![]
     }
 }
 

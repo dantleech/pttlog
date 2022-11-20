@@ -27,7 +27,7 @@ pub struct App<'a> {
     loader: Box<dyn loader::Loader + 'a>,
     pub log_days: LogDays,
     day: Day<'a>,
-    week: IntervalView,
+    week: IntervalView<'a>,
     view: AppView,
 }
 
