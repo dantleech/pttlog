@@ -11,8 +11,6 @@ use crate::{
     parser::TokenKind,
 };
 
-use super::Component;
-
 pub struct TokenSummaryTable<'a> {
     title: &'a str,
     kind: TokenKind,
@@ -67,5 +65,3 @@ impl TokenSummaryTable<'_> {
         Ok(())
     }
 }
-
-impl Component for TokenSummaryTable<'_> {}

@@ -103,39 +103,6 @@ impl Notification {
     }
 }
 
-//#[cfg(test)]
-//mod tests {
-//    use crate::parser::{self, Entry};
-//
-//    use super::{config::Config, loader::FuncLoader, App};
-//
-//    #[test]
-//    pub fn test_replace_entries_resets_current_entry_if_out_of_bounds() {
-//        let config = Config::empty();
-//        let mut app = App::new(
-//            FuncLoader::new(Box::new(|| parser::Entries {
-//                entries: vec![
-//                    Entry {
-//                        date: parser::Date::from_ymd(2022, 01, 01),
-//                        logs: vec![],
-//                    },
-//                    Entry {
-//                        date: parser::Date::from_ymd(2022, 01, 02),
-//                        logs: vec![],
-//                    },
-//                ],
-//            })),
-//            &config,
-//        );
-//        app.with_entries(parser::Entries {
-//            entries: vec![Entry {
-//                date: parser::Date::from_ymd(2022, 01, 01),
-//                logs: vec![],
-//            }],
-//        });
-//        app.current_entry();
-//    }
-//}
 fn navigation<'a>() -> Paragraph<'a> {
     let text: Vec<Spans> = vec![Spans::from(vec![
         Span::styled("[p]", Style::default().fg(Color::Green)),

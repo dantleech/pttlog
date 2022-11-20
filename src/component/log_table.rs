@@ -11,8 +11,6 @@ use crate::{
     parser,
 };
 
-use super::Component;
-
 pub struct LogTable {}
 
 impl LogTable {
@@ -91,8 +89,6 @@ impl LogTable {
         Ok(())
     }
 }
-
-impl Component for LogTable {}
 
 fn description(tokens: &parser::Tokens) -> Spans {
     let foo = tokens

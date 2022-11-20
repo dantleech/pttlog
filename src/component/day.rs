@@ -1,5 +1,4 @@
 use anyhow::{Error, Result};
-use crossterm::event::KeyEvent;
 use tui::{
     backend::Backend,
     layout::{Constraint, Layout, Margin, Rect},
@@ -9,7 +8,7 @@ use tui::{
 
 use crate::{app::config::KeyMap, model::entries::LogDays, parser::TokenKind};
 
-use super::{log_table::LogTable, token_summary_table::TokenSummaryTable, Component};
+use super::{log_table::LogTable, token_summary_table::TokenSummaryTable};
 
 pub struct Day<'a> {
     pub index: usize,
@@ -103,5 +102,3 @@ impl Day<'_> {
         };
     }
 }
-
-impl Component for Day<'_> {}

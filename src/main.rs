@@ -13,7 +13,6 @@ use clap::Parser;
 use crossterm::event;
 use crossterm::event::poll;
 use crossterm::event::Event;
-use crossterm::event::KeyCode;
 use crossterm::execute;
 use crossterm::terminal::disable_raw_mode;
 use crossterm::terminal::enable_raw_mode;
