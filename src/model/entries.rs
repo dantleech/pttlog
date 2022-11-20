@@ -76,6 +76,38 @@ impl LogDays {
                 .collect(),
         }
     }
+
+    pub(crate) fn minutes_by_weekday(&self) -> Vec<(&str, u64)> {
+        let counts = self.entries.iter().fold(
+            HashMap::from([
+                ("Mon", 0),
+                ("Tue", 0),
+                ("Wed", 0),
+                ("Thu", 0),
+                ("Fri", 0),
+                ("Sat", 0),
+                ("Sun", 0),
+            ]),
+            |mut counts: HashMap<&str, u64>, entry: &Entry| {
+                let view = LogDay::new(&self.current_date, &entry);
+                let key = entry.date_object().weekday().to_string();
+                let count = counts.get_mut(key.as_str()).expect("Out of bounds");
+                *count += view.duration_total().duration.num_minutes().unsigned_abs();
+                counts
+            },
+        );
+        let tuples = vec![
+            ("Mon", *counts.get("Mon").unwrap()),
+            ("Tue", *counts.get("Tue").unwrap()),
+            ("Wed", *counts.get("Wed").unwrap()),
+            ("Thu", *counts.get("Thu").unwrap()),
+            ("Fri", *counts.get("Fri").unwrap()),
+            ("Sat", *counts.get("Sat").unwrap()),
+            ("Sun", *counts.get("Sun").unwrap()),
+        ];
+
+        tuples
+    }
 }
 
 pub struct LogDay<'a> {
@@ -400,5 +432,28 @@ mod tests {
         assert_eq!("foobar".to_string(), summary[0].tag);
         assert_eq!(2, summary[0].count);
         assert_eq!(90, summary[0].duration.num_minutes());
+    }
+
+    #[test]
+    fn test_minutes_by_weekday() {
+        let mut entries = vec![];
+        for day in 1..30 {
+            entries.push(Entry {
+                date: Date::from_ymd(2022, 01, day),
+                logs: vec![Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                    description: Tokens::new(vec![Token::tag("foobar".to_string())]),
+                }],
+            });
+        }
+
+        let log_days = LogDays {
+            current_date: NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0),
+            entries,
+        };
+
+        let minutes_by_weekday = log_days.minutes_by_weekday();
+        println!("{:?}", minutes_by_weekday);
+        assert_eq!(&("Fri", 600), minutes_by_weekday.first().unwrap());
     }
 }

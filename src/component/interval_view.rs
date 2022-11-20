@@ -9,7 +9,7 @@ use tui::{
 
 use crate::{app::config::KeyMap, model::entries::LogDays, parser::TokenKind};
 
-use super::token_summary_table::TokenSummaryTable;
+use super::{day_breakdown::DayBreakdownChart, token_summary_table::TokenSummaryTable};
 
 pub struct IntervalView<'a> {
     initialized: bool,
@@ -18,6 +18,7 @@ pub struct IntervalView<'a> {
     tag_summary: TokenSummaryTable<'a>,
     ticket_summary: TokenSummaryTable<'a>,
     duration: Duration,
+    day_breakdown_chart: DayBreakdownChart,
 }
 
 impl IntervalView<'_> {
@@ -29,6 +30,7 @@ impl IntervalView<'_> {
             date_end: start_date,
             tag_summary: TokenSummaryTable::new("Tags", TokenKind::Tag),
             ticket_summary: TokenSummaryTable::new("Tickets", TokenKind::Ticket),
+            day_breakdown_chart: DayBreakdownChart {},
         }
     }
 
@@ -77,6 +79,7 @@ impl IntervalView<'_> {
                 horizontal: 2,
             }));
 
+        self.day_breakdown_chart.draw(f, area, &log_days)?;
         self.tag_summary
             .draw(f, summary_rows[0], &log_days.tag_summary(TokenKind::Tag))?;
         self.ticket_summary
