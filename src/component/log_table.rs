@@ -13,23 +13,22 @@ use crate::{
 
 use super::Component;
 
-pub struct LogTable<'a> {
-    entries: LogDay<'a>,
-}
+pub struct LogTable {}
 
-impl Component for LogTable<'_> {
-    fn draw<B: tui::backend::Backend>(
+impl LogTable {
+    pub fn draw<B: tui::backend::Backend>(
         &self,
         f: &mut tui::Frame<B>,
         area: tui::layout::Rect,
+        log_day: &LogDay,
     ) -> anyhow::Result<()> {
         let mut rows = vec![];
         let headers = ["Time", "Duration", "Description", ""]
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
-        let _duration_total = self.entries.duration_total();
+        let _duration_total = log_day.duration_total();
 
-        for log in self.entries.iter() {
+        for log in log_day.iter() {
             rows.push(Row::new([
                 Cell::from((|time_range: &TimeRangeView| {
                     // 1. if today and end time not set show "now"
@@ -53,7 +52,7 @@ impl Component for LogTable<'_> {
                         Span::styled(
                             format!(
                                 " {:.2}%",
-                                log.percentage_of_day(self.entries.duration_total().num_minutes())
+                                log.percentage_of_day(log_day.duration_total().num_minutes())
                             ),
                             Style::default().fg(Color::DarkGray),
                         ),
@@ -70,7 +69,7 @@ impl Component for LogTable<'_> {
         ]));
         rows.push(Row::new([
             Cell::from(Span::styled("Total:", Style::default().fg(Color::DarkGray))),
-            Cell::from(Span::raw(self.entries.duration_total().to_string())),
+            Cell::from(Span::raw(log_day.duration_total().to_string())),
             Cell::default(),
         ]));
 
@@ -92,6 +91,8 @@ impl Component for LogTable<'_> {
         Ok(())
     }
 }
+
+impl Component for LogTable {}
 
 fn description(tokens: &parser::Tokens) -> Spans {
     let foo = tokens

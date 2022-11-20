@@ -2,20 +2,24 @@ use std::collections::HashMap;
 use std::slice::Iter;
 
 use crate::parser::{Entries, Entry, Token, TokenKind, Tokens};
-use chrono::{Datelike, Timelike};
+use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
-pub struct LogDays<'a> {
+pub struct LogDays {
     current_date: NaiveDateTime,
-    entries: &'a Entries,
+    entries: Entries,
 }
 
-impl LogDays<'_> {
-    pub fn new<'a>(current_date: NaiveDateTime, entries: &'a Entries) -> LogDays<'a> {
+impl LogDays {
+    pub fn new<'a>(entries: Entries) -> LogDays {
         LogDays {
-            current_date,
+            current_date: Local::now().naive_local(),
             entries,
         }
+    }
+
+    pub(crate) fn at(&self, index: usize) -> LogDay {
+        LogDay::new(&self.current_date, &self.entries.entries[index])
     }
 }
 
@@ -28,7 +32,7 @@ impl LogDay<'_> {
     pub fn iter(&self) -> Iter<LogEntry> {
         self.logs().into_iter()
     }
-    pub fn create<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogDay<'a> {
+    pub fn new<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogDay<'a> {
         process_entry(current_date, entry)
     }
 
@@ -321,7 +325,7 @@ mod tests {
                 ],
             };
             let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
-            let view = LogDay::create(&time, &entry);
+            let view = LogDay::new(&time, &entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
     }
@@ -346,7 +350,7 @@ mod tests {
             ],
         };
         let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
-        let mut view = LogDay::create(&time, &entry);
+        let mut view = LogDay::new(&time, &entry);
         let summary = view.tag_summary(parser::TokenKind::Tag);
 
         assert_eq!(2, summary.len());

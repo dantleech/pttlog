@@ -16,24 +16,18 @@ use super::Component;
 pub struct TokenSummaryTable<'a> {
     title: &'a str,
     kind: TokenKind,
-    entries: LogDay<'a>,
 }
 
 impl TokenSummaryTable<'_> {
-    pub fn new<'a>(title: &'a str, kind: TokenKind, entries: LogDay<'a>) -> TokenSummaryTable<'a> {
-        TokenSummaryTable {
-            title,
-            kind,
-            entries,
-        }
+    pub fn new<'a>(title: &'a str, kind: TokenKind) -> TokenSummaryTable<'a> {
+        TokenSummaryTable { title, kind }
     }
-}
 
-impl Component for TokenSummaryTable<'_> {
-    fn draw<B: tui::backend::Backend>(
+    pub fn draw<B: tui::backend::Backend>(
         &self,
         f: &mut tui::Frame<B>,
-        rect: tui::layout::Rect,
+        area: tui::layout::Rect,
+        log_day: &LogDay,
     ) -> anyhow::Result<()> {
         let mut rows = vec![];
         let binding = [self.title, "Duration", "Count"];
@@ -41,7 +35,7 @@ impl Component for TokenSummaryTable<'_> {
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
 
-        for tag_meta in self.entries.tag_summary(self.kind).iter() {
+        for tag_meta in log_day.tag_summary(self.kind).iter() {
             rows.push(Row::new([
                 Cell::from((|t: &TagMeta| match tag_meta.kind {
                     TokenKind::Tag => {
@@ -57,7 +51,7 @@ impl Component for TokenSummaryTable<'_> {
             ]));
         }
 
-        Table::new(rows)
+        let table = Table::new(rows)
             .header(
                 Row::new(headers)
                     .height(1)
@@ -69,6 +63,9 @@ impl Component for TokenSummaryTable<'_> {
                 Constraint::Percentage(33),
                 Constraint::Percentage(33),
             ]);
+        f.render_widget(table, area);
         Ok(())
     }
 }
+
+impl Component for TokenSummaryTable<'_> {}

@@ -72,8 +72,8 @@ fn main_loop(
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => return Ok(Cmd::Quit),
-                    KeyCode::Char('p') => app.entry_previous(),
-                    KeyCode::Char('n') => app.entry_next(),
+                    //KeyCode::Char('p') => app.entry_previous(),
+                    //KeyCode::Char('n') => app.entry_next(),
                     KeyCode::Char('r') => {
                         app.notify("reloaded timesheet".to_string(), 2);
                         return Ok(Cmd::Reload);
