@@ -17,14 +17,16 @@ pub struct IntervalView<'a> {
     date_end: NaiveDate,
     tag_summary: TokenSummaryTable<'a>,
     ticket_summary: TokenSummaryTable<'a>,
+    duration: Duration,
 }
 
 impl IntervalView<'_> {
-    pub fn new<'a>() -> IntervalView<'a> {
+    pub fn new<'a>(start_date: NaiveDate, duration: Duration) -> IntervalView<'a> {
         IntervalView {
             initialized: false,
-            date_start: Local::now().date_naive() - Duration::days(7),
-            date_end: Local::now().date_naive(),
+            duration,
+            date_start: start_date - duration,
+            date_end: start_date,
             tag_summary: TokenSummaryTable::new("Tags", TokenKind::Tag),
             ticket_summary: TokenSummaryTable::new("Tickets", TokenKind::Ticket),
         }
@@ -40,10 +42,13 @@ impl IntervalView<'_> {
         if !self.initialized {
             self.initialized = true;
         }
+        let log_days = log_days.between(self.date_start, self.date_end);
+
         let container = Block::default().borders(Borders::ALL).title(format!(
-            "{} - {}",
-            self.date_start.to_string(),
-            self.date_end.to_string(),
+            "{} from {} until {}",
+            self.duration.to_string(),
+            self.date_start.format("%A %e %B"),
+            self.date_end.format("%A %e %B, %Y"),
         ));
 
         f.render_widget(
@@ -72,6 +77,14 @@ impl IntervalView<'_> {
 
     pub(crate) fn handle(&mut self, key: &KeyMap) {
         match key {
+            KeyMap::PreviousPage => {
+                self.date_start -= self.duration;
+                self.date_end -= self.duration;
+            }
+            KeyMap::NextPage => {
+                self.date_start += self.duration;
+                self.date_end += self.duration;
+            }
             _ => (),
         };
     }

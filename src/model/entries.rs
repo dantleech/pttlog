@@ -7,12 +7,12 @@ use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
 pub struct LogDays {
     current_date: NaiveDateTime,
-    entries: Entries,
+    entries: Vec<Entry>,
     index: usize,
 }
 
 impl LogDays {
-    pub fn new<'a>(entries: Entries) -> LogDays {
+    pub fn new<'a>(entries: Vec<Entry>) -> LogDays {
         LogDays {
             current_date: Local::now().naive_local(),
             entries,
@@ -21,16 +21,16 @@ impl LogDays {
     }
 
     pub(crate) fn at(&self, index: usize) -> LogDay {
-        LogDay::new(&self.current_date, &self.entries.entries[index])
+        LogDay::new(&self.current_date, &self.entries[index])
     }
 
     pub(crate) fn len(&self) -> usize {
-        self.entries.entries.len()
+        self.entries.len()
     }
 
     pub(crate) fn tag_summary(&self, tag: TokenKind) -> Vec<TagMeta> {
         // TODO: this is pretty duplicated with view.tag_summary
-        let entry_map = self.entries.entries.iter().fold(
+        let entry_map = self.entries.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagMeta>, entry: &Entry| {
                 let view = LogDay::new(&self.current_date, &entry);
@@ -62,6 +62,22 @@ impl LogDays {
         }
         tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
         tag_metas
+    }
+
+    pub(crate) fn between(&self, date_start: NaiveDate, date_end: NaiveDate) -> LogDays {
+        LogDays {
+            current_date: self.current_date,
+            entries: self
+                .entries
+                .iter()
+                .filter(|entry| {
+                    let date = entry.date_object();
+                    return date >= date_start && date <= date_end;
+                })
+                .cloned()
+                .collect(),
+            index: 0,
+        }
     }
 }
 

@@ -15,7 +15,7 @@ use nom::{
 
 use crate::app::config::Config;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Date {
     date: NaiveDate,
 }
@@ -115,7 +115,7 @@ impl Time {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TimeRange {
     pub start: Time,
     pub end: Option<Time>,
@@ -152,7 +152,7 @@ pub enum TokenKind {
     Ticket,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub text: String,
@@ -175,7 +175,7 @@ impl Token {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tokens(pub Vec<Token>);
 
 impl Tokens {
@@ -228,13 +228,13 @@ impl Tokens {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Log {
     pub time: TimeRange,
     pub description: Tokens,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Entry {
     pub date: Date,
     pub logs: Vec<Log>,

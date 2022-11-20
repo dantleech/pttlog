@@ -1,4 +1,5 @@
 use anyhow::{Error, Result};
+use chrono::{Datelike, Duration, Local, NaiveDate};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Layout, Margin},
@@ -33,9 +34,8 @@ pub struct App<'a> {
 
 impl App<'_> {
     pub fn new<'a>(loader: Box<dyn loader::Loader + 'a>, _config: &'a Config) -> App<'a> {
-        let log_days = LogDays::new(parser::Entries {
-            entries: vec![parser::Entry::placeholder()],
-        });
+        let now = Local::now().naive_local();
+        let log_days = LogDays::new(vec![parser::Entry::placeholder()]);
         App {
             log_days,
             loader,
@@ -45,7 +45,10 @@ impl App<'_> {
             },
             day: Day::new(),
             view: AppView::Day,
-            week: IntervalView::new(),
+            week: IntervalView::new(
+                NaiveDate::from_isoywd(now.year(), now.iso_week().week(), chrono::Weekday::Mon),
+                Duration::weeks(1),
+            ),
         }
     }
 
@@ -90,7 +93,7 @@ impl App<'_> {
     }
 
     pub fn reload(&mut self) {
-        self.log_days = LogDays::new(self.loader.load());
+        self.log_days = LogDays::new(self.loader.load().entries);
     }
 
     fn set_view(&mut self, view: AppView) {
