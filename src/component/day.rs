@@ -23,8 +23,8 @@ impl Day<'_> {
         Day {
             index: 0,
             log_table: LogTable {},
-            tag_summary: TokenSummaryTable::new("Tags", TokenKind::Tag),
-            ticket_summary: TokenSummaryTable::new("Tickets", TokenKind::Ticket),
+            tag_summary: TokenSummaryTable::new("Tags"),
+            ticket_summary: TokenSummaryTable::new("Tickets"),
             initialized: false,
         }
     }
@@ -63,15 +63,17 @@ impl Day<'_> {
             log_day.date().to_verbose_string()
         ));
 
+        self.log_table.draw(f, columns[0], &log_day)?;
+
         let summary_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Min(2)])
             .split(columns[1]);
 
-        self.log_table.draw(f, columns[0], &log_day)?;
-
-        self.tag_summary.draw(f, summary_rows[0], &log_day)?;
-        self.ticket_summary.draw(f, summary_rows[1], &log_day)?;
+        self.tag_summary
+            .draw(f, summary_rows[0], &log_day.tag_summary(TokenKind::Tag))?;
+        self.ticket_summary
+            .draw(f, summary_rows[1], &log_day.tag_summary(TokenKind::Ticket))?;
 
         f.render_widget(
             container,
@@ -94,7 +96,7 @@ impl Day<'_> {
         }
     }
 
-    pub(crate) fn handle(&mut self, key: KeyMap) {
+    pub(crate) fn handle(&mut self, key: &KeyMap) {
         match key {
             KeyMap::PreviousPage => self.previous(),
             KeyMap::NextPage => self.next(),

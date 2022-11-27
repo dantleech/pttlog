@@ -68,15 +68,13 @@ fn main_loop(
     app: &mut app::App,
 ) -> Result<Cmd, Error> {
     loop {
-        terminal.draw(|f| app.draw(f).expect("Coudl not draw"))?;
+        terminal.draw(|f| app.draw(f).expect("Could not draw"))?;
 
         if (poll(Duration::from_millis(1000)))? {
             if let Event::Key(key) = event::read()? {
                 let key = map_key_event(key);
                 match key {
                     KeyMap::Quit => return Ok(Cmd::Quit),
-                    //KeyCode::Char('p') => app.entry_previous(),
-                    //KeyCode::Char('n') => app.entry_next(),
                     KeyMap::Reload => {
                         app.notify("reloaded timesheet".to_string(), 2);
                         return Ok(Cmd::Reload);

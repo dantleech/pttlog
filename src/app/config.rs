@@ -25,6 +25,9 @@ pub enum KeyMap {
     Unknown,
     Quit,
     Reload,
+    DayView,
+    WeekView,
+    YearView,
 }
 
 pub fn map_key_event(key: KeyEvent) -> KeyMap {
@@ -33,6 +36,9 @@ pub fn map_key_event(key: KeyEvent) -> KeyMap {
         KeyCode::Char('r') => KeyMap::Reload,
         KeyCode::Char('n') => KeyMap::NextPage,
         KeyCode::Char('p') => KeyMap::PreviousPage,
+        KeyCode::Char('w') => KeyMap::WeekView,
+        KeyCode::Char('d') => KeyMap::DayView,
+        KeyCode::Char('y') => KeyMap::YearView,
         _ => KeyMap::Unknown,
     }
 }

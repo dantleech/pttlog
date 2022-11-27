@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 use std::slice::Iter;
 
-use crate::parser::{Entries, Entry, Token, TokenKind, Tokens};
+use crate::parser::{Entry, Token, TokenKind, Tokens};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
 pub struct LogDays {
     current_date: NaiveDateTime,
-    entries: Entries,
+    entries: Vec<Entry>,
 }
 
 impl LogDays {
-    pub fn new<'a>(entries: Entries) -> LogDays {
+    pub fn new<'a>(entries: Vec<Entry>) -> LogDays {
         LogDays {
             current_date: Local::now().naive_local(),
             entries,
@@ -19,11 +19,94 @@ impl LogDays {
     }
 
     pub(crate) fn at(&self, index: usize) -> LogDay {
-        LogDay::new(&self.current_date, &self.entries.entries[index])
+        LogDay::new(&self.current_date, &self.entries[index])
     }
 
     pub(crate) fn len(&self) -> usize {
-        self.entries.entries.len()
+        self.entries.len()
+    }
+
+    pub(crate) fn tag_summary(&self, tag: TokenKind) -> Vec<TagMeta> {
+        // TODO: this is pretty duplicated with view.tag_summary
+        let entry_map = self.entries.iter().fold(
+            HashMap::new(),
+            |entry_map: HashMap<String, TagMeta>, entry: &Entry| {
+                let view = LogDay::new(&self.current_date, &entry);
+                view.tag_summary(tag)
+                    .iter()
+                    .fold(entry_map, |mut entry_map, tag_meta| {
+                        let meta = entry_map
+                            .entry(tag_meta.tag.to_string())
+                            .or_insert(TagMeta {
+                                tag: tag_meta.tag.to_string(),
+                                kind: tag_meta.kind,
+                                duration: LogDuration::from_minutes(0 as i64),
+                                count: 0,
+                            });
+                        meta.count += 1;
+                        meta.duration.duration = meta
+                            .duration
+                            .duration
+                            .checked_add(&tag_meta.duration.duration)
+                            .expect("Could not add");
+                        entry_map
+                    })
+            },
+        );
+
+        let mut tag_metas: Vec<TagMeta> = vec![];
+        for (_, v) in entry_map {
+            tag_metas.push(v)
+        }
+        tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
+        tag_metas
+    }
+
+    pub(crate) fn until(&self, date_start: NaiveDate, date_end: NaiveDate) -> LogDays {
+        LogDays {
+            current_date: self.current_date,
+            entries: self
+                .entries
+                .iter()
+                .filter(|entry| {
+                    let date = entry.date_object();
+                    return date >= date_start && date < date_end;
+                })
+                .cloned()
+                .collect(),
+        }
+    }
+
+    pub(crate) fn minutes_by_weekday(&self) -> Vec<(&str, u64)> {
+        let counts = self.entries.iter().fold(
+            HashMap::from([
+                ("Mon", 0),
+                ("Tue", 0),
+                ("Wed", 0),
+                ("Thu", 0),
+                ("Fri", 0),
+                ("Sat", 0),
+                ("Sun", 0),
+            ]),
+            |mut counts: HashMap<&str, u64>, entry: &Entry| {
+                let view = LogDay::new(&self.current_date, &entry);
+                let key = entry.date_object().weekday().to_string();
+                let count = counts.get_mut(key.as_str()).expect("Out of bounds");
+                *count += view.duration_total().duration.num_minutes().unsigned_abs();
+                counts
+            },
+        );
+        let tuples = vec![
+            ("Mon", *counts.get("Mon").unwrap()),
+            ("Tue", *counts.get("Tue").unwrap()),
+            ("Wed", *counts.get("Wed").unwrap()),
+            ("Thu", *counts.get("Thu").unwrap()),
+            ("Fri", *counts.get("Fri").unwrap()),
+            ("Sat", *counts.get("Sat").unwrap()),
+            ("Sun", *counts.get("Sun").unwrap()),
+        ];
+
+        tuples
     }
 }
 
@@ -141,7 +224,7 @@ impl LogDuration {
         self.duration.num_minutes()
     }
 
-    fn from_minutes(arg: i64) -> LogDuration {
+    pub fn from_minutes(arg: i64) -> LogDuration {
         LogDuration {
             duration: Duration::minutes(arg),
         }
@@ -349,5 +432,28 @@ mod tests {
         assert_eq!("foobar".to_string(), summary[0].tag);
         assert_eq!(2, summary[0].count);
         assert_eq!(90, summary[0].duration.num_minutes());
+    }
+
+    #[test]
+    fn test_minutes_by_weekday() {
+        let mut entries = vec![];
+        for day in 1..30 {
+            entries.push(Entry {
+                date: Date::from_ymd(2022, 01, day),
+                logs: vec![Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                    description: Tokens::new(vec![Token::tag("foobar".to_string())]),
+                }],
+            });
+        }
+
+        let log_days = LogDays {
+            current_date: NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0),
+            entries,
+        };
+
+        let minutes_by_weekday = log_days.minutes_by_weekday();
+        println!("{:?}", minutes_by_weekday);
+        assert_eq!(&("Mon", 600), minutes_by_weekday.first().unwrap());
     }
 }
