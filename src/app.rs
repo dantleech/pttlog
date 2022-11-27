@@ -5,7 +5,7 @@ use tui::{
     layout::{Alignment, Constraint, Layout, Margin},
     style::{Color, Style},
     text::{Span, Spans},
-    widgets::Paragraph,
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 
@@ -42,6 +42,7 @@ impl App<'_> {
             log_days,
             loader,
             notification: Notification {
+                level: NotificationLevel::Info,
                 notification: "".to_string(),
                 lifetime: 0,
             },
@@ -75,21 +76,42 @@ impl App<'_> {
         };
 
         if self.notification.should_display() {
-            let text: Vec<Spans> = vec![Spans::from(vec![Span::raw(
-                &self.notification.notification,
-            )])];
+            match self.notification.level {
+                NotificationLevel::Info => {
+                    let text: Vec<Spans> = vec![Spans::from(vec![Span::raw(
+                        &self.notification.notification,
+                    )])];
 
-            let notification = Paragraph::new(text)
-                .alignment(Alignment::Right)
-                .style(Style::default().fg(Color::DarkGray));
+                    let notification = Paragraph::new(text)
+                        .alignment(Alignment::Right)
+                        .style(Style::default().fg(Color::DarkGray));
 
-            f.render_widget(
-                notification,
-                rows[0].inner(&Margin {
-                    vertical: 0,
-                    horizontal: 0,
-                }),
-            )
+                    f.render_widget(
+                        notification,
+                        rows[0].inner(&Margin {
+                            vertical: 0,
+                            horizontal: 0,
+                        }),
+                    )
+                }
+                NotificationLevel::Error => {
+                    let mut span = Span::raw(&self.notification.notification);
+                    span.style = Style::default().fg(Color::Red).bg(Color::Black);
+                    let text: Vec<Spans> = vec![Spans::from(vec![span])];
+
+                    let notification = Paragraph::new(text)
+                        .alignment(Alignment::Center)
+                        .block(Block::default().title("Error").borders(Borders::ALL));
+
+                    f.render_widget(
+                        notification,
+                        rows[1].inner(&Margin {
+                            vertical: 10,
+                            horizontal: 10,
+                        }),
+                    )
+                }
+            }
         }
         Ok(())
     }
@@ -97,13 +119,20 @@ impl App<'_> {
     pub fn notify(&mut self, message: String, lifetime: i16) {
         self.notification.notification = message;
         self.notification.lifetime = lifetime;
+        self.notification.level = NotificationLevel::Info;
+    }
+
+    pub fn error(&mut self, message: String, lifetime: i16) {
+        self.notification.notification = message;
+        self.notification.lifetime = lifetime;
+        self.notification.level = NotificationLevel::Error;
     }
 
     pub fn reload(&mut self) {
         let entries = match self.loader.load() {
             Ok(ok) => ok.entries,
             Err(err) => {
-                self.notify(err.to_string(), 2);
+                self.error(err.to_string(), 2);
                 return;
             }
         };
@@ -132,8 +161,15 @@ impl App<'_> {
 }
 
 #[derive(Debug)]
+enum NotificationLevel {
+    Info,
+    Error,
+}
+
+#[derive(Debug)]
 pub struct Notification {
     pub notification: String,
+    level: NotificationLevel,
     lifetime: i16,
 }
 
