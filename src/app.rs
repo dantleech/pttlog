@@ -5,7 +5,7 @@ use tui::{
     layout::{Alignment, Constraint, Layout, Margin},
     style::{Color, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
 
@@ -104,12 +104,24 @@ impl App<'_> {
                         .block(Block::default().title("Error").borders(Borders::ALL));
 
                     f.render_widget(
-                        notification,
+                        Clear,
                         rows[1].inner(&Margin {
                             vertical: 10,
                             horizontal: 10,
                         }),
-                    )
+                    );
+                    let layout = Layout::default()
+                        .margin(10)
+                        .constraints(
+                            [
+                                Constraint::Percentage(33),
+                                Constraint::Percentage(33),
+                                Constraint::Percentage(33),
+                            ]
+                            .as_ref(),
+                        )
+                        .split(rows[1]);
+                    f.render_widget(notification, layout[1])
                 }
             }
         }
@@ -132,7 +144,7 @@ impl App<'_> {
         let entries = match self.loader.load() {
             Ok(ok) => ok.entries,
             Err(err) => {
-                self.error(err.to_string(), 2);
+                self.error(err.to_string(), 4);
                 return;
             }
         };
