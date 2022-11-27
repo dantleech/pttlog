@@ -113,9 +113,11 @@ impl App<'_> {
             KeyMap::WeekView => self.set_view(AppView::Week),
             KeyMap::YearView => self.set_view(AppView::Year),
             _ => {
-                self.day.handle(&key);
-                self.week.handle(&key);
-                self.year.handle(&key);
+                match self.view {
+                    AppView::Day => self.day.handle(&key),
+                    AppView::Week => self.week.handle(&key),
+                    AppView::Year => self.year.handle(&key),
+                };
             }
         };
     }

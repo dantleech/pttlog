@@ -30,8 +30,8 @@ impl IntervalView<'_> {
         IntervalView {
             initialized: false,
             duration,
-            date_start: start_date - duration,
-            date_end: start_date,
+            date_start: start_date,
+            date_end: start_date + duration,
             tag_summary: TokenSummaryTable::new("Tags"),
             ticket_summary: TokenSummaryTable::new("Tickets"),
             day_breakdown_chart: DayBreakdownChart {},
