@@ -49,7 +49,7 @@ impl IntervalView<'_> {
         if !self.initialized {
             self.initialized = true;
         }
-        let log_days = log_days.between(self.date_start, self.date_end);
+        let log_days = log_days.until(self.date_start, self.date_end);
 
         let container = Block::default().borders(Borders::ALL).title(format!(
             "{} from {} {} until {}",

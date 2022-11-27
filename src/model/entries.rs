@@ -62,7 +62,7 @@ impl LogDays {
         tag_metas
     }
 
-    pub(crate) fn between(&self, date_start: NaiveDate, date_end: NaiveDate) -> LogDays {
+    pub(crate) fn until(&self, date_start: NaiveDate, date_end: NaiveDate) -> LogDays {
         LogDays {
             current_date: self.current_date,
             entries: self
@@ -70,7 +70,7 @@ impl LogDays {
                 .iter()
                 .filter(|entry| {
                     let date = entry.date_object();
-                    return date >= date_start && date <= date_end;
+                    return date >= date_start && date < date_end;
                 })
                 .cloned()
                 .collect(),
