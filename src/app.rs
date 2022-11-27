@@ -100,7 +100,15 @@ impl App<'_> {
     }
 
     pub fn reload(&mut self) {
-        self.log_days = LogDays::new(self.loader.load().entries);
+        let entries = match self.loader.load() {
+            Ok(ok) => ok.entries,
+            Err(err) => {
+                self.notify(err.to_string(), 2);
+                return;
+            }
+        };
+
+        self.log_days = LogDays::new(entries);
     }
 
     fn set_view(&mut self, view: AppView) {

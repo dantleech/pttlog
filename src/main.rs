@@ -68,7 +68,7 @@ fn main_loop(
     app: &mut app::App,
 ) -> Result<Cmd, Error> {
     loop {
-        terminal.draw(|f| app.draw(f).expect("Coudl not draw"))?;
+        terminal.draw(|f| app.draw(f).expect("Could not draw"))?;
 
         if (poll(Duration::from_millis(1000)))? {
             if let Event::Key(key) = event::read()? {

@@ -1,3 +1,7 @@
+use anyhow::bail;
+use anyhow::Error;
+use anyhow::Result;
+
 use crate::parser::parse;
 use crate::parser::Entries;
 use crate::parser::Entry;
@@ -6,7 +10,7 @@ use std::fs;
 use super::config::Config;
 
 pub trait Loader {
-    fn load(&self) -> Entries;
+    fn load(&self) -> Result<Entries, anyhow::Error>;
 }
 
 pub struct FileLoader<'a> {
@@ -20,15 +24,19 @@ impl FileLoader<'_> {
 }
 
 impl Loader for FileLoader<'_> {
-    fn load(&self) -> Entries {
-        let contents = fs::read_to_string(&self.path).expect("Could not read file");
-        let (_, entries) = parse(&contents, &self.config).expect("Could not parse file");
+    fn load(&self) -> Result<Entries, anyhow::Error> {
+        let contents = fs::read_to_string(&self.path)?;
+        let entries = match parse(&contents, &self.config) {
+            Ok((_, ok)) => ok,
+            Err(err) => bail!(err.to_string()),
+        };
+
         if entries.entries.len() == 0 {
-            return Entries {
+            return Ok(Entries {
                 entries: vec![Entry::placeholder()],
-            };
+            });
         }
-        entries
+        Ok(entries)
     }
 }
 
@@ -42,7 +50,7 @@ impl FuncLoader {
 }
 
 impl Loader for FuncLoader {
-    fn load(&self) -> Entries {
-        return (self.factory)();
+    fn load(&self) -> Result<Entries, anyhow::Error> {
+        Ok((self.factory)())
     }
 }
