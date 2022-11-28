@@ -1,5 +1,4 @@
 use anyhow::bail;
-use anyhow::Error;
 use anyhow::Result;
 
 use crate::parser::parse;

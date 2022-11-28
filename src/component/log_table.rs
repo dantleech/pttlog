@@ -2,7 +2,7 @@ use anyhow::Ok;
 use chrono::{Local, Timelike};
 use tui::{
     layout::Constraint,
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     text::{Span, Spans},
     widgets::{Cell, Row, Table},
 };

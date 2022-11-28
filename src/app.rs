@@ -11,10 +11,7 @@ use tui::{
 
 use crate::{
     component::interval_view::IntervalView,
-    model::{
-        model::LogDays,
-        time::{RealTimeFactory, TimeFactory},
-    },
+    model::{model::LogDays, time::TimeFactory},
 };
 
 use super::component::day::Day;
