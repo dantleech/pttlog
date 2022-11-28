@@ -1,7 +1,8 @@
 use anyhow::Ok;
+use chrono::{Local, Timelike};
 use tui::{
     layout::Constraint,
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Cell, Row, Table},
 };
@@ -25,6 +26,7 @@ impl LogTable {
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
         let _duration_total = log_day.duration_total();
+        let now = Local::now().naive_local();
 
         for log in log_day.iter() {
             rows.push(Row::new([
@@ -33,14 +35,26 @@ impl LogTable {
                     Spans::from(vec![
                         Span::raw(time_range.start.format("%H:%M").to_string()),
                         Span::styled("-", Style::default().fg(Color::DarkGray)),
-                        Span::styled(
+                        (|| {
                             if time_range.ongoing {
-                                "now".to_string()
-                            } else {
-                                time_range.end.format("%H:%M").to_string()
-                            },
-                            Style::default().fg(Color::DarkGray),
-                        ),
+                                return Span::styled(
+                                    now.format("%H:%M").to_string(),
+                                    Style::default()
+                                        .fg((|| {
+                                            if 0 == now.num_seconds_from_midnight() % 2 {
+                                                Color::Black
+                                            } else {
+                                                Color::Gray
+                                            }
+                                        })())
+                                        .bg(Color::DarkGray),
+                                );
+                            }
+                            Span::styled(
+                                time_range.end.format("%H:%M").to_string(),
+                                Style::default().fg(Color::DarkGray),
+                            )
+                        })(),
                         (|| Span::raw(""))(),
                     ])
                 })(&log.time_range())),
