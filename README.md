@@ -41,6 +41,11 @@ Now run `pttlogger` with the path to your timesheet:
 $ pttlogger mytimesheet
 ```
 
+Installation
+------------
+
+Grab the latest release from the [releases](https://github.com/dantleech/pttlog/releases) page.
+
 Configuration
 -------------
 
