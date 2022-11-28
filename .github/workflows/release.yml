@@ -42,4 +42,4 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-        files: pttloger
+        files: ${{ matrix.asset_name }}
