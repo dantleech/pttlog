@@ -16,6 +16,7 @@ use crossterm::event::Event;
 use crossterm::execute;
 use crossterm::terminal::disable_raw_mode;
 use crossterm::terminal::enable_raw_mode;
+use model::time::RealTimeFactory;
 use std::io;
 use std::time::Duration;
 use tui::{backend::CrosstermBackend, Terminal};
@@ -38,7 +39,11 @@ fn main() -> Result<(), Error> {
     terminal.clear()?;
 
     let config: Config = confy::load("pttlog", "config").expect("Could not load config");
-    let mut app = app::App::new(FileLoader::new(path.to_string(), &config), &config);
+    let mut app = app::App::new(
+        FileLoader::new(path.to_string(), &config),
+        &config,
+        &RealTimeFactory {},
+    );
     app.reload();
 
     loop {

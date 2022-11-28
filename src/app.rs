@@ -9,7 +9,13 @@ use tui::{
     Frame,
 };
 
-use crate::{component::interval_view::IntervalView, model::model::LogDays};
+use crate::{
+    component::interval_view::IntervalView,
+    model::{
+        model::LogDays,
+        time::{RealTimeFactory, TimeFactory},
+    },
+};
 
 use super::component::day::Day;
 
@@ -35,7 +41,11 @@ pub struct App<'a> {
 }
 
 impl App<'_> {
-    pub fn new<'a>(loader: Box<dyn loader::Loader + 'a>, _config: &'a Config) -> App<'a> {
+    pub fn new<'a>(
+        loader: Box<dyn loader::Loader + 'a>,
+        _config: &'a Config,
+        time_factory: &'a dyn TimeFactory,
+    ) -> App<'a> {
         let now = Local::now().naive_local();
         let log_days = LogDays::new(vec![parser::Entry::placeholder()]);
         App {
@@ -49,10 +59,12 @@ impl App<'_> {
             day: Day::new(),
             view: AppView::Day,
             week: IntervalView::new(
+                time_factory,
                 NaiveDate::from_isoywd(now.year(), now.iso_week().week(), chrono::Weekday::Mon),
                 Duration::weeks(1),
             ),
             year: IntervalView::new(
+                time_factory,
                 NaiveDate::from_ymd(now.year() - 1, now.month(), now.day() + 1),
                 Duration::days(365),
             ),
