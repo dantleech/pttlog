@@ -48,6 +48,17 @@ impl TokenSummaryTable<'_> {
             ]));
         }
 
+        rows.push(Row::new([
+            Cell::default(),
+            Cell::default(),
+            Cell::default(),
+        ]));
+        rows.push(Row::new([
+            Cell::from(Span::styled("Total:", Style::default().fg(Color::DarkGray))),
+            Cell::from(Span::raw(tag_metas.duration().to_string())),
+            Cell::default(),
+        ]));
+
         let table = Table::new(rows)
             .header(
                 Row::new(headers)

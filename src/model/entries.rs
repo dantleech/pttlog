@@ -185,6 +185,16 @@ impl TagMetas {
     pub fn len(&self) -> usize {
         self.tag_metas.len()
     }
+
+    pub fn duration(&self) -> LogDuration {
+        let minutes = self.iter().fold(0, |mut carry, tag_meta| {
+            carry += tag_meta.duration.num_minutes();
+            carry
+        });
+        LogDuration {
+            duration: Duration::minutes(minutes),
+        }
+    }
 }
 
 pub struct TagMeta {
