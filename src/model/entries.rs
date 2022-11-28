@@ -26,8 +26,7 @@ impl LogDays {
         self.entries.len()
     }
 
-    pub(crate) fn tag_summary(&self, tag: TokenKind) -> Vec<TagMeta> {
-        // TODO: this is pretty duplicated with view.tag_summary
+    pub(crate) fn tag_summary(&self, tag: TokenKind) -> TagMetas {
         let entry_map = self.entries.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagMeta>, entry: &Entry| {
@@ -59,7 +58,7 @@ impl LogDays {
             tag_metas.push(v)
         }
         tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
-        tag_metas
+        TagMetas { tag_metas }
     }
 
     pub(crate) fn until(&self, date_start: NaiveDate, date_end: NaiveDate) -> LogDays {
@@ -141,7 +140,7 @@ impl LogDay<'_> {
         &self.date
     }
 
-    pub fn tag_summary(&self, kind: TokenKind) -> Vec<TagMeta> {
+    pub fn tag_summary(&self, kind: TokenKind) -> TagMetas {
         let entry_map = self.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagMeta>, log: &LogEntry| {
@@ -171,7 +170,20 @@ impl LogDay<'_> {
             tag_metas.push(v)
         }
         tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
-        tag_metas
+        TagMetas { tag_metas }
+    }
+}
+
+pub struct TagMetas {
+    pub tag_metas: Vec<TagMeta>,
+}
+
+impl TagMetas {
+    pub fn iter(&self) -> Iter<TagMeta> {
+        self.tag_metas.iter()
+    }
+    pub fn len(&self) -> usize {
+        self.tag_metas.len()
     }
 }
 
