@@ -119,10 +119,56 @@ impl IntervalView<'_> {
                 self.date_end -= self.duration;
             }
             KeyMap::NextPage => {
+                if self.date_start + self.duration > self.time.now().date() {
+                    return;
+                }
                 self.date_start += self.duration;
                 self.date_end += self.duration;
             }
             _ => (),
         };
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::model::time::FrozenTimeFactory;
+
+    use super::*;
+
+    #[test]
+    fn next_and_previous_pages() {
+        let time = FrozenTimeFactory::new(2023, 1, 1, 12, 1);
+        let mut view = IntervalView::new(
+            &time,
+            FrozenTimeFactory::new(2022, 1, 1, 12, 1).now().date(),
+            Duration::weeks(1),
+        );
+
+        // 1 week forwards
+        view.handle(&KeyMap::NextPage);
+        assert_eq!("2022-01-08", view.date_start.to_string());
+
+        // 1 week back
+        view.handle(&KeyMap::PreviousPage);
+        assert_eq!("2022-01-01", view.date_start.to_string());
+    }
+
+    #[test]
+    fn cannot_advance_further_than_current_time() {
+        let time = FrozenTimeFactory::new(2022, 1, 1, 12, 1);
+        let mut view = IntervalView::new(
+            &time,
+            FrozenTimeFactory::new(2022, 1, 1, 12, 1).now().date(),
+            Duration::weeks(1),
+        );
+
+        // 1 week forwards (does not advance)
+        view.handle(&KeyMap::NextPage);
+        assert_eq!("2022-01-01", view.date_start.to_string());
+
+        // 1 week back
+        view.handle(&KeyMap::PreviousPage);
+        assert_eq!("2021-12-25", view.date_start.to_string());
     }
 }
