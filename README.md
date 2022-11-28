@@ -3,19 +3,13 @@ Plain Text Time Logger
 
 This is a project to create a plain text time logger in Rust.
 
-![Plain Text Time Logger](https://user-images.githubusercontent.com/530801/200184958-74cb3ea9-7c53-4ed1-b0f8-2fedcbdc60fb.png)
+![Plain text time logger](https://user-images.githubusercontent.com/530801/204399421-aa353f56-07e7-4bb4-afb8-b85410bfd60e.gif)
 
-- Create a (read-only) TUI for a plain-text timesheet.
-- Add tags to categorise your entries.
-- Show total time for a given day.
-- Show percentage of total time per entry.
+- Read-only TUI for a **plain-text timesheet**.
+- Supports parsing tags and tickets.
+- Day, week and year views.
 
-Planned features:
-
-- TODO stack: support having a stack of bullet points in the timesheet that
-  act as a "TODO" list and are promenantly displayed.
-- Day summary: break down based on the tagged categories.
-- Week/Month/Year summarys.
+This is my first Rust project, it's not pretty, but it's useful 😅
 
 Usage
 -----
@@ -41,8 +35,33 @@ categorise the entry:
 10:00 ...
 ```
 
-Now run `pttlog`:
+Now run `pttlogger` with the path to your timesheet:
 
 ```
-$ pttlog mytimesheet
+$ pttlogger mytimesheet
 ```
+
+Configuration
+-------------
+
+In order for `pttlogger` to parse and report on ticket identifiers create or
+modify:
+
+```toml
+[[projects]]
+name="My Work Project"
+ticket_prefix="JIRA-"
+
+[[projects]]
+name="Phpactor"
+ticket_prefix="PHPACTOR-"
+```
+
+In the above example "ticket" identiiers such as `JIRA-1234` and `PHPACTOR-1`
+will be recognized and time will be summarised for them.
+
+
+Contributing
+------------
+
+Any contributions are welcome.
