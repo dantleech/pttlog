@@ -447,13 +447,13 @@ mod tests {
 
         assert_eq!(2, summary.len());
 
-        assert_eq!("barfoo".to_string(), summary[1].tag);
-        assert_eq!(1, summary[1].count);
-        assert_eq!(60, summary[1].duration.num_minutes());
+        assert_eq!("barfoo".to_string(), summary.tag_metas[1].tag);
+        assert_eq!(1, summary.tag_metas[1].count);
+        assert_eq!(60, summary.tag_metas[1].duration.num_minutes());
 
-        assert_eq!("foobar".to_string(), summary[0].tag);
-        assert_eq!(2, summary[0].count);
-        assert_eq!(90, summary[0].duration.num_minutes());
+        assert_eq!("foobar".to_string(), summary.tag_metas[0].tag);
+        assert_eq!(2, summary.tag_metas[0].count);
+        assert_eq!(90, summary.tag_metas[0].duration.num_minutes());
     }
 
     #[test]

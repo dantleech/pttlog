@@ -1,1 +1,1 @@
-pub mod entries;
+pub mod model;

@@ -9,7 +9,7 @@ use tui::{
     Frame,
 };
 
-use crate::{component::interval_view::IntervalView, model::entries::LogDays};
+use crate::{component::interval_view::IntervalView, model::model::LogDays};
 
 use super::component::day::Day;
 

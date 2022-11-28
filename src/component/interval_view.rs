@@ -7,7 +7,7 @@ use tui::{
     Frame,
 };
 
-use crate::{app::config::KeyMap, model::entries::LogDays, parser::TokenKind};
+use crate::{app::config::KeyMap, model::model::LogDays, parser::TokenKind};
 
 use super::{
     day_breakdown_chart::DayBreakdownChart, day_breakdown_table::DayBreakdownTable,

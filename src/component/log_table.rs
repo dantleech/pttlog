@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::{
-    model::entries::{LogDay, TimeRangeView},
+    model::model::{LogDay, TimeRangeView},
     parser,
 };
 

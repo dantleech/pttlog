@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    model::entries::{TagMeta, TagMetas},
+    model::model::{TagMeta, TagMetas},
     parser::TokenKind,
 };
 
