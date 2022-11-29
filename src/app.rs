@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use chrono::{Datelike, Duration, Local, NaiveDate};
+use chrono::{Datelike, Duration, Local, NaiveDate, NaiveDateTime};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Layout, Margin},
@@ -42,8 +42,8 @@ impl App<'_> {
         loader: Box<dyn loader::Loader + 'a>,
         _config: &'a Config,
         time_factory: &'a dyn TimeFactory,
+        now: NaiveDateTime,
     ) -> App<'a> {
-        let now = Local::now().naive_local();
         let log_days = LogDays::new(vec![parser::Entry::placeholder()]);
         App {
             log_days,
@@ -62,7 +62,7 @@ impl App<'_> {
             ),
             year: IntervalView::new(
                 time_factory,
-                NaiveDate::from_ymd(now.year() - 1, now.month(), now.day() + 1),
+                NaiveDate::from_ymd(now.year() - 1, now.month(), now.day()),
                 Duration::days(365),
             ),
         }
@@ -224,4 +224,21 @@ fn navigation<'a>() -> Paragraph<'a> {
     ])];
 
     Paragraph::new(text)
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{model::time::FrozenTimeFactory, parser::Entries};
+
+    use super::{loader::FuncLoader, *};
+
+    #[test]
+    pub fn last_day_of_month() {
+        App::new(
+            FuncLoader::new(Box::new(|| Entries { entries: vec![] })),
+            &Config::empty(),
+            &FrozenTimeFactory::new(2022, 1, 1, 12, 0),
+            NaiveDate::from_ymd(2022, 11, 30).and_hms(10, 1, 1),
+        );
+    }
 }

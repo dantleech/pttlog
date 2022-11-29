@@ -9,6 +9,7 @@ use app::config::map_key_event;
 use app::config::Config;
 use app::config::KeyMap;
 use app::loader::FileLoader;
+use chrono::Local;
 use clap::Parser;
 use crossterm::event;
 use crossterm::event::poll;
@@ -43,6 +44,7 @@ fn main() -> Result<(), Error> {
         FileLoader::new(path.to_string(), &config),
         &config,
         &RealTimeFactory {},
+        Local::now().naive_local(),
     );
     app.reload();
 
