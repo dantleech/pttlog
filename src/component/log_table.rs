@@ -9,7 +9,7 @@ use tui::{
 
 use crate::{
     model::model::{LogDay, TimeRangeView},
-    parser,
+    parser::{self, timesheet::Tokens, Token, TokenKind},
 };
 
 pub struct LogTable {}
@@ -104,17 +104,17 @@ impl LogTable {
     }
 }
 
-fn description(tokens: &parser::Tokens) -> Spans {
+fn description(tokens: &Tokens) -> Spans {
     let foo = tokens
         .to_vec()
         .iter()
-        .map(|t: &parser::Token| match t.kind {
-            parser::TokenKind::Tag => Span::styled(
+        .map(|t: &Token| match t.kind {
+            TokenKind::Tag => Span::styled(
                 format!("@{}", t.to_string().to_owned()),
                 Style::default().fg(Color::Green),
             ),
-            parser::TokenKind::Prose => Span::raw(t.to_string().to_owned()),
-            parser::TokenKind::Ticket => Span::styled(
+            TokenKind::Prose => Span::raw(t.to_string().to_owned()),
+            TokenKind::Ticket => Span::styled(
                 format!("{}", t.to_string().to_owned()),
                 Style::default().fg(Color::Cyan),
             ),

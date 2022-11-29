@@ -12,6 +12,7 @@ use tui::{
 use crate::{
     component::interval_view::IntervalView,
     model::{model::LogDays, time::TimeFactory},
+    parser::timesheet::Entry,
 };
 
 use super::component::day::Day;
@@ -44,7 +45,7 @@ impl App<'_> {
         time_factory: &'a dyn TimeFactory,
         now: NaiveDateTime,
     ) -> App<'a> {
-        let log_days = LogDays::new(vec![parser::Entry::placeholder()]);
+        let log_days = LogDays::new(vec![Entry::placeholder()]);
         App {
             log_days,
             loader,

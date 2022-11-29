@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::slice::Iter;
 
-use crate::parser::{Entry, Token, TokenKind, Tokens};
+use crate::parser::timesheet::{Entry, Tokens};
+use crate::parser::{Token, TokenKind};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
@@ -362,7 +363,7 @@ mod tests {
     use super::*;
     use chrono::NaiveTime;
 
-    use crate::parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens};
+    use crate::parser::timesheet::{Date, Entry, Log, Time, TimeRange, Tokens};
 
     #[test]
     fn log_view_percentage_of_day() {
@@ -443,7 +444,7 @@ mod tests {
         };
         let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
         let view = LogDay::new(&time, &entry);
-        let summary = view.tag_summary(parser::TokenKind::Tag);
+        let summary = view.tag_summary(TokenKind::Tag);
 
         assert_eq!(2, summary.len());
 
