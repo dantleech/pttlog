@@ -1,16 +1,12 @@
-use super::{Token, TokenKind};
+use super::{token, Token, TokenKind};
 use chrono::Datelike;
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use core::fmt::Debug;
-use nom::bytes::complete::{self, tag};
-use nom::error::{Error, ErrorKind};
 use nom::sequence;
 use nom::{
-    branch,
-    character::complete::{alphanumeric1, char, digit1, line_ending, multispace0, space0},
+    character::complete::{char, digit1, line_ending, multispace0, space0},
     combinator::{map_res, opt},
     multi::many0,
-    sequence::tuple,
     Parser,
 };
 
@@ -305,76 +301,6 @@ fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
         }
         Err(err) => Err(err),
     }
-}
-fn tag_token(text: &str) -> nom::IResult<&str, Token> {
-    let token = tuple((char('@'), alphanumeric1, space0))(text);
-
-    match token {
-        Ok(ok) => Ok((
-            ok.0,
-            Token {
-                kind: TokenKind::Tag,
-                text: (ok.1).1.to_string(),
-                whitespace: (ok.1).2.to_string(),
-            },
-        )),
-        Err(err) => Err(err),
-    }
-}
-fn ticket_token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
-    for project in config.projects.iter() {
-        let input = text.clone();
-        match tuple((
-            tag::<_, _, Error<&str>>(project.ticket_prefix.as_str()),
-            alphanumeric1,
-            space0,
-        ))(input)
-        {
-            Ok(ok) => {
-                return Ok((
-                    ok.0,
-                    Token {
-                        kind: TokenKind::Ticket,
-                        text: format!("{}{}", (ok.1).0.to_string(), (ok.1).1.to_string()),
-                        whitespace: (ok.1).2.to_string(),
-                    },
-                ))
-            }
-            Err(_err) => (),
-        }
-    }
-
-    Err(nom::Err::Error(Error::new(text, ErrorKind::Tag)))
-}
-
-fn prose_token(text: &str) -> nom::IResult<&str, Token> {
-    let text = sequence::tuple((
-        space0,
-        complete::take_till1(|c| c == ' ' || c == '\n' || c == '\r'),
-        space0,
-    ))(text);
-
-    match text {
-        Ok(ok) => {
-            let spaces1 = (ok.1).0;
-            let word = (ok.1).1.to_string();
-            let spaces2 = (ok.1).2;
-
-            Ok((
-                ok.0,
-                Token {
-                    kind: TokenKind::Prose,
-                    text: format!("{}{}", spaces1, word),
-                    whitespace: spaces2.to_string(),
-                },
-            ))
-        }
-        Err(err) => Err(err),
-    }
-}
-
-fn token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
-    branch::alt((tag_token, |input| ticket_token(input, config), prose_token))(text)
 }
 
 fn log<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Log> {
