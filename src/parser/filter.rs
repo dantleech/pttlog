@@ -1,15 +1,26 @@
-use std::{boxed, fmt::Display};
+use std::fmt::Display;
 
 use anyhow::{Error, Result};
-use nom::{character::complete::multispace0, multi::many0, sequence::tuple};
+use nom::character::complete::char;
+use nom::{character::complete::multispace0, combinator::opt, multi::many0, sequence::tuple};
 
 use crate::app::config::Config;
 
-use super::token::{token, Token, TokenKind};
+use super::token::{token, TokenKind};
 
 pub struct TokenIs {
     pub value: String,
     pub kind: TokenKind,
+}
+
+pub struct Not {
+    pub criteria: Box<dyn Criteria>,
+}
+
+impl Criteria for Not {
+    fn to_string(&self) -> String {
+        format!("Not({})", self.criteria.to_string())
+    }
 }
 
 impl Criteria for TokenIs {
@@ -38,26 +49,42 @@ impl Display for Filter {
         Ok(())
     }
 }
+pub fn criteria<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
+    let crit = tuple((opt(char('~')), |input| token(input, config)))(text);
+
+    match crit {
+        Ok(ok) => {
+            let token = Box::new(TokenIs {
+                value: ok.1 .1.text,
+                kind: ok.1 .1.kind,
+            });
+
+            let token: Box<dyn Criteria> = match ok.1 .0 {
+                Some(_) => Box::new(Not { criteria: token }),
+                None => token,
+            };
+
+            Ok((ok.0, token))
+        }
+        Err(err) => Err(err),
+    }
+}
 
 pub fn parse_filter<'a>(text: &'a str, config: &Config) -> Result<Filter> {
-    let tokens = many0(tuple((|input| token(input, config), multispace0)))(text);
+    let tokens = many0(tuple((|input| criteria(input, config), multispace0)))(text);
 
     match tokens {
         Ok(ok) => Ok(Filter {
-            criterias: ok.1.iter().fold(vec![], |mut carry, result| {
-                carry.push(Box::new(TokenIs {
-                    value: result.0.clone().text,
-                    kind: result.0.kind,
-                }));
-                carry
-            }),
+            criterias: ok.1.into_iter().map(|criteria| criteria.0).collect(),
         }),
-        Err(_) => Err(Error::msg("foo")),
+        Err(err) => Err(Error::msg(err.to_string())),
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::app::config::Project;
+
     use super::*;
 
     #[test]
@@ -68,9 +95,26 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_filters() {
+    fn test_parse_many_tags() {
         let parsed = parse_filter("@foobar ~@barfoo", &Config::empty()).unwrap();
         assert_eq!(2, parsed.criterias.len());
-        assert_eq!("And(Tag(foobar),Not(barfoo))", parsed.to_string())
+        assert_eq!("Tag(foobar) && Not(Tag(barfoo))", parsed.to_string())
+    }
+
+    #[test]
+    fn test_parse_many_tags_and_tickets() {
+        let config = Config {
+            projects: vec![Project {
+                name: "myproject".to_string(),
+                ticket_prefix: "PROJECT-".to_string(),
+                tags: vec![],
+            }],
+        };
+        let parsed = parse_filter("@foobar ~PROJECT-5 PROJECT-12", &config).unwrap();
+        assert_eq!(3, parsed.criterias.len());
+        assert_eq!(
+            "Tag(foobar) && Not(Ticket(PROJECT-5)) && Ticket(PROJECT-12)",
+            parsed.to_string()
+        )
     }
 }
