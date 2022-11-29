@@ -9,7 +9,10 @@ use tui::{
 
 use crate::{
     model::model::{LogDay, TimeRangeView},
-    parser::{self, timesheet::Tokens, Token, TokenKind},
+    parser::{
+        timesheet::Tokens,
+        token::{Token, TokenKind},
+    },
 };
 
 pub struct LogTable {}

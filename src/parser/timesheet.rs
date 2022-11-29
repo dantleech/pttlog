@@ -1,4 +1,3 @@
-use super::{token, Token, TokenKind};
 use chrono::Datelike;
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use core::fmt::Debug;
@@ -11,6 +10,8 @@ use nom::{
 };
 
 use crate::app::config::Config;
+
+use super::token::{token, Token, TokenKind};
 
 #[derive(Debug, Clone)]
 pub struct Date {

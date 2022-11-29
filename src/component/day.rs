@@ -6,7 +6,7 @@ use tui::{
     Frame,
 };
 
-use crate::{app::config::KeyMap, model::model::LogDays, parser::TokenKind};
+use crate::{app::config::KeyMap, model::model::LogDays, parser::token::TokenKind};
 
 use super::{log_table::LogTable, token_summary_table::TokenSummaryTable};
 

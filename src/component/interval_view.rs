@@ -10,7 +10,7 @@ use tui::{
 use crate::{
     app::config::KeyMap,
     model::{model::LogDays, time::TimeFactory},
-    parser::TokenKind,
+    parser::token::TokenKind,
 };
 
 use super::{

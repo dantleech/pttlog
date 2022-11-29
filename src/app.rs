@@ -18,7 +18,6 @@ use crate::{
 use super::component::day::Day;
 
 use self::config::{Config, KeyMap};
-use super::parser;
 pub mod config;
 pub mod loader;
 

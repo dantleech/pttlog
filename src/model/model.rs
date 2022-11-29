@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::slice::Iter;
 
 use crate::parser::timesheet::{Entry, Tokens};
-use crate::parser::{Token, TokenKind};
+use crate::parser::token::{Token, TokenKind};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
