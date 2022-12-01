@@ -10,7 +10,7 @@ use tui::{
 };
 
 use crate::{
-    component::interval_view::IntervalView,
+    component::{filter::Filter, interval_view::IntervalView},
     model::{model::LogDays, time::TimeFactory},
     parser::timesheet::Entry,
 };
@@ -35,7 +35,7 @@ pub struct App<'a> {
     week: IntervalView<'a>,
     year: IntervalView<'a>,
     view: AppView,
-    filter: String,
+    filter: Filter<'a>,
 }
 
 impl App<'_> {
@@ -66,7 +66,7 @@ impl App<'_> {
                 NaiveDate::from_ymd(now.year() - 1, now.month(), now.day()),
                 Duration::days(365),
             ),
-            filter: "".to_string(),
+            filter: Filter::new(),
         }
     }
 
@@ -79,6 +79,7 @@ impl App<'_> {
             .split(f.size());
 
         f.render_widget(navigation(), rows[0]);
+        self.filter.draw(f)?;
 
         match self.view {
             AppView::Day => self.day.draw(f, rows[1], &self.log_days)?,
@@ -168,6 +169,7 @@ impl App<'_> {
     }
 
     pub(crate) fn handle(&mut self, key: Key) {
+        self.filter.handle(&key);
         match key.name {
             KeyName::DayView => self.set_view(AppView::Day),
             KeyName::WeekView => self.set_view(AppView::Week),
