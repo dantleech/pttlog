@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::{
-    app::config::KeyMap,
+    app::config::KeyName,
     model::{model::LogDays, time::TimeFactory},
     parser::token::TokenKind,
 };
@@ -112,13 +112,13 @@ impl IntervalView<'_> {
         Ok(())
     }
 
-    pub(crate) fn handle(&mut self, key: &KeyMap) {
+    pub(crate) fn handle(&mut self, key: &KeyName) {
         match key {
-            KeyMap::PreviousPage => {
+            KeyName::PreviousPage => {
                 self.date_start -= self.duration;
                 self.date_end -= self.duration;
             }
-            KeyMap::NextPage => {
+            KeyName::NextPage => {
                 if self.date_start + self.duration > self.time.now().date() {
                     return;
                 }
@@ -146,11 +146,11 @@ mod test {
         );
 
         // 1 week forwards
-        view.handle(&KeyMap::NextPage);
+        view.handle(&KeyName::NextPage);
         assert_eq!("2022-01-08", view.date_start.to_string());
 
         // 1 week back
-        view.handle(&KeyMap::PreviousPage);
+        view.handle(&KeyName::PreviousPage);
         assert_eq!("2022-01-01", view.date_start.to_string());
     }
 
@@ -164,11 +164,11 @@ mod test {
         );
 
         // 1 week forwards (does not advance)
-        view.handle(&KeyMap::NextPage);
+        view.handle(&KeyName::NextPage);
         assert_eq!("2022-01-01", view.date_start.to_string());
 
         // 1 week back
-        view.handle(&KeyMap::PreviousPage);
+        view.handle(&KeyName::PreviousPage);
         assert_eq!("2021-12-25", view.date_start.to_string());
     }
 }

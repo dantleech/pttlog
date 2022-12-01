@@ -7,7 +7,7 @@ use anyhow::Error;
 use anyhow::Result;
 use app::config::map_key_event;
 use app::config::Config;
-use app::config::KeyMap;
+use app::config::KeyName;
 use app::loader::FileLoader;
 use chrono::Local;
 use clap::Parser;
@@ -80,9 +80,9 @@ fn main_loop(
         if (poll(Duration::from_millis(1000)))? {
             if let Event::Key(key) = event::read()? {
                 let key = map_key_event(key);
-                match key {
-                    KeyMap::Quit => return Ok(Cmd::Quit),
-                    KeyMap::Reload => {
+                match key.name {
+                    KeyName::Quit => return Ok(Cmd::Quit),
+                    KeyName::Reload => {
                         app.notify("reloaded timesheet".to_string(), 2);
                         return Ok(Cmd::Reload);
                     }

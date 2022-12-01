@@ -17,7 +17,7 @@ use crate::{
 
 use super::component::day::Day;
 
-use self::config::{Config, KeyMap};
+use self::config::{Config, Key, KeyName};
 pub mod config;
 pub mod loader;
 
@@ -35,6 +35,7 @@ pub struct App<'a> {
     week: IntervalView<'a>,
     year: IntervalView<'a>,
     view: AppView,
+    filter: String,
 }
 
 impl App<'_> {
@@ -65,6 +66,7 @@ impl App<'_> {
                 NaiveDate::from_ymd(now.year() - 1, now.month(), now.day()),
                 Duration::days(365),
             ),
+            filter: "".to_string(),
         }
     }
 
@@ -165,16 +167,16 @@ impl App<'_> {
         self.view = view
     }
 
-    pub(crate) fn handle(&mut self, key: KeyMap) {
-        match key {
-            KeyMap::DayView => self.set_view(AppView::Day),
-            KeyMap::WeekView => self.set_view(AppView::Week),
-            KeyMap::YearView => self.set_view(AppView::Year),
+    pub(crate) fn handle(&mut self, key: Key) {
+        match key.name {
+            KeyName::DayView => self.set_view(AppView::Day),
+            KeyName::WeekView => self.set_view(AppView::Week),
+            KeyName::YearView => self.set_view(AppView::Year),
             _ => {
                 match self.view {
-                    AppView::Day => self.day.handle(&key),
-                    AppView::Week => self.week.handle(&key),
-                    AppView::Year => self.year.handle(&key),
+                    AppView::Day => self.day.handle(&key.name),
+                    AppView::Week => self.week.handle(&key.name),
+                    AppView::Year => self.year.handle(&key.name),
                 };
             }
         };

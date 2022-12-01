@@ -6,7 +6,7 @@ use tui::{
     Frame,
 };
 
-use crate::{app::config::KeyMap, model::model::LogDays, parser::token::TokenKind};
+use crate::{app::config::KeyName, model::model::LogDays, parser::token::TokenKind};
 
 use super::{log_table::LogTable, token_summary_table::TokenSummaryTable};
 
@@ -96,10 +96,10 @@ impl Day<'_> {
         }
     }
 
-    pub(crate) fn handle(&mut self, key: &KeyMap) {
+    pub(crate) fn handle(&mut self, key: &KeyName) {
         match key {
-            KeyMap::PreviousPage => self.previous(),
-            KeyMap::NextPage => self.next(),
+            KeyName::PreviousPage => self.previous(),
+            KeyName::NextPage => self.next(),
             _ => (),
         };
     }
