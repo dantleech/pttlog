@@ -1,7 +1,10 @@
 use std::fmt::Display;
 
 use anyhow::{Error, Result};
+use nom::branch::alt;
+use nom::bytes::complete::tag;
 use nom::character::complete::char;
+use nom::sequence;
 use nom::{character::complete::multispace0, combinator::opt, multi::many0, sequence::tuple};
 
 use crate::app::config::Config;
@@ -64,23 +67,17 @@ impl Display for Filter {
         Ok(())
     }
 }
-pub fn criteria<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
-    let crit = tuple((opt(char('~')), |input| token(input, config)))(text);
 
-    match crit {
-        Ok(ok) => {
-            let token = Box::new(TokenIs {
-                value: ok.1 .1.text,
-                kind: ok.1 .1.kind,
-            });
-
-            let token: Box<dyn Criteria> = match ok.1 .0 {
-                Some(_) => Box::new(Not { criteria: token }),
-                None => token,
-            };
-
-            Ok((ok.0, token))
-        }
+// TODO: Finish this
+pub fn criteria<'a>(text: &'a str, _config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
+    let c = nom::combinator::map(tag("OR"), |_| -> Box<dyn Criteria> {
+        Box::new(TokenIs {
+            value: "foobar".to_string(),
+            kind: TokenKind::Prose,
+        })
+    })(text);
+    match c {
+        Ok(ok) => Ok(ok),
         Err(err) => Err(err),
     }
 }
@@ -136,7 +133,7 @@ mod tests {
     #[test]
     fn test_or() {
         let config = Config::empty();
-        let parsed = parse_filter("@foobar OR ~PROJECT-5 OR PROJECT-12", &config).unwrap();
+        let parsed = parse_filter("OR @foobar OR ~PROJECT-5 PROJECT-12", &config).unwrap();
         assert_eq!(2, parsed.criterias.len());
         assert_eq!(
             "Tag(foobar) OR Not(Ticket(PROJECT-5)) OR Ticket(PROJECT-12)",

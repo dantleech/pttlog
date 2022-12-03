@@ -278,6 +278,7 @@ fn time(text: &str) -> nom::IResult<&str, Time> {
         Err(err) => Err(err),
     }
 }
+
 fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
     let time_range = sequence::tuple((time, opt(sequence::pair(char('-'), time))))(text);
     match time_range {
