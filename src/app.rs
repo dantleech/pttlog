@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use chrono::{Datelike, Duration, Local, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Layout, Margin},
@@ -166,15 +166,14 @@ impl App<'_> {
         };
 
         self.log_days = LogDays::new(entries);
-        self.apply_filter();
     }
 
     pub fn apply_filter(&mut self) {
         if let Some(filter) = &self.filter.filter {
-            self.filtered = self.log_days.filter(filter)
-        } else {
-            self.filtered = self.log_days.clone()
+            self.filtered = self.log_days.filter(filter);
+            return;
         }
+        self.filtered = self.log_days.clone()
     }
 
     fn set_view(&mut self, view: AppView) {

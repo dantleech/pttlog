@@ -54,10 +54,6 @@ fn main() -> Result<(), Error> {
         let cmd = main_loop(&mut terminal, &mut app)?;
         match cmd {
             Cmd::Quit => break,
-            Cmd::Reload => {
-                app.reload();
-                continue;
-            }
         };
     }
 
@@ -69,7 +65,6 @@ fn main() -> Result<(), Error> {
 
 enum Cmd {
     Quit,
-    Reload,
 }
 
 fn main_loop(
