@@ -8,11 +8,17 @@ use tui::{
 };
 use tui_textarea::TextArea;
 
-use crate::{app::config::Key as PtKey, ui::centered_rect_absolute};
+use crate::{
+    app::config::{Config, Key as PtKey},
+    parser::filter::{parse_filter, Filter as ParserFilter},
+    ui::centered_rect_absolute,
+};
 
 pub struct Filter<'a> {
     pub textarea: TextArea<'a>,
     pub visible: bool,
+    pub valid: bool,
+    pub filter: Option<ParserFilter>,
 }
 
 impl Filter<'_> {
@@ -22,6 +28,8 @@ impl Filter<'_> {
         Filter {
             textarea,
             visible: false,
+            valid: false,
+            filter: None,
         }
     }
     pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) -> Result<(), Error> {
@@ -45,19 +53,28 @@ impl Filter<'_> {
             return;
         }
 
-        match key.event.code {
-            KeyCode::Enter => {
-                self.visible = false;
+        if key.event.code == KeyCode::Enter {
+            self.visible = false;
+            return;
+        }
+
+        self.textarea.input(key.event);
+        match parse_filter(&self.textarea.lines()[0], &Config::empty()) {
+            Ok(ok) => {
+                self.valid = true;
+                self.filter = Some(ok);
             }
-            _ => {
-                self.textarea.input(key.event);
+            Err(_err) => {
+                self.valid = false;
             }
-        };
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
+    use crate::ui::stream_input_to;
+
     use super::*;
     #[test]
     pub fn disable_visibility_on_enter() {
@@ -65,5 +82,16 @@ mod test {
         filter.visible = true;
         filter.handle(&PtKey::for_key_code(KeyCode::Enter));
         assert_eq!(false, filter.visible);
+    }
+
+    #[test]
+    pub fn parses_input() {
+        let mut filter = Filter::new();
+        filter.visible = true;
+        stream_input_to("@phpactor @foobar".to_string(), |key| filter.handle(&key));
+        assert_eq!("@phpactor @foobar", filter.textarea.lines()[0]);
+        assert_eq!(true, filter.valid);
+
+        assert_eq!(2, filter.filter.unwrap().criterias.len())
     }
 }
