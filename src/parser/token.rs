@@ -29,6 +29,13 @@ impl Token {
             whitespace: "".to_string(),
         }
     }
+    pub fn ticket(identifier: String) -> Token {
+        Token {
+            kind: TokenKind::Ticket,
+            text: identifier,
+            whitespace: "".to_string(),
+        }
+    }
     pub fn to_string(&self) -> String {
         format!("{}{}", self.text.to_string(), self.whitespace.to_string())
     }

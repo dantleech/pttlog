@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::slice::Iter;
 
 use crate::parser::filter::Filter;
-use crate::parser::timesheet::{Entry, Log, Tokens};
+use crate::parser::timesheet::{Entry, Tokens};
 use crate::parser::token::{Token, TokenKind};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
@@ -516,6 +516,13 @@ mod tests {
                             Time::from_hm(12, 30),
                         ),
                         description: Tokens::new(vec![Token::tag("barfoo".to_string())]),
+                    },
+                    Log {
+                        time: TimeRange::from_start_end(
+                            Time::from_hm(10, 0),
+                            Time::from_hm(12, 30),
+                        ),
+                        description: Tokens::new(vec![Token::ticket("barfoo".to_string())]),
                     },
                     Log {
                         time: TimeRange::from_start_end(

@@ -53,14 +53,17 @@ impl Filter {
     }
 
     pub(crate) fn matches(&self, tokens: &super::timesheet::Tokens) -> bool {
+        if tokens.len() == 0 {
+            return true;
+        }
         for criteria in self.criterias.iter() {
             for token in tokens.tags().iter() {
-                if !criteria.is_satisfied_with(token) {
-                    return false;
+                if criteria.is_satisfied_with(token) {
+                    return true;
                 }
             }
         }
-        return true;
+        return false;
     }
 }
 
