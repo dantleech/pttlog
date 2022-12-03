@@ -228,6 +228,18 @@ impl Entry {
             }],
         }
     }
+
+    pub(crate) fn with_filter(&self, filter: &super::filter::Filter) -> Self {
+        Entry {
+            date: self.date.clone(),
+            logs: self
+                .logs
+                .iter()
+                .filter(|log| filter.matches(&log.description))
+                .map(|log| log.clone())
+                .collect(),
+        }
+    }
 }
 
 #[derive(Debug)]

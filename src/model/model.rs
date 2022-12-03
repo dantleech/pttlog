@@ -26,10 +26,7 @@ impl LogDays {
             entries: self
                 .entries
                 .iter()
-                .filter(|_entry| {
-                    return true;
-                })
-                .cloned()
+                .map(|entry| entry.with_filter(filter))
                 .collect(),
         }
     }

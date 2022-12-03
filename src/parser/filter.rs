@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::fmt::Display;
 
 use anyhow::{Error, Result};
@@ -6,7 +7,7 @@ use nom::{character::complete::multispace0, combinator::opt, multi::many0, seque
 
 use crate::app::config::Config;
 
-use super::token::{token, TokenKind};
+use super::token::{token, Token, TokenKind};
 
 pub struct TokenIs {
     pub value: String,
@@ -21,16 +22,25 @@ impl Criteria for Not {
     fn to_string(&self) -> String {
         format!("Not({})", self.criteria.to_string())
     }
+
+    fn is_satisfied_with(&self, token: &Token) -> bool {
+        !self.criteria.is_satisfied_with(token)
+    }
 }
 
 impl Criteria for TokenIs {
     fn to_string(&self) -> String {
         format!("{:?}({})", self.kind, self.value)
     }
+
+    fn is_satisfied_with(&self, token: &Token) -> bool {
+        self.value == token.text && self.kind == token.kind
+    }
 }
 
 pub trait Criteria {
     fn to_string(&self) -> String;
+    fn is_satisfied_with(&self, token: &Token) -> bool;
 }
 
 pub struct Filter {
@@ -40,6 +50,17 @@ pub struct Filter {
 impl Filter {
     pub fn new(criterias: Vec<Box<dyn Criteria>>) -> Self {
         Filter { criterias }
+    }
+
+    pub(crate) fn matches(&self, tokens: &super::timesheet::Tokens) -> bool {
+        for criteria in self.criterias.iter() {
+            for token in tokens.tags().iter() {
+                if !criteria.is_satisfied_with(token) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
 
