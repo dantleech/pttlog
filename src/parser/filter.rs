@@ -60,7 +60,7 @@ impl Display for Filter {
             .map(|criteria| criteria.to_string())
             .collect();
 
-        f.write_str(&strings.join(" && "))?;
+        f.write_str(&strings.join(" OR "))?;
         Ok(())
     }
 }
@@ -113,7 +113,7 @@ mod tests {
     fn test_parse_many_tags() {
         let parsed = parse_filter("@foobar ~@barfoo", &Config::empty()).unwrap();
         assert_eq!(2, parsed.criterias.len());
-        assert_eq!("Tag(foobar) && Not(Tag(barfoo))", parsed.to_string())
+        assert_eq!("Tag(foobar) OR Not(Tag(barfoo))", parsed.to_string())
     }
 
     #[test]
@@ -128,7 +128,18 @@ mod tests {
         let parsed = parse_filter("@foobar ~PROJECT-5 PROJECT-12", &config).unwrap();
         assert_eq!(3, parsed.criterias.len());
         assert_eq!(
-            "Tag(foobar) && Not(Ticket(PROJECT-5)) && Ticket(PROJECT-12)",
+            "Tag(foobar) OR Not(Ticket(PROJECT-5)) OR Ticket(PROJECT-12)",
+            parsed.to_string()
+        )
+    }
+
+    #[test]
+    fn test_or() {
+        let config = Config::empty();
+        let parsed = parse_filter("@foobar OR ~PROJECT-5 OR PROJECT-12", &config).unwrap();
+        assert_eq!(2, parsed.criterias.len());
+        assert_eq!(
+            "Tag(foobar) OR Not(Ticket(PROJECT-5)) OR Ticket(PROJECT-12)",
             parsed.to_string()
         )
     }
