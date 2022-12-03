@@ -39,13 +39,14 @@ fn main() -> Result<(), Error> {
     let mut terminal = Terminal::new(backend)?;
     enable_raw_mode()?;
     terminal.clear()?;
+    let now = Local::now().naive_local();
 
     let config: Config = confy::load("pttlog", "config").expect("Could not load config");
     let mut app = app::App::new(
         FileLoader::new(path.to_string(), &config),
         &config,
         &RealTimeFactory {},
-        Local::now().naive_local(),
+        &now,
     );
     app.reload();
 

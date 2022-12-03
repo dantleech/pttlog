@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, Duration, Local, NaiveDate, NaiveDateTime};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Layout, Margin},
@@ -44,7 +44,7 @@ impl App<'_> {
         loader: Box<dyn loader::Loader + 'a>,
         _config: &'a Config,
         time_factory: &'a dyn TimeFactory,
-        now: NaiveDateTime,
+        now: &'a NaiveDateTime,
     ) -> App<'a> {
         let log_days = LogDays::new(vec![Entry::placeholder()]);
         App {
@@ -263,7 +263,7 @@ mod test {
             FuncLoader::new(Box::new(|| Entries { entries: vec![] })),
             &Config::empty(),
             &FrozenTimeFactory::new(2022, 1, 1, 12, 0),
-            NaiveDate::from_ymd(2022, 11, 30).and_hms(10, 1, 1),
+            &NaiveDate::from_ymd(2022, 11, 30).and_hms(10, 1, 1),
         );
     }
 }

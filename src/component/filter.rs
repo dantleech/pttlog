@@ -3,7 +3,7 @@ use crossterm::event::KeyCode;
 use tui::{
     backend::Backend,
     style::{Color, Style},
-    widgets::{Block, Borders},
+    widgets::{Block, Borders, Clear},
     Frame,
 };
 use tui_textarea::TextArea;
@@ -44,6 +44,7 @@ impl Filter<'_> {
         self.textarea
             .set_style(Style::default().fg(Color::LightGreen));
 
+        f.render_widget(Clear, area);
         f.render_widget(self.textarea.widget(), area);
         Ok(())
     }
