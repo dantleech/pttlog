@@ -31,6 +31,7 @@ pub struct App<'a> {
     pub notification: Notification,
     loader: Box<dyn loader::Loader + 'a>,
     pub log_days: LogDays,
+    pub filtered: LogDays,
     day: Day<'a>,
     week: IntervalView<'a>,
     year: IntervalView<'a>,
@@ -47,6 +48,7 @@ impl App<'_> {
     ) -> App<'a> {
         let log_days = LogDays::new(vec![Entry::placeholder()]);
         App {
+            filtered: log_days.clone(),
             log_days,
             loader,
             notification: Notification {
@@ -72,6 +74,7 @@ impl App<'_> {
 
     pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) -> Result<(), Error> {
         self.notification.tick();
+        self.apply_filter();
 
         let rows = Layout::default()
             .margin(0)
@@ -81,9 +84,9 @@ impl App<'_> {
         f.render_widget(navigation(), rows[0]);
 
         match self.view {
-            AppView::Day => self.day.draw(f, rows[1], &self.log_days)?,
-            AppView::Week => self.week.draw(f, rows[1], &self.log_days)?,
-            AppView::Year => self.year.draw(f, rows[1], &self.log_days)?,
+            AppView::Day => self.day.draw(f, rows[1], &self.filtered)?,
+            AppView::Week => self.week.draw(f, rows[1], &self.filtered)?,
+            AppView::Year => self.year.draw(f, rows[1], &self.filtered)?,
         };
 
         self.filter.draw(f)?;
@@ -163,8 +166,14 @@ impl App<'_> {
         };
 
         self.log_days = LogDays::new(entries);
+        self.apply_filter();
+    }
+
+    pub fn apply_filter(&mut self) {
         if let Some(filter) = &self.filter.filter {
-            self.log_days = self.log_days.filter(filter)
+            self.filtered = self.log_days.filter(filter)
+        } else {
+            self.filtered = self.log_days.clone()
         }
     }
 
@@ -183,6 +192,7 @@ impl App<'_> {
             KeyName::WeekView => self.set_view(AppView::Week),
             KeyName::YearView => self.set_view(AppView::Year),
             KeyName::Reload => {
+                self.reload();
                 self.notify("reloaded timesheet".to_string(), 2);
             }
             _ => {

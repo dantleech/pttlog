@@ -7,6 +7,7 @@ use crate::parser::token::{Token, TokenKind};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
+#[derive(Clone)]
 pub struct LogDays {
     current_date: NaiveDateTime,
     entries: Vec<Entry>,
