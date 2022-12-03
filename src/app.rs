@@ -163,6 +163,9 @@ impl App<'_> {
         };
 
         self.log_days = LogDays::new(entries);
+        if let Some(filter) = &self.filter.filter {
+            self.log_days = self.log_days.filter(filter)
+        }
     }
 
     fn set_view(&mut self, view: AppView) {
@@ -179,6 +182,9 @@ impl App<'_> {
             KeyName::DayView => self.set_view(AppView::Day),
             KeyName::WeekView => self.set_view(AppView::Week),
             KeyName::YearView => self.set_view(AppView::Year),
+            KeyName::Reload => {
+                self.notify("reloaded timesheet".to_string(), 2);
+            }
             _ => {
                 match self.view {
                     AppView::Day => self.day.handle(&key.name),

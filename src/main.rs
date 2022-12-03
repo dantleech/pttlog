@@ -83,10 +83,6 @@ fn main_loop(
                 let key = map_key_event(key);
                 match key.name {
                     KeyName::Quit => return Ok(Cmd::Quit),
-                    KeyName::Reload => {
-                        app.notify("reloaded timesheet".to_string(), 2);
-                        return Ok(Cmd::Reload);
-                    }
                     _ => {
                         app.handle(key);
                     }

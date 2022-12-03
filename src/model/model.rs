@@ -20,7 +20,7 @@ impl LogDays {
         }
     }
 
-    pub fn filter(self, filter: &Filter) -> Self {
+    pub fn filter(&self, filter: &Filter) -> Self {
         LogDays {
             current_date: self.current_date,
             entries: self
