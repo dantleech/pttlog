@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use chrono::{Datelike, Duration, Local, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Layout, Margin},
@@ -79,13 +79,14 @@ impl App<'_> {
             .split(f.size());
 
         f.render_widget(navigation(), rows[0]);
-        self.filter.draw(f)?;
 
         match self.view {
             AppView::Day => self.day.draw(f, rows[1], &self.log_days)?,
             AppView::Week => self.week.draw(f, rows[1], &self.log_days)?,
             AppView::Year => self.year.draw(f, rows[1], &self.log_days)?,
         };
+
+        self.filter.draw(f)?;
 
         if self.notification.should_display() {
             match self.notification.level {
@@ -169,8 +170,12 @@ impl App<'_> {
     }
 
     pub(crate) fn handle(&mut self, key: Key) {
-        self.filter.handle(&key);
+        if self.filter.visible == true {
+            self.filter.handle(&key);
+            return;
+        }
         match key.name {
+            KeyName::ToggleFilter => self.filter.visible = true,
             KeyName::DayView => self.set_view(AppView::Day),
             KeyName::WeekView => self.set_view(AppView::Week),
             KeyName::YearView => self.set_view(AppView::Year),
@@ -232,7 +237,7 @@ fn navigation<'a>() -> Paragraph<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::{model::time::FrozenTimeFactory, parser::Entries};
+    use crate::{model::time::FrozenTimeFactory, parser::timesheet::Entries};
 
     use super::{loader::FuncLoader, *};
 

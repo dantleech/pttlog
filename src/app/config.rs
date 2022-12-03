@@ -28,6 +28,7 @@ pub enum KeyName {
     DayView,
     WeekView,
     YearView,
+    ToggleFilter,
 }
 
 pub struct Key {
@@ -36,8 +37,8 @@ pub struct Key {
 }
 
 impl Key {
-    fn for_key_code(code: KeyCode) -> Self {
-        let key = KeyEvent::new(KeyCode::Up, KeyModifiers::empty());
+    pub fn for_key_code(code: KeyCode) -> Self {
+        let key = KeyEvent::new(code, KeyModifiers::empty());
         map_key_event(key)
     }
 }
@@ -52,6 +53,7 @@ pub fn map_key_event(key: KeyEvent) -> Key {
             KeyCode::Char('w') => KeyName::WeekView,
             KeyCode::Char('d') => KeyName::DayView,
             KeyCode::Char('y') => KeyName::YearView,
+            KeyCode::Char('f') => KeyName::ToggleFilter,
             _ => KeyName::Unknown,
         },
         event: key,
