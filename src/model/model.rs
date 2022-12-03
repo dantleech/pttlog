@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::slice::Iter;
 
-use crate::parser::timesheet::{Entry, Tokens};
+use crate::parser::filter::Filter;
+use crate::parser::timesheet::{Entry, Log, Tokens};
 use crate::parser::token::{Token, TokenKind};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
@@ -16,6 +17,20 @@ impl LogDays {
         LogDays {
             current_date: Local::now().naive_local(),
             entries,
+        }
+    }
+
+    pub fn filter(self, filter: &Filter) -> Self {
+        LogDays {
+            current_date: self.current_date,
+            entries: self
+                .entries
+                .iter()
+                .filter(|_entry| {
+                    return true;
+                })
+                .cloned()
+                .collect(),
         }
     }
 
@@ -363,7 +378,10 @@ mod tests {
     use super::*;
     use chrono::NaiveTime;
 
-    use crate::parser::timesheet::{Date, Entry, Log, Time, TimeRange, Tokens};
+    use crate::parser::{
+        filter::TokenIs,
+        timesheet::{Date, Entry, Log, Time, TimeRange, Tokens},
+    };
 
     #[test]
     fn log_view_percentage_of_day() {
@@ -478,5 +496,44 @@ mod tests {
         let minutes_by_weekday = log_days.minutes_by_weekday();
         println!("{:?}", minutes_by_weekday);
         assert_eq!(&("Mon", 600), minutes_by_weekday.first().unwrap());
+    }
+
+    #[test]
+    fn test_filters_by_tag() {
+        let days = LogDays {
+            current_date: NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0),
+            entries: vec![Entry {
+                date: Date::from_ymd(2022, 01, 1),
+                logs: vec![
+                    Log {
+                        time: TimeRange::from_start_end(
+                            Time::from_hm(10, 0),
+                            Time::from_hm(12, 30),
+                        ),
+                        description: Tokens::new(vec![Token::tag("foobar".to_string())]),
+                    },
+                    Log {
+                        time: TimeRange::from_start_end(
+                            Time::from_hm(10, 0),
+                            Time::from_hm(12, 30),
+                        ),
+                        description: Tokens::new(vec![Token::tag("barfoo".to_string())]),
+                    },
+                    Log {
+                        time: TimeRange::from_start_end(
+                            Time::from_hm(10, 0),
+                            Time::from_hm(12, 30),
+                        ),
+                        description: Tokens::new(vec![Token::tag("foobar".to_string())]),
+                    },
+                ],
+            }],
+        };
+
+        let days = days.filter(&Filter::new(vec![Box::new(TokenIs {
+            value: "foobar".to_string(),
+            kind: TokenKind::Tag,
+        })]));
+        assert_eq!(2, days.entries[0].logs.len());
     }
 }

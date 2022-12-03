@@ -37,6 +37,12 @@ pub struct Filter {
     pub criterias: Vec<Box<dyn Criteria>>,
 }
 
+impl Filter {
+    pub fn new(criterias: Vec<Box<dyn Criteria>>) -> Self {
+        Filter { criterias }
+    }
+}
+
 impl Display for Filter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let strings: Vec<String> = self
