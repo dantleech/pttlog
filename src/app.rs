@@ -10,7 +10,7 @@ use tui::{
 };
 
 use crate::{
-    component::{filter::Filter, interval_view::IntervalView},
+    component::{filter::Filter, interval_view::IntervalView, status::Status},
     model::{model::LogDays, time::TimeFactory},
     parser::timesheet::Entry,
 };
@@ -36,7 +36,8 @@ pub struct App<'a> {
     week: IntervalView<'a>,
     year: IntervalView<'a>,
     view: AppView,
-    filter: Filter<'a>,
+    pub filter: Filter<'a>,
+    status: Status,
 }
 
 impl App<'_> {
@@ -69,6 +70,7 @@ impl App<'_> {
                 Duration::days(365),
             ),
             filter: Filter::new(),
+            status: Status::new(),
         }
     }
 
@@ -78,7 +80,11 @@ impl App<'_> {
 
         let rows = Layout::default()
             .margin(0)
-            .constraints([Constraint::Length(1), Constraint::Min(4), Constraint::Length(1)].as_ref())
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Min(4),
+                Constraint::Length(if self.status.display(&self) {1} else {0})
+            ].as_ref())
             .split(f.size());
 
         f.render_widget(navigation(), rows[0]);
@@ -90,9 +96,7 @@ impl App<'_> {
         };
 
         self.filter.draw(f)?;
-        if let Some(filter) = &self.filter.filter {
-            f.render_widget(Paragraph::new(Spans::from(filter.to_string())), rows[2]);
-        }
+        self.status.draw(f, rows[2], &self)?;
 
         if self.notification.should_display() {
             match self.notification.level {
