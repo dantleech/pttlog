@@ -237,4 +237,14 @@ mod tests {
             parsed.to_string()
         )
     }
+
+    #[test]
+    fn test_and() {
+        let config = Config::empty();
+        let parsed = parse_filter("AND @foobar AND ~@bazboo @bag", &config).unwrap();
+        assert_eq!(
+            "And(Tag(foobar), And(Not(Tag(bazboo)), Tag(bag)))",
+            parsed.to_string()
+        )
+    }
 }
