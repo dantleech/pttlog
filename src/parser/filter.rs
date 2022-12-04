@@ -34,7 +34,11 @@ impl Criteria for UnaryOperator {
     }
 
     fn is_satisfied_with(&self, token: &Token) -> bool {
-        return true;
+        match self.kind {
+            UnaryOperatorKind::Not => !self.operand.is_satisfied_with(token),
+            UnaryOperatorKind::Unknown => panic!("Unknown unary operator (should not happen)"),
+        }
+        
     }
 }
 
@@ -57,7 +61,11 @@ impl Criteria for BinaryOperator {
     }
 
     fn is_satisfied_with(&self, token: &Token) -> bool {
-        return true;
+        match self.kind {
+            BinaryOperatorKind::And => self.left.is_satisfied_with(token) && self.right.is_satisfied_with(token),
+            BinaryOperatorKind::Or => self.left.is_satisfied_with(token) || self.right.is_satisfied_with(token),
+            BinaryOperatorKind::Unknown => panic!("Unknown binary operator (should not happen)"),
+        }
     }
 }
 
