@@ -4,12 +4,38 @@ use anyhow::{Error, Result};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::char;
+use nom::combinator::map;
 use nom::sequence;
 use nom::{character::complete::multispace0, combinator::opt, multi::many0, sequence::tuple};
 
 use crate::app::config::Config;
 
 use super::token::{token, Token, TokenKind};
+
+pub trait Criteria {
+    fn to_string(&self) -> String;
+    fn is_satisfied_with(&self, token: &Token) -> bool;
+}
+
+#[derive(Debug)]
+pub enum LogicalOperatorKind {
+    And,
+    Or,
+}
+
+pub struct LogicalOperator {
+    pub kind: LogicalOperatorKind,
+}
+
+impl Criteria for LogicalOperator {
+    fn to_string(&self) -> String {
+        format!("{:?}", self.kind)
+    }
+
+    fn is_satisfied_with(&self, token: &Token) -> bool {
+        return true;
+    }
+}
 
 pub struct TokenIs {
     pub value: String,
@@ -18,16 +44,6 @@ pub struct TokenIs {
 
 pub struct Not {
     pub criteria: Box<dyn Criteria>,
-}
-
-impl Criteria for Not {
-    fn to_string(&self) -> String {
-        format!("Not({})", self.criteria.to_string())
-    }
-
-    fn is_satisfied_with(&self, token: &Token) -> bool {
-        !self.criteria.is_satisfied_with(token)
-    }
 }
 
 impl Criteria for TokenIs {
@@ -40,9 +56,14 @@ impl Criteria for TokenIs {
     }
 }
 
-pub trait Criteria {
-    fn to_string(&self) -> String;
-    fn is_satisfied_with(&self, token: &Token) -> bool;
+impl Criteria for Not {
+    fn to_string(&self) -> String {
+        format!("Not({})", self.criteria.to_string())
+    }
+
+    fn is_satisfied_with(&self, token: &Token) -> bool {
+        !self.criteria.is_satisfied_with(token)
+    }
 }
 
 pub struct Filter {
@@ -68,18 +89,38 @@ impl Display for Filter {
     }
 }
 
-// TODO: Finish this
-pub fn criteria<'a>(text: &'a str, _config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
-    let c = nom::combinator::map(tag("OR"), |_| -> Box<dyn Criteria> {
-        Box::new(TokenIs {
-            value: "foobar".to_string(),
-            kind: TokenKind::Prose,
-        })
-    })(text);
-    match c {
-        Ok(ok) => Ok(ok),
-        Err(err) => Err(err),
-    }
+fn logical_operator<'a>(
+    text: &'a str,
+    config: &Config,
+) -> nom::IResult<&'a str, Box<dyn Criteria>> {
+    map(
+        sequence::tuple((alt((tag("OR"), tag("AND"))), |text| token(text, config))),
+        |res| -> Box<dyn Criteria> {
+            Box::new(LogicalOperator{
+                kind: match res.0 {
+                        "OR" => LogicalOperatorKind::Or,
+                        "AND" => LogicalOperatorKind::And,
+                        _ => LogicalOperatorKind::And,
+                },
+            })
+        }
+    )(text)
+}
+
+fn criteria<'a>(text: &'a str, _config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
+    alt((
+        nom::combinator::map(tag("OR"), |_| -> Box<dyn Criteria> {
+            Box::new(TokenIs {
+                value: "foobar".to_string(),
+                kind: TokenKind::Prose,
+            })
+        }),
+        nom::combinator::map(tag("AND"), |_| -> Box<dyn Criteria> {
+            Box::new(LogicalOperator {
+                kind: LogicalOperatorKind::And,
+            })
+        }),
+    ))(text)
 }
 
 pub fn parse_filter<'a>(text: &'a str, config: &Config) -> Result<Filter> {
