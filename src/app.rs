@@ -78,7 +78,7 @@ impl App<'_> {
 
         let rows = Layout::default()
             .margin(0)
-            .constraints([Constraint::Length(1), Constraint::Min(4)].as_ref())
+            .constraints([Constraint::Length(1), Constraint::Min(4), Constraint::Length(1)].as_ref())
             .split(f.size());
 
         f.render_widget(navigation(), rows[0]);
@@ -90,6 +90,9 @@ impl App<'_> {
         };
 
         self.filter.draw(f)?;
+        if let Some(filter) = &self.filter.filter {
+            f.render_widget(Paragraph::new(Spans::from(filter.to_string())), rows[2]);
+        }
 
         if self.notification.should_display() {
             match self.notification.level {
