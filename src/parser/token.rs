@@ -29,6 +29,13 @@ impl Token {
             whitespace: "".to_string(),
         }
     }
+    pub fn prose(text: String) -> Token {
+        Token {
+            kind: TokenKind::Prose,
+            text,
+            whitespace: "".to_string(),
+        }
+    }
     pub fn ticket(identifier: String) -> Token {
         Token {
             kind: TokenKind::Ticket,

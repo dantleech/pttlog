@@ -409,7 +409,7 @@ mod tests {
     use chrono::NaiveTime;
 
     use crate::parser::{
-        filter::TokenIs,
+        filter::{TokenIs, UnaryOperator, UnaryOperatorKind},
         timesheet::{Date, Entry, Log, Time, TimeRange, Tokens},
     };
 
@@ -561,6 +561,36 @@ mod tests {
             kind: TokenKind::Ticket,
         })]));
         assert_eq!(1, filtered.entries[0].logs.len());
+    }
+
+    #[test]
+    fn test_filters_not() {
+        let days = LogDays::new(vec![Entry {
+            date: Date::from_ymd(2022, 01, 1),
+            logs: vec![
+                Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                    description: Tokens::new(vec![
+                        Token::prose("baz".to_string()),
+                        Token::tag("baz".to_string()),
+                        Token::tag("foobar".to_string()),
+                    ]),
+                },
+            ],
+        }]);
+        assert_eq!(1, days.entries[0].logs.len());
+
+        let filtered = days.filter(
+            &Filter::new(vec![
+                Box::new(
+                    UnaryOperator{
+                        kind: UnaryOperatorKind::Not,
+                        operand: Box::new(TokenIs {value: "foobar".to_string(), kind: TokenKind::Tag, })
+                    }
+                )
+            ])
+        );
+        assert_eq!(0, filtered.entries[0].logs.len());
     }
 
     #[test]
