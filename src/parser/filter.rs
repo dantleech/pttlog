@@ -147,7 +147,7 @@ fn binary_operator<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, 
 fn unary_operator<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
     map(
         sequence::tuple((
-            tag("~"),
+            tag("NOT"),
             multispace0,
             |text| criteria(text, config),
             multispace0,
@@ -155,7 +155,7 @@ fn unary_operator<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, B
         |res| -> Box<dyn Criteria> {
             Box::new(UnaryOperator {
                 kind: match res.0 {
-                    "~" => UnaryOperatorKind::Not,
+                    "NOT" => UnaryOperatorKind::Not,
                     _ => UnaryOperatorKind::Unknown,
                 },
                 operand: res.2,
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn test_parse_many_tags() {
-        let parsed = parse_filter("@foobar ~@barfoo", &Config::empty()).unwrap();
+        let parsed = parse_filter("@foobar NOT @barfoo", &Config::empty()).unwrap();
         assert_eq!(2, parsed.criterias.len());
         assert_eq!("Tag(foobar) Not(Tag(barfoo))", parsed.to_string())
     }
@@ -242,7 +242,7 @@ mod tests {
                 tags: vec![],
             }],
         };
-        let parsed = parse_filter("@foobar ~PROJECT-5 PROJECT-12", &config).unwrap();
+        let parsed = parse_filter("@foobar NOT PROJECT-5 PROJECT-12", &config).unwrap();
         assert_eq!(3, parsed.criterias.len());
         assert_eq!(
             "Tag(foobar) Not(Ticket(PROJECT-5)) Ticket(PROJECT-12)",
@@ -253,7 +253,7 @@ mod tests {
     #[test]
     fn test_or() {
         let config = Config::empty();
-        let parsed = parse_filter("OR @foobar OR ~@bazboo @bag", &config).unwrap();
+        let parsed = parse_filter("OR @foobar OR NOT @bazboo @bag", &config).unwrap();
         assert_eq!(
             "Or(Tag(foobar), Or(Not(Tag(bazboo)), Tag(bag)))",
             parsed.to_string()
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn test_and() {
         let config = Config::empty();
-        let parsed = parse_filter("AND @foobar AND ~@bazboo @bag", &config).unwrap();
+        let parsed = parse_filter("AND @foobar AND NOT @bazboo @bag", &config).unwrap();
         assert_eq!(
             "And(Tag(foobar), And(Not(Tag(bazboo)), Tag(bag)))",
             parsed.to_string()

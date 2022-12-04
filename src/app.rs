@@ -250,6 +250,8 @@ fn navigation<'a>() -> Paragraph<'a> {
         Span::raw("eek "),
         Span::styled("[y]", Style::default().fg(Color::Green)),
         Span::raw("ear "),
+        Span::styled("[f]", Style::default().fg(Color::Green)),
+        Span::raw("ilter"),
         Span::styled("[q]", Style::default().fg(Color::Green)),
         Span::raw("uit"),
     ])];

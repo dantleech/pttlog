@@ -41,6 +41,40 @@ Now run `pttlogger` with the path to your timesheet:
 $ pttlogger mytimesheet
 ```
 
+Filter
+------
+
+You can filter the entries by hitting `f`. The grammar is _something_ like
+this:
+
+```
+TICKET: "<ticket prefix>-.*"
+TAG: alphanumeric*
+CRITERIA: TICKET|TAG|OR|AND
+OR: CRITERIA CRITERIA
+AND: CRITERIA CRITERIA
+NOT: CRITERIA
+```
+
+Show only entries tagged with `@pttlog`:
+
+```
+@pttlog
+```
+
+With `@pttlog` and part of ticket `JIRA-1234`:
+
+```
+AND @pttlog JIRA-1234
+```
+
+With `@pttlog` and part of ticket `JIRA-1234` OR anything which is not
+`@lunch`:
+
+```
+OR AND @pttlog JIRA-1234 NOT @lunch
+```
+
 Installation
 ------------
 
