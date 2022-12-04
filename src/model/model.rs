@@ -540,7 +540,7 @@ mod tests {
                 },
                 Log {
                     time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
-                    description: Tokens::new(vec![Token::ticket("barfoo".to_string())]),
+                    description: Tokens::new(vec![Token::ticket("FOO-1234".to_string())]),
                 },
                 Log {
                     time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
@@ -554,6 +554,12 @@ mod tests {
             kind: TokenKind::Tag,
         })]));
         assert_eq!(2, days.entries[0].logs.len());
+
+        let days = days.filter(&Filter::new(vec![Box::new(TokenIs {
+            value: "FOO-1234".to_string(),
+            kind: TokenKind::Ticket,
+        })]));
+        assert_eq!(1, days.entries[0].logs.len());
     }
 
     #[test]
