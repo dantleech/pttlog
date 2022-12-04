@@ -3,7 +3,7 @@ use std::fmt::Display;
 use anyhow::{Error, Result};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::character::complete::char;
+use nom::character::complete::{char, multispace1};
 use nom::combinator::map;
 use nom::sequence;
 use nom::{character::complete::multispace0, combinator::opt, multi::many0, sequence::tuple};
@@ -15,6 +15,27 @@ use super::token::{token, Token, TokenKind};
 pub trait Criteria {
     fn to_string(&self) -> String;
     fn is_satisfied_with(&self, token: &Token) -> bool;
+}
+
+#[derive(Debug)]
+pub enum UnaryOperatorKind {
+    Not,
+    Unknown,
+}
+
+pub struct UnaryOperator {
+    pub kind: UnaryOperatorKind,
+    pub operand: Box<dyn Criteria>,
+}
+
+impl Criteria for UnaryOperator {
+    fn to_string(&self) -> String {
+        format!("{:?}({})", self.kind, self.operand.to_string())
+    }
+
+    fn is_satisfied_with(&self, token: &Token) -> bool {
+        return true;
+    }
 }
 
 #[derive(Debug)]
@@ -32,7 +53,7 @@ pub struct BinaryOperator {
 
 impl Criteria for BinaryOperator {
     fn to_string(&self) -> String {
-        format!("{:?}", self.kind)
+        format!("{:?}({}, {})", self.kind, self.left.to_string(), self.right.to_string())
     }
 
     fn is_satisfied_with(&self, token: &Token) -> bool {
@@ -87,48 +108,75 @@ impl Display for Filter {
             .map(|criteria| criteria.to_string())
             .collect();
 
-        f.write_str(&strings.join(" OR "))?;
+        f.write_str(&strings.join(" "))?;
         Ok(())
     }
 }
 
-fn binary_operator<'a>(
-    text: &'a str,
-    config: &Config,
-) -> nom::IResult<&'a str, Box<dyn Criteria>> {
+fn binary_operator<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
     map(
         sequence::tuple((
             alt((tag("OR"), tag("AND"))),
+            multispace1,
             |text| criteria(text, config),
             |text| criteria(text, config),
+            multispace0,
         )),
         |res| -> Box<dyn Criteria> {
-            Box::new(BinaryOperator{
+            Box::new(BinaryOperator {
                 kind: match res.0 {
-                        "OR" => BinaryOperatorKind::Or,
-                        "AND" => BinaryOperatorKind::And,
-                        _ => BinaryOperatorKind::Unknown,
+                    "OR" => BinaryOperatorKind::Or,
+                    "AND" => BinaryOperatorKind::And,
+                    _ => BinaryOperatorKind::Unknown,
                 },
-                left: res.1,
-                right: res.2,
+                left: res.2,
+                right: res.3,
             })
-        }
+        },
+    )(text)
+}
+
+fn unary_operator<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
+    map(
+        sequence::tuple((
+            tag("~"),
+            multispace0,
+            |text| criteria(text, config),
+            multispace0,
+        )),
+        |res| -> Box<dyn Criteria> {
+            Box::new(UnaryOperator {
+                kind: match res.0 {
+                    "~" => UnaryOperatorKind::Not,
+                    _ => UnaryOperatorKind::Unknown,
+                },
+                operand: res.2,
+            })
+        },
     )(text)
 }
 
 fn token_match<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
-    map(|text| token(text, config), |res| -> Box<dyn Criteria> {
-        Box::new(TokenIs{
-            value: res.text,
-            kind: res.kind,
-        })
-    })(text)
+    map(
+        sequence::tuple((
+            multispace0,
+            |text| token(text, config),
+            multispace0,
+        )),
+        |res| -> Box<dyn Criteria> {
+            Box::new(TokenIs {
+                value: res.1.text,
+                kind: res.1.kind,
+            })
+        },
+    )(text)
 }
 
 fn criteria<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
     alt((
-        |text| token_match(text, config),
+        |text| unary_operator(text, config),
         |text| binary_operator(text, config),
+        |text| token_match(text, config),
     ))(text)
 }
 
@@ -160,7 +208,7 @@ mod tests {
     fn test_parse_many_tags() {
         let parsed = parse_filter("@foobar ~@barfoo", &Config::empty()).unwrap();
         assert_eq!(2, parsed.criterias.len());
-        assert_eq!("Tag(foobar) OR Not(Tag(barfoo))", parsed.to_string())
+        assert_eq!("Tag(foobar) Not(Tag(barfoo))", parsed.to_string())
     }
 
     #[test]
@@ -175,7 +223,7 @@ mod tests {
         let parsed = parse_filter("@foobar ~PROJECT-5 PROJECT-12", &config).unwrap();
         assert_eq!(3, parsed.criterias.len());
         assert_eq!(
-            "Tag(foobar) OR Not(Ticket(PROJECT-5)) OR Ticket(PROJECT-12)",
+            "Tag(foobar) Not(Ticket(PROJECT-5)) Ticket(PROJECT-12)",
             parsed.to_string()
         )
     }
@@ -183,10 +231,9 @@ mod tests {
     #[test]
     fn test_or() {
         let config = Config::empty();
-        let parsed = parse_filter("OR @foobar OR ~PROJECT-5 PROJECT-12", &config).unwrap();
-        assert_eq!(2, parsed.criterias.len());
+        let parsed = parse_filter("OR @foobar OR ~@bazboo @bag", &config).unwrap();
         assert_eq!(
-            "Tag(foobar) OR Not(Ticket(PROJECT-5)) OR Ticket(PROJECT-12)",
+            "Or(Tag(foobar), Or(Not(Tag(bazboo)), Tag(bag)))",
             parsed.to_string()
         )
     }
