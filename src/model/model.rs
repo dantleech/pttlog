@@ -266,7 +266,7 @@ impl LogDay {
                             return true;
                         }
                         for criteria in filter.criterias.iter() {
-                            for token in tokens.tags().iter() {
+                            for token in tokens.to_vec() {
                                 if criteria.is_satisfied_with(token) {
                                     return true;
                                 }
@@ -548,18 +548,19 @@ mod tests {
                 },
             ],
         }]);
+        assert_eq!(4, days.entries[0].logs.len());
 
-        let days = days.filter(&Filter::new(vec![Box::new(TokenIs {
+        let filtered = days.filter(&Filter::new(vec![Box::new(TokenIs {
             value: "foobar".to_string(),
             kind: TokenKind::Tag,
         })]));
-        assert_eq!(2, days.entries[0].logs.len());
+        assert_eq!(2, filtered.entries[0].logs.len());
 
-        let days = days.filter(&Filter::new(vec![Box::new(TokenIs {
+        let filtered = days.filter(&Filter::new(vec![Box::new(TokenIs {
             value: "FOO-1234".to_string(),
             kind: TokenKind::Ticket,
         })]));
-        assert_eq!(1, days.entries[0].logs.len());
+        assert_eq!(1, filtered.entries[0].logs.len());
     }
 
     #[test]

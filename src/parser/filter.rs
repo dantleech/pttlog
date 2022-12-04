@@ -3,10 +3,10 @@ use std::fmt::Display;
 use anyhow::{Error, Result};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::character::complete::{char, multispace1};
+use nom::character::complete::multispace1;
 use nom::combinator::map;
 use nom::sequence;
-use nom::{character::complete::multispace0, combinator::opt, multi::many0, sequence::tuple};
+use nom::{character::complete::multispace0, multi::many0, sequence::tuple};
 
 use crate::app::config::Config;
 
