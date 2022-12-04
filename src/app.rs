@@ -38,6 +38,7 @@ pub struct App<'a> {
     view: AppView,
     pub filter: Filter<'a>,
     status: Status,
+    pub should_quit: bool,
 }
 
 impl App<'_> {
@@ -71,6 +72,7 @@ impl App<'_> {
             ),
             filter: Filter::new(&config),
             status: Status::new(),
+            should_quit: false,
         }
     }
 
@@ -193,6 +195,7 @@ impl App<'_> {
             return;
         }
         match key.name {
+            KeyName::Quit => self.should_quit = true,
             KeyName::ToggleFilter => self.filter.visible = true,
             KeyName::DayView => self.set_view(AppView::Day),
             KeyName::WeekView => self.set_view(AppView::Week),

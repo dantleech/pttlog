@@ -50,12 +50,7 @@ fn main() -> Result<(), Error> {
     );
     app.reload();
 
-    loop {
-        let cmd = main_loop(&mut terminal, &mut app)?;
-        match cmd {
-            Cmd::Quit => break,
-        };
-    }
+    main_loop(&mut terminal, &mut app)?;
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(),)?;
@@ -63,27 +58,22 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-enum Cmd {
-    Quit,
-}
-
 fn main_loop(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     app: &mut app::App,
-) -> Result<Cmd, Error> {
+) -> Result<(), Error> {
     loop {
         terminal.draw(|f| app.draw(f).expect("Could not draw"))?;
 
         if (poll(Duration::from_millis(1000)))? {
             if let Event::Key(key) = event::read()? {
                 let key = map_key_event(key);
-                match key.name {
-                    KeyName::Quit => return Ok(Cmd::Quit),
-                    _ => {
-                        app.handle(key);
-                    }
-                }
+                app.handle(key);
             }
+        }
+
+        if app.should_quit {
+            return Ok(());
         }
     }
 }
