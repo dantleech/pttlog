@@ -65,7 +65,8 @@ impl Filter<'_> {
 
         if key.event.code == KeyCode::Esc {
             self.visible = false;
-            self.textarea = TextArea::new(self.original_filter.to_vec())
+            self.textarea = TextArea::new(self.original_filter.to_vec());
+            self.textarea.set_cursor_line_style(Style::default());
         }
 
         self.textarea.input(key.event);
