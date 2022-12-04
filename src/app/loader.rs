@@ -1,9 +1,9 @@
 use anyhow::bail;
 use anyhow::Result;
 
-use crate::parser::parse;
-use crate::parser::Entries;
-use crate::parser::Entry;
+use crate::parser::timesheet::parse_entry;
+use crate::parser::timesheet::Entries;
+use crate::parser::timesheet::Entry;
 use std::fs;
 
 use super::config::Config;
@@ -25,7 +25,7 @@ impl FileLoader<'_> {
 impl Loader for FileLoader<'_> {
     fn load(&self) -> Result<Entries, anyhow::Error> {
         let contents = fs::read_to_string(&self.path)?;
-        let entries = match parse(&contents, &self.config) {
+        let entries = match parse_entry(&contents, &self.config) {
             Ok((_, ok)) => ok,
             Err(err) => bail!(err.to_string()),
         };

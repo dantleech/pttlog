@@ -8,7 +8,7 @@ use tui::{
 
 use crate::{
     model::model::{TagMeta, TagMetas},
-    parser::TokenKind,
+    parser::token::TokenKind,
 };
 
 pub struct TokenSummaryTable<'a> {

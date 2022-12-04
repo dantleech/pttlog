@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use chrono::{Datelike, Duration, Local, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Layout, Margin},
@@ -10,14 +10,14 @@ use tui::{
 };
 
 use crate::{
-    component::interval_view::IntervalView,
+    component::{filter::Filter, interval_view::IntervalView, status::Status},
     model::{model::LogDays, time::TimeFactory},
+    parser::timesheet::Entry,
 };
 
 use super::component::day::Day;
 
-use self::config::{Config, KeyMap};
-use super::parser;
+use self::config::{Config, Key, KeyName};
 pub mod config;
 pub mod loader;
 
@@ -31,21 +31,26 @@ pub struct App<'a> {
     pub notification: Notification,
     loader: Box<dyn loader::Loader + 'a>,
     pub log_days: LogDays,
+    pub filtered: LogDays,
     day: Day<'a>,
     week: IntervalView<'a>,
     year: IntervalView<'a>,
     view: AppView,
+    pub filter: Filter<'a>,
+    status: Status,
+    pub should_quit: bool,
 }
 
 impl App<'_> {
     pub fn new<'a>(
         loader: Box<dyn loader::Loader + 'a>,
-        _config: &'a Config,
+        config: &'a Config,
         time_factory: &'a dyn TimeFactory,
-        now: NaiveDateTime,
+        now: &'a NaiveDateTime,
     ) -> App<'a> {
-        let log_days = LogDays::new(vec![parser::Entry::placeholder()]);
+        let log_days = LogDays::new(vec![Entry::placeholder()]);
         App {
+            filtered: log_days.clone(),
             log_days,
             loader,
             notification: Notification {
@@ -65,24 +70,35 @@ impl App<'_> {
                 NaiveDate::from_ymd(now.year() - 1, now.month(), now.day()),
                 Duration::days(365),
             ),
+            filter: Filter::new(&config),
+            status: Status::new(),
+            should_quit: false,
         }
     }
 
     pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) -> Result<(), Error> {
         self.notification.tick();
+        self.apply_filter();
 
         let rows = Layout::default()
             .margin(0)
-            .constraints([Constraint::Length(1), Constraint::Min(4)].as_ref())
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Min(4),
+                Constraint::Length(if self.status.display(&self) {1} else {0})
+            ].as_ref())
             .split(f.size());
 
         f.render_widget(navigation(), rows[0]);
 
         match self.view {
-            AppView::Day => self.day.draw(f, rows[1], &self.log_days)?,
-            AppView::Week => self.week.draw(f, rows[1], &self.log_days)?,
-            AppView::Year => self.year.draw(f, rows[1], &self.log_days)?,
+            AppView::Day => self.day.draw(f, rows[1], &self.filtered)?,
+            AppView::Week => self.week.draw(f, rows[1], &self.filtered)?,
+            AppView::Year => self.year.draw(f, rows[1], &self.filtered)?,
         };
+
+        self.filter.draw(f)?;
+        self.status.draw(f, rows[2], &self)?;
 
         if self.notification.should_display() {
             match self.notification.level {
@@ -161,20 +177,38 @@ impl App<'_> {
         self.log_days = LogDays::new(entries);
     }
 
+    pub fn apply_filter(&mut self) {
+        if let Some(filter) = &self.filter.filter {
+            self.filtered = self.log_days.filter(filter);
+            return;
+        }
+        self.filtered = self.log_days.clone()
+    }
+
     fn set_view(&mut self, view: AppView) {
         self.view = view
     }
 
-    pub(crate) fn handle(&mut self, key: KeyMap) {
-        match key {
-            KeyMap::DayView => self.set_view(AppView::Day),
-            KeyMap::WeekView => self.set_view(AppView::Week),
-            KeyMap::YearView => self.set_view(AppView::Year),
+    pub(crate) fn handle(&mut self, key: Key) {
+        if self.filter.visible == true {
+            self.filter.handle(&key);
+            return;
+        }
+        match key.name {
+            KeyName::Quit => self.should_quit = true,
+            KeyName::ToggleFilter => self.filter.show(),
+            KeyName::DayView => self.set_view(AppView::Day),
+            KeyName::WeekView => self.set_view(AppView::Week),
+            KeyName::YearView => self.set_view(AppView::Year),
+            KeyName::Reload => {
+                self.reload();
+                self.notify("reloaded timesheet".to_string(), 2);
+            }
             _ => {
                 match self.view {
-                    AppView::Day => self.day.handle(&key),
-                    AppView::Week => self.week.handle(&key),
-                    AppView::Year => self.year.handle(&key),
+                    AppView::Day => self.day.handle(&key.name),
+                    AppView::Week => self.week.handle(&key.name),
+                    AppView::Year => self.year.handle(&key.name),
                 };
             }
         };
@@ -219,6 +253,8 @@ fn navigation<'a>() -> Paragraph<'a> {
         Span::raw("eek "),
         Span::styled("[y]", Style::default().fg(Color::Green)),
         Span::raw("ear "),
+        Span::styled("[f]", Style::default().fg(Color::Green)),
+        Span::raw("ilter"),
         Span::styled("[q]", Style::default().fg(Color::Green)),
         Span::raw("uit"),
     ])];
@@ -228,7 +264,7 @@ fn navigation<'a>() -> Paragraph<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::{model::time::FrozenTimeFactory, parser::Entries};
+    use crate::{model::time::FrozenTimeFactory, parser::timesheet::Entries};
 
     use super::{loader::FuncLoader, *};
 
@@ -238,7 +274,7 @@ mod test {
             FuncLoader::new(Box::new(|| Entries { entries: vec![] })),
             &Config::empty(),
             &FrozenTimeFactory::new(2022, 1, 1, 12, 0),
-            NaiveDate::from_ymd(2022, 11, 30).and_hms(10, 1, 1),
+            &NaiveDate::from_ymd(2022, 11, 30).and_hms(10, 1, 1),
         );
     }
 }

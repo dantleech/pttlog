@@ -1,25 +1,39 @@
 use std::collections::HashMap;
 use std::slice::Iter;
 
-use crate::parser::{Entry, Token, TokenKind, Tokens};
+use crate::parser::filter::Filter;
+use crate::parser::timesheet::{Entry, Tokens};
+use crate::parser::token::{Token, TokenKind};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
+#[derive(Clone)]
 pub struct LogDays {
-    current_date: NaiveDateTime,
-    entries: Vec<Entry>,
+    entries: Vec<LogDay>,
 }
 
 impl LogDays {
     pub fn new<'a>(entries: Vec<Entry>) -> LogDays {
         LogDays {
-            current_date: Local::now().naive_local(),
-            entries,
+            entries: entries
+                .into_iter()
+                .map(|entry| LogDay::from_entry(Local::now().naive_local(), entry.clone()))
+                .collect(),
         }
     }
 
-    pub(crate) fn at(&self, index: usize) -> LogDay {
-        LogDay::new(&self.current_date, &self.entries[index])
+    pub fn filter(&self, filter: &Filter) -> Self {
+        LogDays {
+            entries: self
+                .entries
+                .iter()
+                .map(|entry| entry.with_filter(filter))
+                .collect(),
+        }
+    }
+
+    pub(crate) fn at(&self, index: usize) -> &LogDay {
+        &self.entries[index]
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -29,8 +43,7 @@ impl LogDays {
     pub(crate) fn tag_summary(&self, tag: TokenKind) -> TagMetas {
         let entry_map = self.entries.iter().fold(
             HashMap::new(),
-            |entry_map: HashMap<String, TagMeta>, entry: &Entry| {
-                let view = LogDay::new(&self.current_date, &entry);
+            |entry_map: HashMap<String, TagMeta>, view: &LogDay| {
                 view.tag_summary(tag)
                     .iter()
                     .fold(entry_map, |mut entry_map, tag_meta| {
@@ -63,12 +76,11 @@ impl LogDays {
 
     pub(crate) fn until(&self, date_start: NaiveDate, date_end: NaiveDate) -> LogDays {
         LogDays {
-            current_date: self.current_date,
             entries: self
                 .entries
                 .iter()
                 .filter(|entry| {
-                    let date = entry.date_object();
+                    let date = entry.date().date;
                     return date >= date_start && date < date_end;
                 })
                 .cloned()
@@ -87,9 +99,8 @@ impl LogDays {
                 ("Sat", 0),
                 ("Sun", 0),
             ]),
-            |mut counts: HashMap<&str, u64>, entry: &Entry| {
-                let view = LogDay::new(&self.current_date, &entry);
-                let key = entry.date_object().weekday().to_string();
+            |mut counts: HashMap<&str, u64>, view: &LogDay| {
+                let key = view.date().date.weekday().to_string();
                 let count = counts.get_mut(key.as_str()).expect("Out of bounds");
                 *count += view.duration_total().duration.num_minutes().unsigned_abs();
                 counts
@@ -109,17 +120,84 @@ impl LogDays {
     }
 }
 
-pub struct LogDay<'a> {
-    logs: Vec<LogEntry<'a>>,
-    date: LogDate<'a>,
+#[derive(Clone)]
+pub struct LogDay {
+    logs: Vec<LogEntry>,
+    date: LogDate,
 }
 
-impl LogDay<'_> {
+impl LogDay {
     pub fn iter(&self) -> Iter<LogEntry> {
         self.logs().into_iter()
     }
-    pub fn new<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogDay<'a> {
-        process_entry(current_date, entry)
+
+    pub fn from_entry<'a>(current_date: NaiveDateTime, entry: Entry) -> Self {
+        let mut logs: Vec<LogEntry> = vec![];
+
+        // # resolve the end dates
+        //
+        // 0. reverse entries
+        // 1. if has end date, map to view, done
+        // 2. if previous start date, set end date to previous start date
+        // 3. if today, then end date = now
+        // 4. if end date not set and not today, then end date = start date
+        for log in entry.logs.iter().rev() {
+            if log.time.end.is_some() {
+                logs.push(LogEntry {
+                    time_range: TimeRangeView {
+                        start: log.time.start.time(),
+                        end: log.time.end.unwrap().time(),
+                        ongoing: false,
+                    },
+                    desription: log.description.clone(),
+                });
+                continue;
+            }
+            if logs.last().is_some() {
+                logs.push(LogEntry {
+                    time_range: TimeRangeView {
+                        start: log.time.start.time(),
+                        end: logs.last().unwrap().time_range().start,
+                        ongoing: false,
+                    },
+                    desription: log.description.clone(),
+                });
+                continue;
+            }
+            if current_date.date() == entry.date_object() {
+                logs.push(LogEntry {
+                    time_range: TimeRangeView {
+                        start: log.time.start.time(),
+                        end: current_date.time(),
+                        ongoing: true,
+                    },
+                    desription: log.description.clone(),
+                });
+                continue;
+            }
+
+            logs.push(LogEntry {
+                time_range: TimeRangeView {
+                    start: log.time.start.time(),
+                    end: log.time.start.time(),
+                    ongoing: false,
+                },
+                desription: log.description.clone(),
+            });
+        }
+        logs.reverse();
+
+        LogDay {
+            logs,
+            date: LogDate {
+                now: current_date,
+                date: entry.date_object(),
+            },
+        }
+    }
+
+    pub fn new<'a>(current_date: NaiveDateTime, entry: Entry) -> LogDay {
+        LogDay::from_entry(current_date, entry)
     }
 
     pub fn duration_total(&self) -> LogDuration {
@@ -172,6 +250,38 @@ impl LogDay<'_> {
         tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
         TagMetas { tag_metas }
     }
+
+    pub(crate) fn with_filter(&self, filter: &Filter) -> Self {
+        if filter.criterias.len() == 0 {
+            return self.clone();
+        }
+        Self {
+            date: self.date.clone(),
+            logs: self
+                .logs
+                .iter()
+                .filter(|log| {
+                    (|tokens: &Tokens| {
+                        if tokens.len() == 0 {
+                            return true;
+                        }
+                        for criteria in filter.criterias.iter() {
+                            for token in tokens.to_vec() {
+                                if token.kind == TokenKind::Prose {
+                                    continue;
+                                }
+                                if criteria.is_satisfied_with(token) {
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
+                    })(&log.description())
+                })
+                .map(|log| log.clone())
+                .collect(),
+        }
+    }
 }
 
 pub struct TagMetas {
@@ -204,12 +314,13 @@ pub struct TagMeta {
     pub count: usize,
 }
 
-pub struct LogEntry<'a> {
+#[derive(Clone)]
+pub struct LogEntry {
     time_range: TimeRangeView,
-    desription: &'a Tokens,
+    desription: Tokens,
 }
 
-impl LogEntry<'_> {
+impl LogEntry {
     pub fn percentage_of_day(&self, day_total: i64) -> f64 {
         return (self.time_range.duration().num_minutes() as f64 / day_total as f64) * 100.0;
     }
@@ -219,15 +330,17 @@ impl LogEntry<'_> {
     }
 
     pub(crate) fn description(&self) -> &Tokens {
-        self.desription
+        &self.desription
     }
 }
-pub struct LogDate<'a> {
-    now: &'a NaiveDateTime,
+
+#[derive(Clone)]
+pub struct LogDate {
+    now: NaiveDateTime,
     date: NaiveDate,
 }
 
-impl LogDate<'_> {
+impl LogDate {
     pub fn is_today(&self) -> bool {
         return self.date.year() == self.now.year()
             && self.date.month() == self.now.month()
@@ -264,71 +377,7 @@ impl ToString for LogDuration {
     }
 }
 
-fn process_entry<'a>(current_date: &'a NaiveDateTime, entry: &'a Entry) -> LogDay<'a> {
-    let mut logs: Vec<LogEntry> = vec![];
-
-    // # resolve the end dates
-    //
-    // 0. reverse entries
-    // 1. if has end date, map to view, done
-    // 2. if previous start date, set end date to previous start date
-    // 3. if today, then end date = now
-    // 4. if end date not set and not today, then end date = start date
-    for log in entry.logs.iter().rev() {
-        if log.time.end.is_some() {
-            logs.push(LogEntry {
-                time_range: TimeRangeView {
-                    start: log.time.start.time(),
-                    end: log.time.end.unwrap().time(),
-                    ongoing: false,
-                },
-                desription: &log.description,
-            });
-            continue;
-        }
-        if logs.last().is_some() {
-            logs.push(LogEntry {
-                time_range: TimeRangeView {
-                    start: log.time.start.time(),
-                    end: logs.last().unwrap().time_range().start,
-                    ongoing: false,
-                },
-                desription: &log.description,
-            });
-            continue;
-        }
-        if current_date.date() == entry.date_object() {
-            logs.push(LogEntry {
-                time_range: TimeRangeView {
-                    start: log.time.start.time(),
-                    end: current_date.time(),
-                    ongoing: true,
-                },
-                desription: &log.description,
-            });
-            continue;
-        }
-
-        logs.push(LogEntry {
-            time_range: TimeRangeView {
-                start: log.time.start.time(),
-                end: log.time.start.time(),
-                ongoing: false,
-            },
-            desription: &log.description,
-        });
-    }
-    logs.reverse();
-
-    LogDay {
-        logs,
-        date: LogDate {
-            now: current_date,
-            date: entry.date_object(),
-        },
-    }
-}
-
+#[derive(Clone)]
 pub struct TimeRangeView {
     pub start: NaiveTime,
     pub end: NaiveTime,
@@ -362,7 +411,10 @@ mod tests {
     use super::*;
     use chrono::NaiveTime;
 
-    use crate::parser::{self, Date, Entry, Log, Time, TimeRange, Token, Tokens};
+    use crate::parser::{
+        filter::{TokenIs, UnaryOperator, UnaryOperatorKind},
+        timesheet::{Date, Entry, Log, Time, TimeRange, Tokens},
+    };
 
     #[test]
     fn log_view_percentage_of_day() {
@@ -372,7 +424,7 @@ mod tests {
                 end: NaiveTime::from_hms(12, 0, 0),
                 ongoing: false,
             },
-            desription: &Tokens::from_prose("foo".to_string()),
+            desription: Tokens::from_prose("foo".to_string()),
         };
         assert_eq!(50.0, l.percentage_of_day(1440));
     }
@@ -418,7 +470,7 @@ mod tests {
                 ],
             };
             let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
-            let view = LogDay::new(&time, &entry);
+            let view = LogDay::new(time, entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
     }
@@ -442,8 +494,8 @@ mod tests {
             ],
         };
         let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
-        let view = LogDay::new(&time, &entry);
-        let summary = view.tag_summary(parser::TokenKind::Tag);
+        let view = LogDay::new(time, entry);
+        let summary = view.tag_summary(TokenKind::Tag);
 
         assert_eq!(2, summary.len());
 
@@ -469,13 +521,94 @@ mod tests {
             });
         }
 
-        let log_days = LogDays {
-            current_date: NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0),
-            entries,
-        };
+        let log_days = LogDays::new(entries);
 
         let minutes_by_weekday = log_days.minutes_by_weekday();
         println!("{:?}", minutes_by_weekday);
         assert_eq!(&("Mon", 600), minutes_by_weekday.first().unwrap());
+    }
+
+    #[test]
+    fn test_filters_by_tag() {
+        let days = LogDays::new(vec![Entry {
+            date: Date::from_ymd(2022, 01, 1),
+            logs: vec![
+                Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                    description: Tokens::new(vec![Token::tag("foobar".to_string())]),
+                },
+                Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                    description: Tokens::new(vec![Token::tag("barfoo".to_string())]),
+                },
+                Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                    description: Tokens::new(vec![Token::ticket("FOO-1234".to_string())]),
+                },
+                Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                    description: Tokens::new(vec![Token::tag("foobar".to_string())]),
+                },
+            ],
+        }]);
+        assert_eq!(4, days.entries[0].logs.len());
+
+        let filtered = days.filter(&Filter::new(vec![Box::new(TokenIs {
+            value: "foobar".to_string(),
+            kind: TokenKind::Tag,
+        })]));
+        assert_eq!(2, filtered.entries[0].logs.len());
+
+        let filtered = days.filter(&Filter::new(vec![Box::new(TokenIs {
+            value: "FOO-1234".to_string(),
+            kind: TokenKind::Ticket,
+        })]));
+        assert_eq!(1, filtered.entries[0].logs.len());
+    }
+
+    #[test]
+    fn test_filters_not() {
+        let days = LogDays::new(vec![Entry {
+            date: Date::from_ymd(2022, 01, 1),
+            logs: vec![
+                Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                    description: Tokens::new(vec![
+                        Token::prose("baz".to_string()),
+                        Token::tag("foobar".to_string()),
+                    ]),
+                },
+            ],
+        }]);
+        assert_eq!(1, days.entries[0].logs.len());
+
+        let filtered = days.filter(
+            &Filter::new(vec![
+                Box::new(
+                    UnaryOperator{
+                        kind: UnaryOperatorKind::Not,
+                        operand: Box::new(TokenIs {value: "foobar".to_string(), kind: TokenKind::Tag, })
+                    }
+                )
+            ])
+        );
+        assert_eq!(0, filtered.entries[0].logs.len());
+    }
+
+    #[test]
+    fn log_day_applys_no_filter_with_no_criteria() {
+        let day = LogDay::from_entry(
+            Local::now().naive_local(),
+            Entry {
+                date: Date::from_ymd(2022, 01, 1),
+                logs: vec![Log {
+                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                    description: Tokens::new(vec![Token::tag("foobar".to_string())]),
+                }],
+            },
+        );
+
+        let day = day.with_filter(&Filter::new(vec![]));
+        assert_eq!(1, day.logs.len());
     }
 }

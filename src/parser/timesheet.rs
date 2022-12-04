@@ -1,19 +1,17 @@
 use chrono::Datelike;
 use chrono::{NaiveDate, NaiveTime, Timelike};
 use core::fmt::Debug;
-use nom::bytes::complete::{self, tag};
-use nom::error::{Error, ErrorKind};
 use nom::sequence;
 use nom::{
-    branch,
-    character::complete::{alphanumeric1, char, digit1, line_ending, multispace0, space0},
+    character::complete::{char, digit1, line_ending, multispace0, space0},
     combinator::{map_res, opt},
     multi::many0,
-    sequence::tuple,
     Parser,
 };
 
 use crate::app::config::Config;
+
+use super::token::{token, Token, TokenKind};
 
 #[derive(Debug, Clone)]
 pub struct Date {
@@ -142,36 +140,6 @@ impl TimeRange {
             self.start.to_string(),
             self.end.as_ref().unwrap().to_string()
         );
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum TokenKind {
-    Prose,
-    Tag,
-    Ticket,
-}
-
-#[derive(Debug, Clone)]
-pub struct Token {
-    pub kind: TokenKind,
-    pub text: String,
-    pub whitespace: String,
-}
-
-impl Token {
-    pub fn tag(text: String) -> Token {
-        Token {
-            kind: TokenKind::Tag,
-            text,
-            whitespace: "".to_string(),
-        }
-    }
-    pub fn to_string(&self) -> String {
-        format!("{}{}", self.text.to_string(), self.whitespace.to_string())
-    }
-    pub fn text(&self) -> &str {
-        &self.text
     }
 }
 
@@ -310,6 +278,7 @@ fn time(text: &str) -> nom::IResult<&str, Time> {
         Err(err) => Err(err),
     }
 }
+
 fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
     let time_range = sequence::tuple((time, opt(sequence::pair(char('-'), time))))(text);
     match time_range {
@@ -334,76 +303,6 @@ fn time_range(text: &str) -> nom::IResult<&str, TimeRange> {
         }
         Err(err) => Err(err),
     }
-}
-fn tag_token(text: &str) -> nom::IResult<&str, Token> {
-    let token = tuple((char('@'), alphanumeric1, space0))(text);
-
-    match token {
-        Ok(ok) => Ok((
-            ok.0,
-            Token {
-                kind: TokenKind::Tag,
-                text: (ok.1).1.to_string(),
-                whitespace: (ok.1).2.to_string(),
-            },
-        )),
-        Err(err) => Err(err),
-    }
-}
-fn ticket_token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
-    for project in config.projects.iter() {
-        let input = text.clone();
-        match tuple((
-            tag::<_, _, Error<&str>>(project.ticket_prefix.as_str()),
-            alphanumeric1,
-            space0,
-        ))(input)
-        {
-            Ok(ok) => {
-                return Ok((
-                    ok.0,
-                    Token {
-                        kind: TokenKind::Ticket,
-                        text: format!("{}{}", (ok.1).0.to_string(), (ok.1).1.to_string()),
-                        whitespace: (ok.1).2.to_string(),
-                    },
-                ))
-            }
-            Err(_err) => (),
-        }
-    }
-
-    Err(nom::Err::Error(Error::new(text, ErrorKind::Tag)))
-}
-
-fn prose_token(text: &str) -> nom::IResult<&str, Token> {
-    let text = sequence::tuple((
-        space0,
-        complete::take_till1(|c| c == ' ' || c == '\n' || c == '\r'),
-        space0,
-    ))(text);
-
-    match text {
-        Ok(ok) => {
-            let spaces1 = (ok.1).0;
-            let word = (ok.1).1.to_string();
-            let spaces2 = (ok.1).2;
-
-            Ok((
-                ok.0,
-                Token {
-                    kind: TokenKind::Prose,
-                    text: format!("{}{}", spaces1, word),
-                    whitespace: spaces2.to_string(),
-                },
-            ))
-        }
-        Err(err) => Err(err),
-    }
-}
-
-fn token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
-    branch::alt((tag_token, |input| ticket_token(input, config), prose_token))(text)
 }
 
 fn log<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Log> {
@@ -440,7 +339,7 @@ fn entry<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Entry> {
         Err(err) => Err(err),
     }
 }
-pub fn parse<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Entries> {
+pub fn parse_entry<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Entries> {
     let entry = sequence::tuple((
         multispace0,
         many0(sequence::tuple((|input| entry(input, &config), multispace0)).map(|t| t.0)),
@@ -540,7 +439,7 @@ mod tests {
     #[test]
     fn test_parse_entries() {
         {
-            let (_, entries) = parse(
+            let (_, entries) = parse_entry(
                 "2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo",
                 &Config::empty(),
             )
@@ -556,7 +455,7 @@ mod tests {
             );
         }
         {
-            let (_, entries) = parse(
+            let (_, entries) = parse_entry(
                 "2022-01-01\n\n\n10:00 Working on foo\n\n\n2022-02-02\n11:00 Foo",
                 &Config::empty(),
             )
@@ -572,7 +471,7 @@ mod tests {
         }
 
         {
-            let (_, entries) = parse(
+            let (_, entries) = parse_entry(
                 "\n\n2022-01-01\n10:00 Working on foo\n2022-02-02\n11:00 Foo",
                 &Config::empty(),
             )
@@ -587,7 +486,7 @@ mod tests {
     #[test]
     fn test_sorts_entries_by_date_asc() {
         {
-            let (_, entries) = parse("2022-01-01\n2021-01-01\n", &Config::empty()).unwrap();
+            let (_, entries) = parse_entry("2022-01-01\n2021-01-01\n", &Config::empty()).unwrap();
             assert_eq!(2, entries.entries.len());
             assert_eq!(
                 "2021-01-01".to_string(),
@@ -599,7 +498,7 @@ mod tests {
             );
         }
         {
-            let (_, entries) = parse("2022-01-31\n2022-02-01\n", &Config::empty()).unwrap();
+            let (_, entries) = parse_entry("2022-01-31\n2022-02-01\n", &Config::empty()).unwrap();
             assert_eq!(2, entries.entries.len());
             assert_eq!(
                 "2022-01-31".to_string(),
@@ -615,7 +514,7 @@ mod tests {
     #[test]
     fn test_parses_time_range() {
         {
-            let (_, entries) = parse("2022-01-01\n20:00-21:00", &Config::empty()).unwrap();
+            let (_, entries) = parse_entry("2022-01-01\n20:00-21:00", &Config::empty()).unwrap();
             assert_eq!(1, entries.entries.len());
             assert_eq!(
                 "20:00-21:00".to_string(),
@@ -628,7 +527,7 @@ mod tests {
     fn test_parse_tag() {
         {
             let (_, entries) =
-                parse("2022-01-01\n20:00-21:00 Foobar @foobar", &Config::empty()).unwrap();
+                parse_entry("2022-01-01\n20:00-21:00 Foobar @foobar", &Config::empty()).unwrap();
             assert_eq!(1, entries.entries.len());
             assert_eq!(
                 "Foobar ".to_string(),
@@ -648,7 +547,7 @@ mod tests {
             );
         }
         {
-            let (_, entries) = parse(
+            let (_, entries) = parse_entry(
                 "2022-01-01\n20:00-21:00 Foobar @foobar barfoo",
                 &Config::empty(),
             )
@@ -687,7 +586,7 @@ mod tests {
                     },
                 ],
             };
-            let (_, entries) = parse(
+            let (_, entries) = parse_entry(
                 "2022-01-01\n20:00-21:00 BAR-12 BAZ-15 PROJECT-1 @foobar",
                 &config,
             )
@@ -708,7 +607,7 @@ mod tests {
 
     #[test]
     fn test_parse_tag_with_space() {
-        let (_, entries) = parse(
+        let (_, entries) = parse_entry(
             "2022-01-01\n20:00 @foobar \n2022-02-02\n20:00 @barfoo\n",
             &Config::empty(),
         )
@@ -723,7 +622,8 @@ mod tests {
 
     #[test]
     fn test_parse_tag_with_space_and_subsequent_token() {
-        let (_, entries) = parse("2022-01-01\n20:00 @foobar barfoo", &Config::empty()).unwrap();
+        let (_, entries) =
+            parse_entry("2022-01-01\n20:00 @foobar barfoo", &Config::empty()).unwrap();
         println!("{:?}", entries);
         assert_eq!(1, entries.entries.len());
         let description = &entries.entries[0].logs[0].description;

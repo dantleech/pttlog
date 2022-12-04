@@ -2,12 +2,12 @@ pub mod app;
 pub mod component;
 pub mod model;
 pub mod parser;
+pub mod ui;
 
 use anyhow::Error;
 use anyhow::Result;
 use app::config::map_key_event;
 use app::config::Config;
-use app::config::KeyMap;
 use app::loader::FileLoader;
 use chrono::Local;
 use clap::Parser;
@@ -38,26 +38,18 @@ fn main() -> Result<(), Error> {
     let mut terminal = Terminal::new(backend)?;
     enable_raw_mode()?;
     terminal.clear()?;
+    let now = Local::now().naive_local();
 
     let config: Config = confy::load("pttlog", "config").expect("Could not load config");
     let mut app = app::App::new(
         FileLoader::new(path.to_string(), &config),
         &config,
         &RealTimeFactory {},
-        Local::now().naive_local(),
+        &now,
     );
     app.reload();
 
-    loop {
-        let cmd = main_loop(&mut terminal, &mut app)?;
-        match cmd {
-            Cmd::Quit => break,
-            Cmd::Reload => {
-                app.reload();
-                continue;
-            }
-        };
-    }
+    main_loop(&mut terminal, &mut app)?;
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(),)?;
@@ -65,32 +57,22 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-enum Cmd {
-    Quit,
-    Reload,
-}
-
 fn main_loop(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     app: &mut app::App,
-) -> Result<Cmd, Error> {
+) -> Result<(), Error> {
     loop {
         terminal.draw(|f| app.draw(f).expect("Could not draw"))?;
 
         if (poll(Duration::from_millis(1000)))? {
             if let Event::Key(key) = event::read()? {
                 let key = map_key_event(key);
-                match key {
-                    KeyMap::Quit => return Ok(Cmd::Quit),
-                    KeyMap::Reload => {
-                        app.notify("reloaded timesheet".to_string(), 2);
-                        return Ok(Cmd::Reload);
-                    }
-                    _ => {
-                        app.handle(key);
-                    }
-                }
+                app.handle(key);
             }
+        }
+
+        if app.should_quit {
+            return Ok(());
         }
     }
 }
