@@ -62,7 +62,7 @@ impl Filter<'_> {
         }
 
         self.textarea.input(key.event);
-        match parse_filter(&self.textarea.lines()[0], &Config::empty()) {
+        match parse_filter(&self.textarea.lines()[0], self.config) {
             Ok(ok) => {
                 self.valid = true;
                 self.filter = Some(ok);
