@@ -51,7 +51,7 @@ impl Token {
     }
 }
 
-fn tag_token(text: &str) -> nom::IResult<&str, Token> {
+pub fn tag_token(text: &str) -> nom::IResult<&str, Token> {
     let token = tuple((char('@'), alphanumeric1, space0))(text);
 
     match token {
@@ -66,7 +66,7 @@ fn tag_token(text: &str) -> nom::IResult<&str, Token> {
         Err(err) => Err(err),
     }
 }
-fn ticket_token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
+pub fn ticket_token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
     for project in config.projects.iter() {
         let input = text.clone();
         match tuple((

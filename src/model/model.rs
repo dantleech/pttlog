@@ -267,6 +267,9 @@ impl LogDay {
                         }
                         for criteria in filter.criterias.iter() {
                             for token in tokens.to_vec() {
+                                if token.kind == TokenKind::Prose {
+                                    continue;
+                                }
                                 if criteria.is_satisfied_with(token) {
                                     return true;
                                 }
@@ -572,7 +575,6 @@ mod tests {
                     time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
                     description: Tokens::new(vec![
                         Token::prose("baz".to_string()),
-                        Token::tag("baz".to_string()),
                         Token::tag("foobar".to_string()),
                     ]),
                 },

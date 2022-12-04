@@ -10,7 +10,7 @@ use nom::{character::complete::multispace0, multi::many0, sequence::tuple};
 
 use crate::app::config::Config;
 
-use super::token::{token, Token, TokenKind};
+use super::token::{Token, TokenKind, ticket_token, tag_token};
 
 pub trait Criteria {
     fn to_string(&self) -> String;
@@ -168,7 +168,10 @@ fn token_match<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<
     map(
         sequence::tuple((
             multispace0,
-            |text| token(text, config),
+            alt((
+                |text| ticket_token(text, config),
+                |text| tag_token(text),
+            )),
             multispace0,
         )),
         |res| -> Box<dyn Criteria> {
