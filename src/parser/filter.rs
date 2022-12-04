@@ -18,16 +18,19 @@ pub trait Criteria {
 }
 
 #[derive(Debug)]
-pub enum LogicalOperatorKind {
+pub enum BinaryOperatorKind {
     And,
     Or,
+    Unknown,
 }
 
-pub struct LogicalOperator {
-    pub kind: LogicalOperatorKind,
+pub struct BinaryOperator {
+    pub kind: BinaryOperatorKind,
+    pub left: Box<dyn Criteria>,
+    pub right: Box<dyn Criteria>,
 }
 
-impl Criteria for LogicalOperator {
+impl Criteria for BinaryOperator {
     fn to_string(&self) -> String {
         format!("{:?}", self.kind)
     }
@@ -89,37 +92,43 @@ impl Display for Filter {
     }
 }
 
-fn logical_operator<'a>(
+fn binary_operator<'a>(
     text: &'a str,
     config: &Config,
 ) -> nom::IResult<&'a str, Box<dyn Criteria>> {
     map(
-        sequence::tuple((alt((tag("OR"), tag("AND"))), |text| token(text, config))),
+        sequence::tuple((
+            alt((tag("OR"), tag("AND"))),
+            |text| criteria(text, config),
+            |text| criteria(text, config),
+        )),
         |res| -> Box<dyn Criteria> {
-            Box::new(LogicalOperator{
+            Box::new(BinaryOperator{
                 kind: match res.0 {
-                        "OR" => LogicalOperatorKind::Or,
-                        "AND" => LogicalOperatorKind::And,
-                        _ => LogicalOperatorKind::And,
+                        "OR" => BinaryOperatorKind::Or,
+                        "AND" => BinaryOperatorKind::And,
+                        _ => BinaryOperatorKind::Unknown,
                 },
+                left: res.1,
+                right: res.2,
             })
         }
     )(text)
 }
 
-fn criteria<'a>(text: &'a str, _config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
+fn token_match<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
+    map(|text| token(text, config), |res| -> Box<dyn Criteria> {
+        Box::new(TokenIs{
+            value: res.text,
+            kind: res.kind,
+        })
+    })(text)
+}
+
+fn criteria<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn Criteria>> {
     alt((
-        nom::combinator::map(tag("OR"), |_| -> Box<dyn Criteria> {
-            Box::new(TokenIs {
-                value: "foobar".to_string(),
-                kind: TokenKind::Prose,
-            })
-        }),
-        nom::combinator::map(tag("AND"), |_| -> Box<dyn Criteria> {
-            Box::new(LogicalOperator {
-                kind: LogicalOperatorKind::And,
-            })
-        }),
+        |text| token_match(text, config),
+        |text| binary_operator(text, config),
     ))(text)
 }
 
