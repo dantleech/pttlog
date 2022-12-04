@@ -19,10 +19,11 @@ pub struct Filter<'a> {
     pub visible: bool,
     pub valid: bool,
     pub filter: Option<ParserFilter>,
+    pub config: &'a Config,
 }
 
 impl Filter<'_> {
-    pub fn new() -> Self {
+    pub fn new<'a>(config: &'a Config) -> Filter<'a> {
         let mut textarea = TextArea::default();
         textarea.set_cursor_line_style(Style::default());
         Filter {
@@ -30,6 +31,7 @@ impl Filter<'_> {
             visible: false,
             valid: false,
             filter: None,
+            config
         }
     }
     pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) -> Result<(), Error> {
@@ -74,12 +76,13 @@ impl Filter<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::ui::stream_input_to;
+    use crate::{ui::stream_input_to, app::config::Project};
 
     use super::*;
     #[test]
     pub fn disable_visibility_on_enter() {
-        let mut filter = Filter::new();
+        let binding = Config::empty();
+        let mut filter = Filter::new(&binding);
         filter.visible = true;
         filter.handle(&PtKey::for_key_code(KeyCode::Enter));
         assert_eq!(false, filter.visible);
@@ -87,12 +90,28 @@ mod test {
 
     #[test]
     pub fn parses_input() {
-        let mut filter = Filter::new();
+        let binding = Config::empty();
+        let mut filter = Filter::new(&binding);
         filter.visible = true;
         stream_input_to("@phpactor @foobar".to_string(), |key| filter.handle(&key));
         assert_eq!("@phpactor @foobar", filter.textarea.lines()[0]);
         assert_eq!(true, filter.valid);
 
         assert_eq!(2, filter.filter.unwrap().criterias.len())
+    }
+
+    #[test]
+    pub fn parses_input_with_ticket() {
+        let config = Config {
+            projects: vec![Project {
+                name: "myproject".to_string(),
+                ticket_prefix: "PROJECT-".to_string(),
+                tags: vec![],
+            }],
+        };
+        let mut filter = Filter::new(&config);
+        filter.visible = true;
+        stream_input_to("PROJECT-123".to_string(), |key| filter.handle(&key));
+        assert_eq!("Ticket(PROJECT-123)", filter.filter.unwrap().to_string());
     }
 }

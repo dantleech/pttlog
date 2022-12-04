@@ -43,7 +43,7 @@ pub struct App<'a> {
 impl App<'_> {
     pub fn new<'a>(
         loader: Box<dyn loader::Loader + 'a>,
-        _config: &'a Config,
+        config: &'a Config,
         time_factory: &'a dyn TimeFactory,
         now: &'a NaiveDateTime,
     ) -> App<'a> {
@@ -69,7 +69,7 @@ impl App<'_> {
                 NaiveDate::from_ymd(now.year() - 1, now.month(), now.day()),
                 Duration::days(365),
             ),
-            filter: Filter::new(),
+            filter: Filter::new(&config),
             status: Status::new(),
         }
     }

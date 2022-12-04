@@ -206,10 +206,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_filter() {
+    fn test_parse_tag() {
         let parsed = parse_filter("@foobar", &Config::empty()).unwrap();
         assert_eq!(1, parsed.criterias.len());
         assert_eq!("Tag(foobar)", parsed.criterias[0].to_string())
+    }
+
+    #[test]
+    fn test_parse_ticket() {
+        let config = Config {
+            projects: vec![Project {
+                name: "myproject".to_string(),
+                ticket_prefix: "PROJECT-".to_string(),
+                tags: vec![],
+            }],
+        };
+        let parsed = parse_filter("PROJECT-123", &config).unwrap();
+        assert_eq!(1, parsed.criterias.len());
+        assert_eq!("Ticket(PROJECT-123)", parsed.criterias[0].to_string())
     }
 
     #[test]
