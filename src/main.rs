@@ -8,7 +8,6 @@ use anyhow::Error;
 use anyhow::Result;
 use app::config::map_key_event;
 use app::config::Config;
-use app::config::KeyName;
 use app::loader::FileLoader;
 use chrono::Local;
 use clap::Parser;

@@ -19,6 +19,7 @@ pub struct Filter<'a> {
     pub visible: bool,
     pub valid: bool,
     pub filter: Option<ParserFilter>,
+    pub original_filter: Vec<String>,
     pub config: &'a Config,
 }
 
@@ -31,7 +32,8 @@ impl Filter<'_> {
             visible: false,
             valid: false,
             filter: None,
-            config
+            config,
+            original_filter: [].to_vec(),
         }
     }
     pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) -> Result<(), Error> {
@@ -61,6 +63,11 @@ impl Filter<'_> {
             return;
         }
 
+        if key.event.code == KeyCode::Esc {
+            self.visible = false;
+            self.textarea = TextArea::new(self.original_filter.to_vec())
+        }
+
         self.textarea.input(key.event);
         match parse_filter(&self.textarea.lines()[0], self.config) {
             Ok(ok) => {
@@ -71,6 +78,11 @@ impl Filter<'_> {
                 self.valid = false;
             }
         }
+    }
+
+    pub(crate) fn show(&mut self) {
+        self.visible = true;
+        self.original_filter = self.textarea.lines().to_vec().clone();
     }
 }
 
@@ -85,6 +97,15 @@ mod test {
         let mut filter = Filter::new(&binding);
         filter.visible = true;
         filter.handle(&PtKey::for_key_code(KeyCode::Enter));
+        assert_eq!(false, filter.visible);
+    }
+
+    #[test]
+    pub fn reset_state_on_esc() {
+        let binding = Config::empty();
+        let mut filter = Filter::new(&binding);
+        filter.visible = true;
+        filter.handle(&PtKey::for_key_code(KeyCode::Esc));
         assert_eq!(false, filter.visible);
     }
 

@@ -196,7 +196,7 @@ impl App<'_> {
         }
         match key.name {
             KeyName::Quit => self.should_quit = true,
-            KeyName::ToggleFilter => self.filter.visible = true,
+            KeyName::ToggleFilter => self.filter.show(),
             KeyName::DayView => self.set_view(AppView::Day),
             KeyName::WeekView => self.set_view(AppView::Week),
             KeyName::YearView => self.set_view(AppView::Year),
