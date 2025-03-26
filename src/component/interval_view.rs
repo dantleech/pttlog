@@ -140,7 +140,11 @@ impl IntervalView<'_> {
                 self.date_end = shift_range(&self.duration, self.date_end, -1);
             }
             KeyName::NextPage => {
-                self.date_start = shift_range(&self.duration, self.date_start, 1);
+                let next_start_date = shift_range(&self.duration, self.date_start, 1);
+                if next_start_date > self.time.now().date() {
+                    return;
+                }
+                self.date_start = next_start_date;
                 self.date_end = shift_range(&self.duration, self.date_end, 1);
             }
             _ => (),
@@ -173,7 +177,7 @@ mod test {
         let mut view = IntervalView::new(
             &time,
             FrozenTimeFactory::new(2022, 1, 1, 12, 1).now().date(),
-            Duration::weeks(1),
+            ReportDuration::Week,
         );
 
         // 1 week forwards
@@ -191,7 +195,7 @@ mod test {
         let mut view = IntervalView::new(
             &time,
             FrozenTimeFactory::new(2022, 1, 1, 12, 1).now().date(),
-            Duration::weeks(1),
+            ReportDuration::Week,
         );
 
         // 1 week forwards (does not advance)
