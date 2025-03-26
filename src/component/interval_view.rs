@@ -1,5 +1,7 @@
+use std::fmt::Display;
+
 use anyhow::{Error, Result};
-use chrono::{Duration, NaiveDate};
+use chrono::{Duration, Months, NaiveDate};
 use tui::{
     backend::Backend,
     layout::{Constraint, Layout, Margin, Rect},
@@ -25,22 +27,41 @@ pub struct IntervalView<'a> {
     time: &'a dyn TimeFactory,
     tag_summary: TokenSummaryTable<'a>,
     ticket_summary: TokenSummaryTable<'a>,
-    duration: Duration,
+    duration: ReportDuration,
     day_breakdown_chart: DayBreakdownChart,
     day_breakdown_table: DayBreakdownTable,
+}
+
+#[derive(Clone, Copy)]
+pub enum ReportDuration {
+    Day,
+    Week,
+    Month,
+    Year,
+}
+
+impl Display for ReportDuration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            ReportDuration::Day => "day",
+            ReportDuration::Week => "week",
+            ReportDuration::Month => "month",
+            ReportDuration::Year => "year",
+        })
+    }
 }
 
 impl IntervalView<'_> {
     pub fn new<'a>(
         time: &'a dyn TimeFactory,
         start_date: NaiveDate,
-        duration: Duration,
+        duration: ReportDuration,
     ) -> IntervalView<'a> {
         IntervalView {
             initialized: false,
             duration,
             date_start: start_date,
-            date_end: start_date + duration,
+            date_end: shift_range(&duration, start_date, 1),
             time,
             tag_summary: TokenSummaryTable::new("Tags"),
             ticket_summary: TokenSummaryTable::new("Tickets"),
@@ -115,20 +136,30 @@ impl IntervalView<'_> {
     pub(crate) fn handle(&mut self, key: &KeyName) {
         match key {
             KeyName::PreviousPage => {
-                self.date_start -= self.duration;
-                self.date_end -= self.duration;
+                self.date_start = shift_range(&self.duration, self.date_start, -1);
+                self.date_end = shift_range(&self.duration, self.date_end, -1);
             }
             KeyName::NextPage => {
-                if self.date_start + self.duration > self.time.now().date() {
-                    return;
-                }
-                self.date_start += self.duration;
-                self.date_end += self.duration;
+                self.date_start = shift_range(&self.duration, self.date_start, 1);
+                self.date_end = shift_range(&self.duration, self.date_end, 1);
             }
             _ => (),
         };
     }
 }
+fn shift_range(duratinon: &ReportDuration, date: NaiveDate, amount: i64) -> NaiveDate {
+    match duratinon {
+        ReportDuration::Day => date + Duration::days(amount),
+        ReportDuration::Week => date + Duration::weeks(amount),
+        ReportDuration::Month => match (amount < 0) {
+            true => date.checked_sub_months(Months::new((-amount).try_into().unwrap())).unwrap(),
+            false => date.checked_add_months(Months::new(amount.try_into().unwrap())).unwrap(),
+        }
+        ReportDuration::Year => date + Duration::days(amount * 365),
+    }
+
+}
+
 
 #[cfg(test)]
 mod test {

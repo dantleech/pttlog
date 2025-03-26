@@ -10,7 +10,11 @@ use tui::{
 };
 
 use crate::{
-    component::{filter::Filter, interval_view::IntervalView, status::Status},
+    component::{
+        filter::Filter,
+        interval_view::{IntervalView, ReportDuration},
+        status::Status,
+    },
     model::{model::LogDays, time::TimeFactory},
     parser::timesheet::Entry,
 };
@@ -65,17 +69,17 @@ impl App<'_> {
             week: IntervalView::new(
                 time_factory,
                 NaiveDate::from_isoywd(now.year(), now.iso_week().week(), chrono::Weekday::Mon),
-                Duration::weeks(1),
+                ReportDuration::Week,
             ),
             month: IntervalView::new(
                 time_factory,
                 NaiveDate::from_ymd(now.year(), now.month(), 1),
-                Duration::weeks(4),
+                ReportDuration::Month,
             ),
             year: IntervalView::new(
                 time_factory,
                 NaiveDate::from_ymd(now.year(), 1, 1),
-                Duration::days(365),
+                ReportDuration::Year,
             ),
             filter: Filter::new(&config),
             status: Status::new(),
@@ -89,11 +93,14 @@ impl App<'_> {
 
         let rows = Layout::default()
             .margin(0)
-            .constraints([
-                Constraint::Length(1),
-                Constraint::Min(4),
-                Constraint::Length(if self.status.display(&self) {1} else {0})
-            ].as_ref())
+            .constraints(
+                [
+                    Constraint::Length(1),
+                    Constraint::Min(4),
+                    Constraint::Length(if self.status.display(&self) { 1 } else { 0 }),
+                ]
+                .as_ref(),
+            )
             .split(f.size());
 
         f.render_widget(navigation(), rows[0]);
