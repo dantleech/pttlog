@@ -24,6 +24,7 @@ pub mod loader;
 enum AppView {
     Day,
     Week,
+    Month,
     Year,
 }
 
@@ -34,6 +35,7 @@ pub struct App<'a> {
     pub filtered: LogDays,
     day: Day<'a>,
     week: IntervalView<'a>,
+    month: IntervalView<'a>,
     year: IntervalView<'a>,
     view: AppView,
     pub filter: Filter<'a>,
@@ -65,9 +67,14 @@ impl App<'_> {
                 NaiveDate::from_isoywd(now.year(), now.iso_week().week(), chrono::Weekday::Mon),
                 Duration::weeks(1),
             ),
+            month: IntervalView::new(
+                time_factory,
+                NaiveDate::from_ymd(now.year(), now.month(), 1),
+                Duration::weeks(4),
+            ),
             year: IntervalView::new(
                 time_factory,
-                NaiveDate::from_ymd(now.year() - 1, now.month(), now.day()),
+                NaiveDate::from_ymd(now.year(), 1, 1),
                 Duration::days(365),
             ),
             filter: Filter::new(&config),
@@ -94,6 +101,7 @@ impl App<'_> {
         match self.view {
             AppView::Day => self.day.draw(f, rows[1], &self.filtered)?,
             AppView::Week => self.week.draw(f, rows[1], &self.filtered)?,
+            AppView::Month => self.month.draw(f, rows[1], &self.filtered)?,
             AppView::Year => self.year.draw(f, rows[1], &self.filtered)?,
         };
 
@@ -199,6 +207,7 @@ impl App<'_> {
             KeyName::ToggleFilter => self.filter.show(),
             KeyName::DayView => self.set_view(AppView::Day),
             KeyName::WeekView => self.set_view(AppView::Week),
+            KeyName::MonthView => self.set_view(AppView::Month),
             KeyName::YearView => self.set_view(AppView::Year),
             KeyName::Reload => {
                 self.reload();
@@ -208,6 +217,7 @@ impl App<'_> {
                 match self.view {
                     AppView::Day => self.day.handle(&key.name),
                     AppView::Week => self.week.handle(&key.name),
+                    AppView::Month => self.month.handle(&key.name),
                     AppView::Year => self.year.handle(&key.name),
                 };
             }

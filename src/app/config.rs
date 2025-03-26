@@ -27,6 +27,7 @@ pub enum KeyName {
     Reload,
     DayView,
     WeekView,
+    MonthView,
     YearView,
     ToggleFilter,
 }
@@ -51,6 +52,7 @@ pub fn map_key_event(key: KeyEvent) -> Key {
             KeyCode::Char('n') => KeyName::NextPage,
             KeyCode::Char('p') => KeyName::PreviousPage,
             KeyCode::Char('w') => KeyName::WeekView,
+            KeyCode::Char('m') => KeyName::MonthView,
             KeyCode::Char('d') => KeyName::DayView,
             KeyCode::Char('y') => KeyName::YearView,
             KeyCode::Char('f') => KeyName::ToggleFilter,
