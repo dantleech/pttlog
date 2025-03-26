@@ -40,22 +40,22 @@ impl Date {
 
 impl Date {
     pub fn sort_value(&self) -> i32 {
-        return format!(
+        format!(
             "{:04}{:02}{:02}",
             self.date.year(),
             self.date.month(),
             self.date.day()
         )
         .parse::<i32>()
-        .unwrap();
+        .unwrap()
     }
     pub fn to_string(&self) -> String {
-        return format!(
+        format!(
             "{:04}-{:02}-{:02}",
             self.date.year(),
             self.date.month(),
             self.date.day()
-        );
+        )
     }
 }
 
@@ -135,11 +135,11 @@ impl TimeRange {
             return self.start.to_string();
         }
 
-        return format!(
+        format!(
             "{}-{}",
             self.start.to_string(),
             self.end.as_ref().unwrap().to_string()
-        );
+        )
     }
 }
 
@@ -159,12 +159,12 @@ impl Tokens {
     }
 
     pub fn len(&self) -> usize {
-        return self.0.len();
+        self.0.len()
     }
 
     pub fn first(&self) -> &Token {
         assert!(
-            self.0.len() > 0,
+            !self.0.is_empty(),
             "Cannot get first token when tokens are empty"
         );
         self.0.first().unwrap()
@@ -342,7 +342,7 @@ fn entry<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Entry> {
 pub fn parse_entry<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Entries> {
     let entry = sequence::tuple((
         multispace0,
-        many0(sequence::tuple((|input| entry(input, &config), multispace0)).map(|t| t.0)),
+        many0(sequence::tuple((|input| entry(input, config), multispace0)).map(|t| t.0)),
     ))(text);
 
     match entry {
@@ -534,7 +534,6 @@ mod tests {
                 entries.entries[0].logs[0]
                     .description
                     .first()
-                    .deref()
                     .to_string()
             );
             assert_eq!(
@@ -628,7 +627,7 @@ mod tests {
         assert_eq!(1, entries.entries.len());
         let description = &entries.entries[0].logs[0].description;
         assert_eq!(2, description.len());
-        assert_eq!("foobar ".to_string(), description.at(0).deref().to_string());
+        assert_eq!("foobar ".to_string(), description.at(0).to_string());
         assert_eq!("barfoo".to_string(), description.at(1).deref().text);
     }
 }

@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Layout, Margin},
@@ -81,7 +81,7 @@ impl App<'_> {
                 NaiveDate::from_ymd(now.year(), 1, 1),
                 ReportDuration::Year,
             ),
-            filter: Filter::new(&config),
+            filter: Filter::new(config),
             status: Status::new(),
             should_quit: false,
         }
@@ -97,7 +97,7 @@ impl App<'_> {
                 [
                     Constraint::Length(1),
                     Constraint::Min(4),
-                    Constraint::Length(if self.status.display(&self) { 1 } else { 0 }),
+                    Constraint::Length(if self.status.display(self) { 1 } else { 0 }),
                 ]
                 .as_ref(),
             )
@@ -113,7 +113,7 @@ impl App<'_> {
         };
 
         self.filter.draw(f)?;
-        self.status.draw(f, rows[2], &self)?;
+        self.status.draw(f, rows[2], self)?;
 
         if self.notification.should_display() {
             match self.notification.level {
@@ -205,7 +205,7 @@ impl App<'_> {
     }
 
     pub(crate) fn handle(&mut self, key: Key) {
-        if self.filter.visible == true {
+        if self.filter.visible {
             self.filter.handle(&key);
             return;
         }
@@ -252,7 +252,7 @@ impl Notification {
         }
     }
     pub fn should_display(&self) -> bool {
-        return self.lifetime > 0;
+        self.lifetime > 0
     }
 }
 

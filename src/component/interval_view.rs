@@ -52,11 +52,11 @@ impl Display for ReportDuration {
 }
 
 impl IntervalView<'_> {
-    pub fn new<'a>(
-        time: &'a dyn TimeFactory,
+    pub fn new(
+        time: &dyn TimeFactory,
         start_date: NaiveDate,
         duration: ReportDuration,
-    ) -> IntervalView<'a> {
+    ) -> IntervalView<'_> {
         IntervalView {
             initialized: false,
             duration,
@@ -84,10 +84,10 @@ impl IntervalView<'_> {
 
         let container = Block::default().borders(Borders::ALL).title(format!(
             "{} from {} {} until {}",
-            self.duration.to_string(),
+            self.duration,
             self.date_start.format("%A"),
-            self.date_start.to_string(),
-            self.date_end.to_string()
+            self.date_start,
+            self.date_end
         ));
 
         f.render_widget(
@@ -155,7 +155,7 @@ fn shift_range(duratinon: &ReportDuration, date: NaiveDate, amount: i64) -> Naiv
     match duratinon {
         ReportDuration::Day => date + Duration::days(amount),
         ReportDuration::Week => date + Duration::weeks(amount),
-        ReportDuration::Month => match (amount < 0) {
+        ReportDuration::Month => match amount < 0 {
             true => date.checked_sub_months(Months::new((-amount).try_into().unwrap())).unwrap(),
             false => date.checked_add_months(Months::new(amount.try_into().unwrap())).unwrap(),
         }

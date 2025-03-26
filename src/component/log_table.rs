@@ -43,13 +43,13 @@ impl LogTable {
                                 return Span::styled(
                                     now.format("%H:%M").to_string(),
                                     Style::default()
-                                        .fg((|| {
+                                        .fg({
                                             if 0 == now.num_seconds_from_midnight() % 2 {
                                                 Color::Black
                                             } else {
                                                 Color::Gray
                                             }
-                                        })())
+                                        })
                                         .bg(Color::DarkGray),
                                 );
                             }
@@ -58,9 +58,9 @@ impl LogTable {
                                 Style::default().fg(Color::DarkGray),
                             )
                         })(),
-                        (|| Span::raw(""))(),
+                        Span::raw(""),
                     ])
-                })(&log.time_range())),
+                })(log.time_range())),
                 Cell::from((|range: &TimeRangeView| -> Spans {
                     Spans::from(vec![
                         Span::raw(range.duration().to_string()),
@@ -72,8 +72,8 @@ impl LogTable {
                             Style::default().fg(Color::DarkGray),
                         ),
                     ])
-                })(&log.time_range())),
-                Cell::from(description(&log.description())),
+                })(log.time_range())),
+                Cell::from(description(log.description())),
             ]));
         }
 
@@ -118,7 +118,7 @@ fn description(tokens: &Tokens) -> Spans {
             ),
             TokenKind::Prose => Span::raw(t.to_string().to_owned()),
             TokenKind::Ticket => Span::styled(
-                format!("{}", t.to_string().to_owned()),
+                t.to_string().to_owned().to_string(),
                 Style::default().fg(Color::Cyan),
             ),
         })

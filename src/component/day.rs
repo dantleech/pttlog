@@ -63,7 +63,7 @@ impl Day<'_> {
             log_day.date().to_verbose_string()
         ));
 
-        self.log_table.draw(f, columns[0], &log_day)?;
+        self.log_table.draw(f, columns[0], log_day)?;
 
         let summary_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)

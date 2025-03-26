@@ -25,12 +25,12 @@ impl FileLoader<'_> {
 impl Loader for FileLoader<'_> {
     fn load(&self) -> Result<Entries, anyhow::Error> {
         let contents = fs::read_to_string(&self.path)?;
-        let entries = match parse_entry(&contents, &self.config) {
+        let entries = match parse_entry(&contents, self.config) {
             Ok((_, ok)) => ok,
             Err(err) => bail!(err.to_string()),
         };
 
-        if entries.entries.len() == 0 {
+        if entries.entries.is_empty() {
             return Ok(Entries {
                 entries: vec![Entry::placeholder()],
             });

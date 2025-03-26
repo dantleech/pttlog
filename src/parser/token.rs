@@ -44,7 +44,7 @@ impl Token {
         }
     }
     pub fn to_string(&self) -> String {
-        format!("{}{}", self.text.to_string(), self.whitespace.to_string())
+        format!("{}{}", self.text, self.whitespace)
     }
     pub fn text(&self) -> &str {
         &self.text
@@ -68,7 +68,7 @@ pub fn tag_token(text: &str) -> nom::IResult<&str, Token> {
 }
 pub fn ticket_token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Token> {
     for project in config.projects.iter() {
-        let input = text.clone();
+        let input = text;
         match tuple((
             tag::<_, _, Error<&str>>(project.ticket_prefix.as_str()),
             alphanumeric1,
@@ -80,7 +80,7 @@ pub fn ticket_token<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str,
                     ok.0,
                     Token {
                         kind: TokenKind::Ticket,
-                        text: format!("{}{}", (ok.1).0.to_string(), (ok.1).1.to_string()),
+                        text: format!("{}{}", (ok.1).0, (ok.1).1),
                         whitespace: (ok.1).2.to_string(),
                     },
                 ))

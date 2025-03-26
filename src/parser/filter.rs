@@ -191,7 +191,7 @@ fn criteria<'a>(text: &'a str, config: &Config) -> nom::IResult<&'a str, Box<dyn
     ))(text)
 }
 
-pub fn parse_filter<'a>(text: &'a str, config: &Config) -> Result<Filter> {
+pub fn parse_filter(text: &str, config: &Config) -> Result<Filter> {
     let tokens = many0(tuple((|input| criteria(input, config), multispace0)))(text);
 
     match tokens {

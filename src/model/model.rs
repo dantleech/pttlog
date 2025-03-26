@@ -52,7 +52,7 @@ impl LogDays {
                             .or_insert(TagMeta {
                                 tag: tag_meta.tag.to_string(),
                                 kind: tag_meta.kind,
-                                duration: LogDuration::from_minutes(0 as i64),
+                                duration: LogDuration::from_minutes(0_i64),
                                 count: 0,
                             });
                         meta.count += 1;
@@ -81,7 +81,7 @@ impl LogDays {
                 .iter()
                 .filter(|entry| {
                     let date = entry.date().date;
-                    return date >= date_start && date < date_end;
+                    date >= date_start && date < date_end
                 })
                 .cloned()
                 .collect(),
@@ -128,7 +128,7 @@ pub struct LogDay {
 
 impl LogDay {
     pub fn iter(&self) -> Iter<LogEntry> {
-        self.logs().into_iter()
+        self.logs().iter()
     }
 
     pub fn from_entry<'a>(current_date: NaiveDateTime, entry: Entry) -> Self {
@@ -228,7 +228,7 @@ impl LogDay {
                         let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta {
                             tag: tag.text().to_string(),
                             kind: tag.kind,
-                            duration: LogDuration::from_minutes(0 as i64),
+                            duration: LogDuration::from_minutes(0_i64),
                             count: 0,
                         });
                         meta.count += 1;
@@ -252,7 +252,7 @@ impl LogDay {
     }
 
     pub(crate) fn with_filter(&self, filter: &Filter) -> Self {
-        if filter.criterias.len() == 0 {
+        if filter.criterias.is_empty() {
             return self.clone();
         }
         Self {
@@ -275,10 +275,9 @@ impl LogDay {
                                 }
                             }
                         }
-                        return false;
-                    })(&log.description())
-                })
-                .map(|log| log.clone())
+                        false
+                    })(log.description())
+                }).cloned()
                 .collect(),
         }
     }
@@ -322,7 +321,7 @@ pub struct LogEntry {
 
 impl LogEntry {
     pub fn percentage_of_day(&self, day_total: i64) -> f64 {
-        return (self.time_range.duration().num_minutes() as f64 / day_total as f64) * 100.0;
+        (self.time_range.duration().num_minutes() as f64 / day_total as f64) * 100.0
     }
 
     pub fn time_range(&self) -> &TimeRangeView {
@@ -342,9 +341,9 @@ pub struct LogDate {
 
 impl LogDate {
     pub fn is_today(&self) -> bool {
-        return self.date.year() == self.now.year()
+        self.date.year() == self.now.year()
             && self.date.month() == self.now.month()
-            && self.date.day() == self.now.day();
+            && self.date.day() == self.now.day()
     }
 
     pub(crate) fn to_verbose_string(&self) -> String {

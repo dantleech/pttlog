@@ -24,7 +24,7 @@ impl Status {
 
     pub fn display(&self, app: &App) -> bool {
         if let Some(filter) = &app.filter.filter {
-            return filter.criterias.len() > 0;
+            return !filter.criterias.is_empty();
         }
 
         false

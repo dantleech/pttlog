@@ -24,7 +24,7 @@ pub struct Filter<'a> {
 }
 
 impl Filter<'_> {
-    pub fn new<'a>(config: &'a Config) -> Filter<'a> {
+    pub fn new(config: &Config) -> Filter<'_> {
         let mut textarea = TextArea::default();
         textarea.set_cursor_line_style(Style::default());
         Filter {
@@ -39,7 +39,7 @@ impl Filter<'_> {
     pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) -> Result<(), Error> {
         let area = centered_rect_absolute(64, 3, f.size());
 
-        if self.visible == false {
+        if !self.visible {
             return Ok(());
         }
 
@@ -98,7 +98,7 @@ mod test {
         let mut filter = Filter::new(&binding);
         filter.visible = true;
         filter.handle(&PtKey::for_key_code(KeyCode::Enter));
-        assert_eq!(false, filter.visible);
+        assert!(!filter.visible);
     }
 
     #[test]
@@ -107,7 +107,7 @@ mod test {
         let mut filter = Filter::new(&binding);
         filter.visible = true;
         filter.handle(&PtKey::for_key_code(KeyCode::Esc));
-        assert_eq!(false, filter.visible);
+        assert!(!filter.visible);
     }
 
     #[test]
@@ -117,7 +117,7 @@ mod test {
         filter.visible = true;
         stream_input_to("@phpactor @foobar".to_string(), |key| filter.handle(&key));
         assert_eq!("@phpactor @foobar", filter.textarea.lines()[0]);
-        assert_eq!(true, filter.valid);
+        assert!(filter.valid);
 
         assert_eq!(2, filter.filter.unwrap().criterias.len())
     }

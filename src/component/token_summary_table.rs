@@ -16,7 +16,7 @@ pub struct TokenSummaryTable<'a> {
 }
 
 impl TokenSummaryTable<'_> {
-    pub fn new<'a>(title: &'a str) -> TokenSummaryTable<'a> {
+    pub fn new(title: &str) -> TokenSummaryTable<'_> {
         TokenSummaryTable { title }
     }
 
@@ -40,7 +40,7 @@ impl TokenSummaryTable<'_> {
                     }
                     TokenKind::Prose => Span::raw(t.tag.to_owned()),
                     TokenKind::Ticket => {
-                        Span::styled(format!("{}", t.tag), Style::default().fg(Color::Cyan))
+                        Span::styled(t.tag.to_string(), Style::default().fg(Color::Cyan))
                     }
                 })(tag_meta)),
                 Cell::from(tag_meta.duration.to_string()),
