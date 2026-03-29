@@ -29,7 +29,6 @@ pub enum KeyName {
     WeekView,
     MonthView,
     YearView,
-    DaysheetView,
     ToggleFilter,
 }
 
@@ -56,7 +55,6 @@ pub fn map_key_event(key: KeyEvent) -> Key {
             KeyCode::Char('m') => KeyName::MonthView,
             KeyCode::Char('d') => KeyName::DayView,
             KeyCode::Char('y') => KeyName::YearView,
-            KeyCode::Char('t') => KeyName::DaysheetView,
             KeyCode::Char('f') => KeyName::ToggleFilter,
             _ => KeyName::Unknown,
         },

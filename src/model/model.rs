@@ -9,7 +9,7 @@ use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 
 #[derive(Clone)]
 pub struct LogDays {
-    pub entries: Vec<LogDay>,
+    entries: Vec<LogDay>,
 }
 
 impl LogDays {
