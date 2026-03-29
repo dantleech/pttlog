@@ -11,6 +11,22 @@ This is a project to create a plain text time logger in Rust.
 
 This is my first Rust project, it's not pretty, but it's useful 😅
 
+Screenshots
+-----------
+
+Day view:
+
+<img width="1317" height="676" alt="Image" src="https://github.com/user-attachments/assets/cf20da9f-fdcf-4223-b083-31b324e7512e" />
+
+Summary by week, month or year:
+
+<img width="1321" height="993" alt="Image" src="https://github.com/user-attachments/assets/ddd0590b-cab2-4814-9efe-91eff1ce7e6e" />
+
+List view:
+
+<img width="1410" height="720" alt="Image" src="https://github.com/user-attachments/assets/00474d65-7b6d-4be1-a687-da479395156b" />
+
+
 Usage
 -----
 
