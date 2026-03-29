@@ -6,6 +6,7 @@ use crate::parser::timesheet::{Entry, Tokens};
 use crate::parser::token::{Token, TokenKind};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
+use itertools::Itertools;
 
 #[derive(Clone)]
 pub struct LogDays {
@@ -20,6 +21,20 @@ impl LogDays {
                 .map(|entry| LogDay::from_entry(Local::now().naive_local(), entry.clone()))
                 .collect(),
         }
+    }
+
+    pub fn duration_total(&self) -> LogDuration {
+        LogDuration {
+            duration: Duration::minutes(
+                self.entries
+                    .iter()
+                    .fold(0, |c, e| c + e.duration_total().num_minutes()),
+            ),
+        }
+    }
+
+    pub fn iter(&self) -> Iter<LogDay> {
+        self.entries.iter()
     }
 
     pub fn filter(&self, filter: &Filter) -> Self {
@@ -222,7 +237,7 @@ impl LogDay {
         let entry_map = self.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagMeta>, log: &LogEntry| {
-                log.description().by_kind(kind).iter().fold(
+                log.description().by_kind_refs(kind).iter().fold(
                     entry_map,
                     |mut acc: HashMap<String, TagMeta>, tag: &&Token| {
                         let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta {
@@ -277,9 +292,73 @@ impl LogDay {
                         }
                         false
                     })(log.description())
-                }).cloned()
+                })
+                .cloned()
                 .collect(),
         }
+    }
+
+    pub(crate) fn description(&self) -> Tokens {
+        let mut parts: Vec<Vec<Token>> = Vec::new();
+
+        let tags: Vec<Token> = self
+            .logs
+            .iter()
+            .flat_map(|l| {
+                l.description()
+                    .clone()
+                    .no_whitespace()
+                    .by_kind(TokenKind::Tag)
+                    .0
+            })
+            .unique()
+            .intersperse(Token::prose(" ".to_string()))
+            .collect();
+
+        let tickets: Vec<Token> = self
+            .logs
+            .iter()
+            .flat_map(|l| {
+                l.description()
+                    .clone()
+                    .no_whitespace()
+                    .by_kind(TokenKind::Ticket)
+                    .0
+            })
+            .unique()
+            .intersperse(Token::prose(" ".to_string()))
+            .collect();
+
+        let prose: Vec<Token> = self
+            .logs
+            .iter()
+            .flat_map(|l| {
+                l.description()
+                    .clone()
+                    .no_whitespace()
+                    .by_kind(TokenKind::Prose)
+                    .0
+            })
+            .intersperse(Token::prose(" ".to_string()))
+            .collect();
+
+        if !tags.is_empty() {
+            parts.push(tags);
+        }
+        if !tickets.is_empty() {
+            parts.push(tickets);
+        }
+        if !prose.is_empty() {
+            parts.push(prose);
+        }
+
+        Tokens(
+            parts
+                .into_iter()
+                .intersperse(vec![Token::prose(" ".to_string())])
+                .flatten()
+                .collect(),
+        )
     }
 }
 
@@ -348,6 +427,10 @@ impl LogDate {
 
     pub(crate) fn to_verbose_string(&self) -> String {
         self.date.format("%A %e %B, %Y").to_string()
+    }
+
+    pub(crate) fn to_compact_string(&self) -> String {
+        self.date.format("%d/%m/%Y").to_string()
     }
 }
 pub struct LogDuration {
@@ -569,28 +652,23 @@ mod tests {
     fn test_filters_not() {
         let days = LogDays::new(vec![Entry {
             date: Date::from_ymd(2022, 01, 1),
-            logs: vec![
-                Log {
-                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
-                    description: Tokens::new(vec![
-                        Token::prose("baz".to_string()),
-                        Token::tag("foobar".to_string()),
-                    ]),
-                },
-            ],
+            logs: vec![Log {
+                time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                description: Tokens::new(vec![
+                    Token::prose("baz".to_string()),
+                    Token::tag("foobar".to_string()),
+                ]),
+            }],
         }]);
         assert_eq!(1, days.entries[0].logs.len());
 
-        let filtered = days.filter(
-            &Filter::new(vec![
-                Box::new(
-                    UnaryOperator{
-                        kind: UnaryOperatorKind::Not,
-                        operand: Box::new(TokenIs {value: "foobar".to_string(), kind: TokenKind::Tag, })
-                    }
-                )
-            ])
-        );
+        let filtered = days.filter(&Filter::new(vec![Box::new(UnaryOperator {
+            kind: UnaryOperatorKind::Not,
+            operand: Box::new(TokenIs {
+                value: "foobar".to_string(),
+                kind: TokenKind::Tag,
+            }),
+        })]));
         assert_eq!(0, filtered.entries[0].logs.len());
     }
 

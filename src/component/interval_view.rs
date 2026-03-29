@@ -3,16 +3,11 @@ use std::fmt::Display;
 use anyhow::{Error, Result};
 use chrono::{Duration, Months, NaiveDate};
 use tui::{
-    backend::Backend,
-    layout::{Constraint, Layout, Margin, Rect},
-    widgets::{Block, Borders},
-    Frame,
+    backend::Backend, layout::{Constraint, Layout, Margin, Rect}, style::{Color, Style}, text::{Span, Spans}, widgets::{Block, Borders, Tabs}, Frame
 };
 
 use crate::{
-    app::config::KeyName,
-    model::{model::LogDays, time::TimeFactory},
-    parser::token::TokenKind,
+    app::config::KeyName, component::line_item_table::LineItemTable, model::{model::LogDays, time::TimeFactory}, parser::token::TokenKind
 };
 
 use super::{
@@ -22,6 +17,7 @@ use super::{
 
 pub struct IntervalView<'a> {
     initialized: bool,
+    tab: IntervalTab,
     date_start: NaiveDate,
     date_end: NaiveDate,
     time: &'a dyn TimeFactory,
@@ -30,6 +26,7 @@ pub struct IntervalView<'a> {
     duration: ReportDuration,
     day_breakdown_chart: DayBreakdownChart,
     day_breakdown_table: DayBreakdownTable,
+    line_item_table: LineItemTable,
 }
 
 #[derive(Clone, Copy)]
@@ -51,6 +48,12 @@ impl Display for ReportDuration {
     }
 }
 
+enum IntervalTab
+{
+    Summary,
+    List
+}
+
 impl IntervalView<'_> {
     pub fn new(
         time: &dyn TimeFactory,
@@ -60,6 +63,7 @@ impl IntervalView<'_> {
         IntervalView {
             initialized: false,
             duration,
+            tab: IntervalTab::Summary,
             date_start: start_date,
             date_end: shift_range(&duration, start_date, 1),
             time,
@@ -67,6 +71,7 @@ impl IntervalView<'_> {
             ticket_summary: TokenSummaryTable::new("Tickets"),
             day_breakdown_chart: DayBreakdownChart {},
             day_breakdown_table: DayBreakdownTable {},
+            line_item_table: LineItemTable {},
         }
     }
 
@@ -80,6 +85,7 @@ impl IntervalView<'_> {
         if !self.initialized {
             self.initialized = true;
         }
+
         let log_days = log_days.until(self.date_start, self.date_end);
 
         let container = Block::default().borders(Borders::ALL).title(format!(
@@ -98,6 +104,51 @@ impl IntervalView<'_> {
             }),
         );
 
+        let tabs = Tabs::new(vec![
+            Spans::from(vec![Span::raw("Tab"), ]),
+            Spans::from(vec![Span::raw("Summary"), ]),
+            Spans::from(vec![Span::raw("List"), ]),
+        ]).highlight_style(Style::default().fg(Color::Green));
+
+        let tabs = match self.tab {
+            IntervalTab::Summary => tabs.select(1),
+            IntervalTab::List => tabs.select(2),
+        };
+        f.render_widget(
+            tabs,
+            Rect {
+                x: area.x,
+                y: area.height,
+                width: area.width,
+                height: 1 
+            }
+        );
+
+        match self.tab {
+            IntervalTab::Summary => self.render_summary(f, area, &log_days),
+            IntervalTab::List => self.render_list(f, area, &log_days),
+        }
+    }
+
+    fn render_list<B: Backend>(
+        &mut self,
+        f: &mut Frame<B>,
+        area: Rect,
+        log_days: &LogDays,
+    ) -> Result<(), Error> {
+        self.line_item_table.draw(
+            f,
+            area.inner(&Margin { vertical: 2, horizontal: 2 }),
+            log_days
+        )
+    }
+
+    fn render_summary<B: Backend>(
+        &mut self,
+        f: &mut Frame<B>,
+        area: Rect,
+        log_days: &LogDays,
+    ) -> Result<(), Error> {
         let columns = Layout::default()
             .direction(tui::layout::Direction::Horizontal)
             .margin(0)
@@ -114,8 +165,8 @@ impl IntervalView<'_> {
                 vertical: 2,
                 horizontal: 2,
             }));
-        self.day_breakdown_chart.draw(f, left_rows[0], &log_days)?;
-        self.day_breakdown_table.draw(f, left_rows[1], &log_days)?;
+        self.day_breakdown_chart.draw(f, left_rows[0], log_days)?;
+        self.day_breakdown_table.draw(f, left_rows[1], log_days)?;
 
         let right_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
@@ -135,6 +186,18 @@ impl IntervalView<'_> {
 
     pub(crate) fn handle(&mut self, key: &KeyName) {
         match key {
+            KeyName::NextTab => {
+                self.tab = match self.tab {
+                    IntervalTab::List => IntervalTab::Summary,
+                    IntervalTab::Summary => IntervalTab::List,
+                }
+            },
+            KeyName::PrevTab => {
+                self.tab = match self.tab {
+                    IntervalTab::List => IntervalTab::Summary,
+                    IntervalTab::Summary => IntervalTab::List,
+                }
+            },
             KeyName::PreviousPage => {
                 self.date_start = shift_range(&self.duration, self.date_start, -1);
                 self.date_end = shift_range(&self.duration, self.date_end, -1);

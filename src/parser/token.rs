@@ -7,14 +7,14 @@ use nom::sequence::tuple;
 
 use crate::app::config::Config;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Hash, Debug, PartialEq, Clone, Copy, Eq)]
 pub enum TokenKind {
     Prose,
     Tag,
     Ticket,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub text: String,

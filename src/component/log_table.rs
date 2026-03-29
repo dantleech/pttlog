@@ -44,7 +44,7 @@ impl LogTable {
                                     now.format("%H:%M").to_string(),
                                     Style::default()
                                         .fg({
-                                            if 0 == now.num_seconds_from_midnight() % 2 {
+                                            if now.num_seconds_from_midnight().is_multiple_of(2) {
                                                 Color::Black
                                             } else {
                                                 Color::Gray

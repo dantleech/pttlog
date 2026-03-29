@@ -158,6 +158,10 @@ impl Tokens {
         &self.0
     }
 
+    pub(crate) fn to_mut_vec(&mut self) -> &mut Vec<Token> {
+        &mut self.0
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }
@@ -187,12 +191,19 @@ impl Tokens {
         Tokens(tokens)
     }
 
-    pub fn tags(&self) -> Vec<&Token> {
-        self.0.iter().filter(|t| t.kind == TokenKind::Tag).collect()
+    pub(crate) fn by_kind_refs(&self, kind: TokenKind) -> Vec<&Token> {
+        self.0.iter().filter(|t| t.kind == kind).collect()
     }
 
-    pub(crate) fn by_kind(&self, kind: TokenKind) -> Vec<&Token> {
-        self.0.iter().filter(|t| t.kind == kind).collect()
+    pub(crate) fn by_kind(&self, kind: TokenKind) -> Tokens {
+        Tokens(self.0.clone().into_iter().filter(|t| t.kind == kind).collect())
+    }
+
+    pub(crate) fn no_whitespace(&self) -> Tokens {
+        Tokens(self.0.clone().into_iter().map(|mut t| {
+            t.whitespace = "".to_string();
+            t
+        }).collect())
     }
 }
 

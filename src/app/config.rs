@@ -20,6 +20,7 @@ pub struct Project {
 }
 
 pub enum KeyName {
+    NextTab,
     PreviousPage,
     NextPage,
     Unknown,
@@ -30,6 +31,7 @@ pub enum KeyName {
     MonthView,
     YearView,
     ToggleFilter,
+    PrevTab,
 }
 
 pub struct Key {
@@ -51,6 +53,8 @@ pub fn map_key_event(key: KeyEvent) -> Key {
             KeyCode::Char('r') => KeyName::Reload,
             KeyCode::Char('n') => KeyName::NextPage,
             KeyCode::Char('p') => KeyName::PreviousPage,
+            KeyCode::Tab => KeyName::NextTab,
+            KeyCode::BackTab => KeyName::PrevTab,
             KeyCode::Char('w') => KeyName::WeekView,
             KeyCode::Char('m') => KeyName::MonthView,
             KeyCode::Char('d') => KeyName::DayView,
