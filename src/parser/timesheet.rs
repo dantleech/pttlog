@@ -158,6 +158,10 @@ impl Tokens {
         &self.0
     }
 
+    pub(crate) fn to_mut_vec(&mut self) -> &mut Vec<Token> {
+        &mut self.0
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }

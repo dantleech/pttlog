@@ -22,6 +22,20 @@ impl LogDays {
         }
     }
 
+    pub fn duration_total(&self) -> LogDuration {
+        LogDuration {
+            duration: Duration::minutes(
+                self.entries
+                    .iter()
+                    .fold(0, |c, e| c + e.duration_total().num_minutes()),
+            ),
+        }
+    }
+
+    pub fn iter(&self) -> Iter<LogDay> {
+        self.entries.iter()
+    }
+
     pub fn filter(&self, filter: &Filter) -> Self {
         LogDays {
             entries: self
@@ -281,6 +295,14 @@ impl LogDay {
                 .collect(),
         }
     }
+
+    pub(crate) fn description(&self) -> Tokens {
+        let tokens: Vec<Token> = Vec::new();
+        Tokens(self.logs().iter().fold(tokens, |mut acc, day| {
+            acc.append(day.description().clone().to_mut_vec());
+            acc
+        }))
+    }
 }
 
 pub struct TagMetas {
@@ -348,6 +370,10 @@ impl LogDate {
 
     pub(crate) fn to_verbose_string(&self) -> String {
         self.date.format("%A %e %B, %Y").to_string()
+    }
+
+    pub(crate) fn to_compact_string(&self) -> String {
+        self.date.format("%d/%m/%Y").to_string()
     }
 }
 pub struct LogDuration {
