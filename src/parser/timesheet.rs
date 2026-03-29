@@ -202,7 +202,7 @@ impl Tokens {
     pub(crate) fn no_whitespace(&self) -> Tokens {
         Tokens(self.0.clone().into_iter().map(|mut t| {
             t.whitespace = "".to_string();
-            return t;
+            t
         }).collect())
     }
 }

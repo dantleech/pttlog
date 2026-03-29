@@ -5,7 +5,6 @@ use chrono::{Duration, Months, NaiveDate};
 use tui::{
     backend::Backend, layout::{Constraint, Layout, Margin, Rect}, style::{Color, Style}, text::{Span, Spans}, widgets::{Block, Borders, Tabs}, Frame
 };
-use tui_textarea::TextArea;
 
 use crate::{
     app::config::KeyName, component::line_item_table::LineItemTable, model::{model::LogDays, time::TimeFactory}, parser::token::TokenKind
@@ -166,8 +165,8 @@ impl IntervalView<'_> {
                 vertical: 2,
                 horizontal: 2,
             }));
-        self.day_breakdown_chart.draw(f, left_rows[0], &log_days)?;
-        self.day_breakdown_table.draw(f, left_rows[1], &log_days)?;
+        self.day_breakdown_chart.draw(f, left_rows[0], log_days)?;
+        self.day_breakdown_table.draw(f, left_rows[1], log_days)?;
 
         let right_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)

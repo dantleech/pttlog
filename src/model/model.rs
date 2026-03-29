@@ -301,57 +301,54 @@ impl LogDay {
     pub(crate) fn description(&self) -> Tokens {
         let mut parts: Vec<Vec<Token>> = Vec::new();
 
-        let mut tags: Vec<Token> = self
+        let tags: Vec<Token> = self
             .logs
             .iter()
-            .map(|l| {
+            .flat_map(|l| {
                 l.description()
                     .clone()
                     .no_whitespace()
                     .by_kind(TokenKind::Tag)
                     .0
             })
-            .flatten()
             .unique()
             .intersperse(Token::prose(" ".to_string()))
             .collect();
 
-        let mut tickets: Vec<Token> = self
+        let tickets: Vec<Token> = self
             .logs
             .iter()
-            .map(|l| {
+            .flat_map(|l| {
                 l.description()
                     .clone()
                     .no_whitespace()
                     .by_kind(TokenKind::Ticket)
                     .0
             })
-            .flatten()
             .unique()
             .intersperse(Token::prose(" ".to_string()))
             .collect();
 
-        let mut prose: Vec<Token> = self
+        let prose: Vec<Token> = self
             .logs
             .iter()
-            .map(|l| {
+            .flat_map(|l| {
                 l.description()
                     .clone()
                     .no_whitespace()
                     .by_kind(TokenKind::Prose)
                     .0
             })
-            .flatten()
             .intersperse(Token::prose(" ".to_string()))
             .collect();
 
-        if tags.len() > 0 {
+        if !tags.is_empty() {
             parts.push(tags);
         }
-        if tickets.len() > 0 {
+        if !tickets.is_empty() {
             parts.push(tickets);
         }
-        if prose.len() > 0 {
+        if !prose.is_empty() {
             parts.push(prose);
         }
 

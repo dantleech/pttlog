@@ -1,5 +1,4 @@
 use anyhow::Ok;
-use chrono::{Local, Timelike};
 use tui::{
     layout::Constraint,
     style::{Color, Style},
@@ -8,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    model::model::{LogDay, LogDays, TimeRangeView},
+    model::model::LogDays,
     parser::{
         timesheet::Tokens,
         token::{Token, TokenKind},
