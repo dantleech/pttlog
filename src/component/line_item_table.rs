@@ -47,9 +47,14 @@ impl LineItemTable {
             ]));
         }
         rows.push(Row::new([
-            Cell::from(Span::styled("Total:", Style::default().fg(Color::DarkGray))),
-            Cell::from(Span::raw(days.duration_total().to_string())),
             Cell::default(),
+            Cell::default(),
+            Cell::default(),
+        ]));
+        rows.push(Row::new([
+            Cell::from(Span::styled("Total:", Style::default().fg(Color::DarkGray))),
+            Cell::default(),
+            Cell::from(Span::raw(days.duration_total().to_string())),
         ]));
 
         f.render_widget(

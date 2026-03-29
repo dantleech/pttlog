@@ -3,11 +3,9 @@ use std::fmt::Display;
 use anyhow::{Error, Result};
 use chrono::{Duration, Months, NaiveDate};
 use tui::{
-    backend::Backend,
-    layout::{Constraint, Layout, Margin, Rect},
-    widgets::{Block, Borders},
-    Frame,
+    backend::Backend, layout::{Constraint, Layout, Margin, Rect}, style::{Color, Style}, text::{Span, Spans}, widgets::{Block, Borders, Tabs}, Frame
 };
+use tui_textarea::TextArea;
 
 use crate::{
     app::config::KeyName, component::line_item_table::LineItemTable, model::{model::LogDays, time::TimeFactory}, parser::token::TokenKind
@@ -66,7 +64,7 @@ impl IntervalView<'_> {
         IntervalView {
             initialized: false,
             duration,
-            tab: IntervalTab::List,
+            tab: IntervalTab::Summary,
             date_start: start_date,
             date_end: shift_range(&duration, start_date, 1),
             time,
@@ -105,6 +103,26 @@ impl IntervalView<'_> {
                 vertical: 0,
                 horizontal: 0,
             }),
+        );
+
+        let tabs = Tabs::new(vec![
+            Spans::from(vec![Span::raw("Tab"), ]),
+            Spans::from(vec![Span::raw("Summary"), ]),
+            Spans::from(vec![Span::raw("List"), ]),
+        ]).highlight_style(Style::default().fg(Color::Green));
+
+        let tabs = match self.tab {
+            IntervalTab::Summary => tabs.select(1),
+            IntervalTab::List => tabs.select(2),
+        };
+        f.render_widget(
+            tabs,
+            Rect {
+                x: area.x,
+                y: area.height,
+                width: area.width,
+                height: 1 
+            }
         );
 
         match self.tab {
