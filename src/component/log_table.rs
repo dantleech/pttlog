@@ -38,7 +38,7 @@ impl LogTable {
                     Spans::from(vec![
                         Span::raw(time_range.start.format("%H:%M").to_string()),
                         Span::styled("-", Style::default().fg(Color::DarkGray)),
-                        (|| {
+  (|| {
                             if time_range.ongoing {
                                 return Span::styled(
                                     now.format("%H:%M").to_string(),

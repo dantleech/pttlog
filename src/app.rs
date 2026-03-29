@@ -11,9 +11,7 @@ use tui::{
 
 use crate::{
     component::{
-        filter::Filter,
-        interval_view::{IntervalView, ReportDuration},
-        status::Status,
+        daysheet::Daysheet, filter::Filter, interval_view::{IntervalView, ReportDuration}, status::Status
     },
     model::{model::LogDays, time::TimeFactory},
     parser::timesheet::Entry,
@@ -29,6 +27,7 @@ enum AppView {
     Day,
     Week,
     Month,
+    Daysheet,
     Year,
 }
 
@@ -41,6 +40,7 @@ pub struct App<'a> {
     week: IntervalView<'a>,
     month: IntervalView<'a>,
     year: IntervalView<'a>,
+    daysheet: Daysheet,
     view: AppView,
     pub filter: Filter<'a>,
     status: Status,
@@ -81,6 +81,7 @@ impl App<'_> {
                 NaiveDate::from_ymd(now.year(), 1, 1),
                 ReportDuration::Year,
             ),
+            daysheet: Daysheet::new(),
             filter: Filter::new(config),
             status: Status::new(),
             should_quit: false,
@@ -110,6 +111,7 @@ impl App<'_> {
             AppView::Week => self.week.draw(f, rows[1], &self.filtered)?,
             AppView::Month => self.month.draw(f, rows[1], &self.filtered)?,
             AppView::Year => self.year.draw(f, rows[1], &self.filtered)?,
+            AppView::Daysheet => self.daysheet.draw(f, rows[1], &self.filtered)?, 
         };
 
         self.filter.draw(f)?;
@@ -216,6 +218,7 @@ impl App<'_> {
             KeyName::WeekView => self.set_view(AppView::Week),
             KeyName::MonthView => self.set_view(AppView::Month),
             KeyName::YearView => self.set_view(AppView::Year),
+            KeyName::DaysheetView => self.set_view(AppView::Daysheet),
             KeyName::Reload => {
                 self.reload();
                 self.notify("reloaded timesheet".to_string(), 2);
@@ -226,6 +229,7 @@ impl App<'_> {
                     AppView::Week => self.week.handle(&key.name),
                     AppView::Month => self.month.handle(&key.name),
                     AppView::Year => self.year.handle(&key.name),
+                    AppView::Daysheet => self.daysheet.handle(&key.name),
                 };
             }
         };
