@@ -24,7 +24,7 @@ impl LineItemTable {
         days: &LogDays,
     ) -> anyhow::Result<()> {
         let mut rows = vec![];
-        let headers = ["Date", "Description", "Duration"]
+        let headers = ["Date", "Duration", "Description"]
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
         let _duration_total = days.duration_total();
@@ -37,12 +37,12 @@ impl LineItemTable {
                         Span::styled("-", Style::default().fg(Color::DarkGray)),
                     ])
                 ),
-                Cell::from(description_non_ref(day.description().clone())),
                 Cell::from(
                     Spans::from(vec![
                         Span::raw(day.duration_total().to_string()),
                     ])
                 ),
+                Cell::from(description_non_ref(day.description().clone())),
             ]));
         }
         rows.push(Row::new([
@@ -66,8 +66,8 @@ impl LineItemTable {
                 )
                 .widths(&[
                     Constraint::Length(11),
-                    Constraint::Percentage(65),
                     Constraint::Length(11),
+                    Constraint::Percentage(65),
                 ]),
             area,
         );
