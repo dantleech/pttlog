@@ -222,6 +222,7 @@ mod tests {
                 name: "myproject".to_string(),
                 ticket_prefix: "PROJECT-".to_string(),
                 tags: vec![],
+                rate: None,
             }],
         };
         let parsed = parse_filter("PROJECT-123", &config).unwrap();
@@ -243,6 +244,7 @@ mod tests {
                 name: "myproject".to_string(),
                 ticket_prefix: "PROJECT-".to_string(),
                 tags: vec![],
+                rate: None,
             }],
         };
         let parsed = parse_filter("@foobar NOT PROJECT-5 PROJECT-12", &config).unwrap();

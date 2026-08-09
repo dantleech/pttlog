@@ -177,9 +177,9 @@ impl IntervalView<'_> {
             }));
 
         self.tag_summary
-            .draw(f, right_rows[0], &context.log_days.tag_summary(TokenKind::Tag))?;
+            .draw(f, right_rows[0], &context.log_days.tag_summary(TokenKind::Tag, context))?;
         self.ticket_summary
-            .draw(f, right_rows[1], &context.log_days.tag_summary(TokenKind::Ticket))?;
+            .draw(f, right_rows[1], &context.log_days.tag_summary(TokenKind::Ticket, context))?;
 
         Ok(())
     }

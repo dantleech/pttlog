@@ -1,0 +1,24 @@
+[[projects]]
+name="Project One"
+tags=["foobar"]
+ticket_prefix="TKT-"
+
+[[projects.rates]]
+rate=5000
+currency="EUR"
+
+[[projects]]
+name="Project Two"
+ticket_prefix="TWO-"
+tags=["evilcorp"]
+
+rate={rate=10000,currency="GBP"}
+
+[[projects]]
+name="Acme"
+tags=["acme"]
+ticket_prefix="TKT-"
+
+[[projects.rates]]
+rate=7421
+currency="USD"

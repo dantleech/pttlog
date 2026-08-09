@@ -21,18 +21,23 @@ use crossterm::terminal::disable_raw_mode;
 use crossterm::terminal::enable_raw_mode;
 use model::time::RealTimeFactory;
 use std::io;
+use std::path::Path;
 use std::time::Duration;
 use tui::{backend::CrosstermBackend, Terminal};
 
 #[derive(Parser, Debug)]
 #[command(author,version,about,long_about=None)]
 struct Args {
+    #[arg()]
     path: String,
+    #[arg(short, long)]
+    config_path: Option<String>,
 }
 
 fn main() -> Result<(), Error> {
     let args = Args::parse();
     let path = &args.path;
+    let config_path = &args.config_path;
 
     let mut stdout = io::stdout();
     execute!(stdout)?;
@@ -42,9 +47,12 @@ fn main() -> Result<(), Error> {
     terminal.clear()?;
     let now = Local::now().naive_local();
 
-    let config: Config = confy::load("pttlog", "config").expect("Could not load config");
+    let config: Config = match config_path {
+        Some(path) => confy::load_path(Path::new(path)).unwrap_or_else(|_| panic!("Could not load config at path: {}", path)),
+        None => confy::load("pttlog", "config").expect("Could not load config"),
+    };
     let mut app = app::App::new(
-        FileLoader::new(path.to_string(), &config),
+        FileLoader::new_boxed(path.to_string(), &config),
         &config,
         &RealTimeFactory {},
         &now,

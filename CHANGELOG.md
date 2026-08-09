@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+master
+------
+
+- Add support for specifying rates
+- Show cost per tag/ticket
+- Allow specification of config path `--config-path`
+
 1.0.4
 -----
 

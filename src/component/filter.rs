@@ -129,6 +129,7 @@ mod test {
                 name: "myproject".to_string(),
                 ticket_prefix: "PROJECT-".to_string(),
                 tags: vec![],
+                rate: None,
             }],
         };
         let mut filter = Filter::new(&config);
