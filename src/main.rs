@@ -1,3 +1,5 @@
+#![allow(unstable_name_collisions)]
+
 pub mod app;
 pub mod component;
 pub mod model;
