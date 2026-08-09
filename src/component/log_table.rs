@@ -107,7 +107,7 @@ impl LogTable {
     }
 }
 
-fn description(tokens: &Tokens) -> Spans {
+fn description(tokens: &Tokens) -> Spans<'_> {
     let foo = tokens
         .to_vec()
         .iter()

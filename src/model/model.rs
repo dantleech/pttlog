@@ -33,7 +33,7 @@ impl LogDays {
         }
     }
 
-    pub fn iter(&self) -> Iter<LogDay> {
+    pub fn iter(&self) -> Iter<'_, LogDay> {
         self.entries.iter()
     }
 
@@ -142,7 +142,7 @@ pub struct LogDay {
 }
 
 impl LogDay {
-    pub fn iter(&self) -> Iter<LogEntry> {
+    pub fn iter(&self) -> Iter<'_, LogEntry> {
         self.logs().iter()
     }
 
@@ -367,7 +367,7 @@ pub struct TagMetas {
 }
 
 impl TagMetas {
-    pub fn iter(&self) -> Iter<TagMeta> {
+    pub fn iter(&self) -> Iter<'_, TagMeta> {
         self.tag_metas.iter()
     }
     pub fn len(&self) -> usize {

@@ -93,7 +93,7 @@ fn description_non_ref<'a>(tokens: Tokens) -> Spans<'a> {
         .collect();
     Spans::from(foo)
 }
-fn description(tokens: &Tokens) -> Spans {
+fn description(tokens: &Tokens) -> Spans<'_> {
     let foo = tokens
         .to_vec()
         .iter()
