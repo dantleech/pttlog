@@ -7,7 +7,7 @@ use tui::{
     Frame,
 };
 
-use crate::model::model::{LogContext, LogDays};
+use crate::model::model::LogContext;
 
 pub struct DayBreakdownChart {}
 

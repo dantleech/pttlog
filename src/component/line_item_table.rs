@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    model::model::{LogContext, LogDays},
+    model::model::LogContext,
     parser::{
         timesheet::Tokens,
         token::{Token, TokenKind},

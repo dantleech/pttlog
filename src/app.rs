@@ -1,4 +1,4 @@
-use anyhow::{Context, Error, Result};
+use anyhow::{Error, Result};
 use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use tui::{
     backend::Backend,

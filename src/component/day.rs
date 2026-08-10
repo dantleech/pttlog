@@ -6,7 +6,7 @@ use tui::{
     Frame,
 };
 
-use crate::{app::config::KeyName, model::model::{LogContext, LogDays}, parser::token::TokenKind};
+use crate::{app::config::KeyName, model::model::LogContext, parser::token::TokenKind};
 
 use super::{log_table::LogTable, token_summary_table::TokenSummaryTable};
 

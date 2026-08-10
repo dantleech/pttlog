@@ -8,7 +8,7 @@ use tui::{
     Frame,
 };
 
-use crate::model::model::{LogContext, LogDays, LogDuration};
+use crate::model::model::{LogContext, LogDuration};
 
 pub struct DayBreakdownTable {}
 

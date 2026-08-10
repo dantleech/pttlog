@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    app::config::KeyName, component::line_item_table::LineItemTable, model::{model::{LogContext, LogDays}, time::TimeFactory}, parser::token::TokenKind
+    app::config::KeyName, component::line_item_table::LineItemTable, model::{model::LogContext, time::TimeFactory}, parser::token::TokenKind
 };
 
 use super::{
