@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    model::model::LogDays,
+    model::model::{LogContext, LogDays},
     parser::{
         timesheet::Tokens,
         token::{Token, TokenKind},
@@ -21,15 +21,15 @@ impl LineItemTable {
         &self,
         f: &mut tui::Frame<B>,
         area: tui::layout::Rect,
-        days: &LogDays,
+        context: &LogContext,
     ) -> anyhow::Result<()> {
         let mut rows = vec![];
         let headers = ["Date", "Duration", "Description"]
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
-        let _duration_total = days.duration_total();
+        let _duration_total = context.log_days.duration_total();
 
-        for day in days.iter() {
+        for day in context.log_days.iter() {
             rows.push(Row::new([
                 Cell::from(
                     Spans::from(vec![
@@ -53,7 +53,7 @@ impl LineItemTable {
         rows.push(Row::new([
             Cell::from(Span::styled("Total:", Style::default().fg(Color::DarkGray))),
             Cell::default(),
-            Cell::from(Span::raw(days.duration_total().to_string())),
+            Cell::from(Span::raw(context.log_days.duration_total().to_string())),
         ]));
 
         f.render_widget(

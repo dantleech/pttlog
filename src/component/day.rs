@@ -6,7 +6,7 @@ use tui::{
     Frame,
 };
 
-use crate::{app::config::KeyName, model::model::LogDays, parser::token::TokenKind};
+use crate::{app::config::KeyName, model::model::{LogContext, LogDays}, parser::token::TokenKind};
 
 use super::{log_table::LogTable, token_summary_table::TokenSummaryTable};
 
@@ -33,19 +33,19 @@ impl Day<'_> {
         &mut self,
         f: &mut Frame<B>,
         area: Rect,
-        log_days: &LogDays,
+        context: &LogContext,
     ) -> Result<(), Error> {
         // default to lastest entry
         if !self.initialized {
-            self.index = log_days.len();
+            self.index = context.log_days.len();
             self.initialized = true;
         }
         // do not allow overflow
-        if self.index >= log_days.len() {
-            self.index = log_days.len() - 1
+        if self.index >= context.log_days.len() {
+            self.index = context.log_days.len() - 1
         }
 
-        let log_day = log_days.at(self.index);
+        let log_day = context.log_days.at(self.index);
 
         let columns = Layout::default()
             .direction(tui::layout::Direction::Horizontal)
@@ -59,7 +59,7 @@ impl Day<'_> {
         let container = Block::default().borders(Borders::ALL).title(format!(
             "{}/{} {}",
             self.index + 1,
-            log_days.len(),
+            context.log_days.len(),
             log_day.date().to_verbose_string()
         ));
 

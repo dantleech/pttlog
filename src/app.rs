@@ -1,4 +1,4 @@
-use anyhow::{Error, Result};
+use anyhow::{Context, Error, Result};
 use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use tui::{
     backend::Backend,
@@ -15,7 +15,7 @@ use crate::{
         interval_view::{IntervalView, ReportDuration},
         status::Status,
     },
-    model::{model::LogDays, time::TimeFactory},
+    model::{model::{LogContext, LogDays}, time::TimeFactory},
     parser::timesheet::Entry,
 };
 
@@ -105,11 +105,13 @@ impl App<'_> {
 
         f.render_widget(navigation(), rows[0]);
 
+        let context = LogContext::new(self.filtered.clone());
+
         match self.view {
-            AppView::Day => self.day.draw(f, rows[1], &self.filtered)?,
-            AppView::Week => self.week.draw(f, rows[1], &self.filtered)?,
-            AppView::Month => self.month.draw(f, rows[1], &self.filtered)?,
-            AppView::Year => self.year.draw(f, rows[1], &self.filtered)?,
+            AppView::Day => self.day.draw(f, rows[1], &context)?,
+            AppView::Week => self.week.draw(f, rows[1], &context)?,
+            AppView::Month => self.month.draw(f, rows[1], &context)?,
+            AppView::Year => self.year.draw(f, rows[1], &context)?,
         };
 
         self.filter.draw(f)?;

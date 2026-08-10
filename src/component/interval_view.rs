@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    app::config::KeyName, component::line_item_table::LineItemTable, model::{model::LogDays, time::TimeFactory}, parser::token::TokenKind
+    app::config::KeyName, component::line_item_table::LineItemTable, model::{model::{LogContext, LogDays}, time::TimeFactory}, parser::token::TokenKind
 };
 
 use super::{
@@ -79,14 +79,14 @@ impl IntervalView<'_> {
         &mut self,
         f: &mut Frame<B>,
         area: Rect,
-        log_days: &LogDays,
+        context: &LogContext,
     ) -> Result<(), Error> {
         // default to lastest entry
         if !self.initialized {
             self.initialized = true;
         }
 
-        let log_days = log_days.until(self.date_start, self.date_end);
+        let context = context.with_log_days(context.log_days.until(self.date_start, self.date_end));
 
         let container = Block::default().borders(Borders::ALL).title(format!(
             "{} from {} {} until {}",
@@ -125,8 +125,8 @@ impl IntervalView<'_> {
         );
 
         match self.tab {
-            IntervalTab::Summary => self.render_summary(f, area, &log_days),
-            IntervalTab::List => self.render_list(f, area, &log_days),
+            IntervalTab::Summary => self.render_summary(f, area, &context),
+            IntervalTab::List => self.render_list(f, area, &context),
         }
     }
 
@@ -134,12 +134,12 @@ impl IntervalView<'_> {
         &mut self,
         f: &mut Frame<B>,
         area: Rect,
-        log_days: &LogDays,
+        context: &LogContext,
     ) -> Result<(), Error> {
         self.line_item_table.draw(
             f,
             area.inner(&Margin { vertical: 2, horizontal: 2 }),
-            log_days
+            context
         )
     }
 
@@ -147,7 +147,7 @@ impl IntervalView<'_> {
         &mut self,
         f: &mut Frame<B>,
         area: Rect,
-        log_days: &LogDays,
+        context: &LogContext,
     ) -> Result<(), Error> {
         let columns = Layout::default()
             .direction(tui::layout::Direction::Horizontal)
@@ -165,8 +165,8 @@ impl IntervalView<'_> {
                 vertical: 2,
                 horizontal: 2,
             }));
-        self.day_breakdown_chart.draw(f, left_rows[0], log_days)?;
-        self.day_breakdown_table.draw(f, left_rows[1], log_days)?;
+        self.day_breakdown_chart.draw(f, left_rows[0], context)?;
+        self.day_breakdown_table.draw(f, left_rows[1], context)?;
 
         let right_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
@@ -177,9 +177,9 @@ impl IntervalView<'_> {
             }));
 
         self.tag_summary
-            .draw(f, right_rows[0], &log_days.tag_summary(TokenKind::Tag))?;
+            .draw(f, right_rows[0], &context.log_days.tag_summary(TokenKind::Tag))?;
         self.ticket_summary
-            .draw(f, right_rows[1], &log_days.tag_summary(TokenKind::Ticket))?;
+            .draw(f, right_rows[1], &context.log_days.tag_summary(TokenKind::Ticket))?;
 
         Ok(())
     }

@@ -8,19 +8,19 @@ use tui::{
     Frame,
 };
 
-use crate::model::model::{LogDays, LogDuration};
+use crate::model::model::{LogContext, LogDays, LogDuration};
 
 pub struct DayBreakdownTable {}
 
 impl DayBreakdownTable {
-    pub fn draw<B: Backend>(&self, f: &mut Frame<B>, area: Rect, log_days: &LogDays) -> Result<()> {
+    pub fn draw<B: Backend>(&self, f: &mut Frame<B>, area: Rect, context: &LogContext) -> Result<()> {
         let mut rows = vec![];
         let binding = ["Day", "Hours"];
         let headers = binding
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
 
-        for (day, minutes) in log_days.minutes_by_weekday() {
+        for (day, minutes) in context.log_days.minutes_by_weekday() {
             let duration = LogDuration::from_minutes(minutes.try_into().unwrap());
             rows.push(Row::new([
                 Cell::from(day),

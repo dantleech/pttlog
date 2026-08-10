@@ -7,15 +7,15 @@ use tui::{
     Frame,
 };
 
-use crate::model::model::LogDays;
+use crate::model::model::{LogContext, LogDays};
 
 pub struct DayBreakdownChart {}
 
 impl DayBreakdownChart {
-    pub fn draw<B: Backend>(&self, f: &mut Frame<B>, area: Rect, log_days: &LogDays) -> Result<()> {
+    pub fn draw<B: Backend>(&self, f: &mut Frame<B>, area: Rect, context: &LogContext) -> Result<()> {
         f.render_widget(
             BarChart::default()
-                .data(&log_days.minutes_by_weekday())
+                .data(&context.log_days.minutes_by_weekday())
                 .bar_style(Style::default().fg(Color::Red))
                 .value_style(Style::default().fg(Color::Green))
                 .bar_width(5),

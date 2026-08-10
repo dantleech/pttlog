@@ -8,6 +8,20 @@ use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
 use itertools::Itertools;
 
+pub struct LogContext {
+    pub log_days: LogDays
+}
+
+impl LogContext {
+    pub fn new(log_days: LogDays) -> Self {
+        Self{log_days}
+    }
+
+    pub(crate) fn with_log_days(&self, log_days: LogDays) -> LogContext {
+        LogContext { log_days }
+    }
+}
+
 #[derive(Clone)]
 pub struct LogDays {
     entries: Vec<LogDay>,
