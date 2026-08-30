@@ -11,7 +11,7 @@ pub struct Rate {
 }
 
 impl Rate {
-    pub(crate) fn cost(&self, duration: &LogDuration) -> Money {
+    pub(crate) fn cost_for_duration(&self, duration: &LogDuration) -> Money {
         Money::new(
             self.currency,
             ((duration.num_minutes() as f64 / 60.0) * self.rate as f64).round() as u64
@@ -114,11 +114,11 @@ use super::*;
 
         assert_eq!(
             500,
-            rate.cost(&LogDuration::from_minutes(60 * 5)).amount
+            rate.cost_for_duration(&LogDuration::from_minutes(60 * 5)).amount
         );
         assert_eq!(
             108,
-            rate.cost(&LogDuration::from_minutes(65)).amount
+            rate.cost_for_duration(&LogDuration::from_minutes(65)).amount
         );
     }
 }

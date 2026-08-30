@@ -31,13 +31,13 @@ impl LogContext {
 
 #[derive(Clone, Default)]
 pub struct LogDays {
-    entries: Vec<LogDay>,
+    log_days: Vec<LogDay>,
 }
 
 impl LogDays {
     pub fn new<'a>(entries: Vec<Entry>) -> LogDays {
         LogDays {
-            entries: entries
+            log_days: entries
                 .into_iter()
                 .map(|entry| LogDay::from_entry(
                     Local::now().naive_local(),
@@ -50,7 +50,7 @@ impl LogDays {
     pub fn duration_total(&self) -> LogDuration {
         LogDuration {
             duration: Duration::minutes(
-                self.entries
+                self.log_days
                     .iter()
                     .fold(0, |c, e| c + e.duration_total().num_minutes()),
             ),
@@ -58,13 +58,13 @@ impl LogDays {
     }
 
     pub fn iter(&self) -> Iter<'_, LogDay> {
-        self.entries.iter()
+        self.log_days.iter()
     }
 
     pub fn filter(&self, filter: &Filter) -> Self {
         LogDays {
-            entries: self
-                .entries
+            log_days: self
+                .log_days
                 .iter()
                 .map(|entry| entry.with_filter(filter))
                 .collect(),
@@ -72,60 +72,21 @@ impl LogDays {
     }
 
     pub(crate) fn at(&self, index: usize) -> &LogDay {
-        &self.entries[index]
+        &self.log_days[index]
     }
 
     pub(crate) fn len(&self) -> usize {
-        self.entries.len()
+        self.log_days.len()
     }
 
-    pub(crate) fn tag_summary(&self, tag: TokenKind, context: &LogContext) -> TagMetas {
-        let entry_map = self.entries.iter().fold(
-            HashMap::new(),
-            |entry_map: HashMap<String, TagMeta>, day: &LogDay| {
-                day.tag_summary(tag, context)
-                    .iter()
-                    .fold(entry_map, |mut entry_map, tag_meta| {
-                        let meta = entry_map
-                            .entry(tag_meta.tag.to_string())
-                            .or_insert(TagMeta {
-                                tag: tag_meta.tag.to_string(),
-                                kind: tag_meta.kind,
-                                duration: LogDuration::from_minutes(0_i64),
-                                count: 0,
-                                cost: None,
-                            });
-                        meta.count += 1;
-                        meta.duration.duration = meta
-                            .duration
-                            .duration
-                            .checked_add(&tag_meta.duration.duration)
-                            .expect("Could not add");
-                        entry_map
-                    })
-            },
-        );
-
-        let mut tag_metas: Vec<TagMeta> = vec![];
-        for (_, mut tag_meta) in entry_map {
-            for rate in &tag_meta.get_rates(&context.rates) {
-                tag_meta.cost = match tag_meta.cost {
-                    Some(c) => Some(
-                        Money::new(c.currency, c.amount + rate.cost(&tag_meta.duration).amount)
-                    ),
-                    None => Some(rate.cost(&tag_meta.duration)),
-                }
-            }
-            tag_metas.push(tag_meta);
-        }
-        tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
-        TagMetas { tag_metas }
+    pub(crate) fn tag_summary(&self, tag: TokenKind, context: &LogContext) -> TagSummaries {
+        TagSummaries::from_log_days(&self.log_days, context, tag)
     }
 
     pub(crate) fn until(&self, date_start: NaiveDate, date_end: NaiveDate) -> LogDays {
         LogDays {
-            entries: self
-                .entries
+            log_days: self
+                .log_days
                 .iter()
                 .filter(|entry| {
                     let date = entry.date().date;
@@ -137,7 +98,7 @@ impl LogDays {
     }
 
     pub(crate) fn minutes_by_weekday(&self) -> Vec<(&str, u64)> {
-        let counts = self.entries.iter().fold(
+        let counts = self.log_days.iter().fold(
             HashMap::from([
                 ("Mon", 0),
                 ("Tue", 0),
@@ -266,48 +227,37 @@ impl LogDay {
         &self.date
     }
 
-    pub fn tag_summary(&self, kind: TokenKind, context: &LogContext) -> TagMetas {
-        let entry_map = self.iter().fold(
+    pub fn tag_summary(&self, kind: TokenKind, context: &LogContext) -> TagSummaries {
+        let summary_map = self.iter().fold(
             HashMap::new(),
-            |entry_map: HashMap<String, TagMeta>, log: &LogEntry| {
+            |entry_map: HashMap<String, TagSummary>, log: &LogEntry| {
                 log.description().by_kind_refs(kind).iter().fold(
                     entry_map,
-                    |mut acc: HashMap<String, TagMeta>, tag: &&Token| {
-                        let meta = acc.entry(tag.text().to_string()).or_insert(TagMeta {
-                            tag: tag.text().to_string(),
-                            kind: tag.kind,
-                            duration: LogDuration::from_minutes(0_i64),
-                            count: 0,
-                            cost: None,
-                        });
+                    |mut acc: HashMap<String, TagSummary>, tag: &&Token| {
+                        let meta = acc.entry(tag.text().to_string()).or_insert(TagSummary::from_tag_name_and_kind(tag.text.to_string(), tag.kind));
                         meta.count += 1;
-                        meta.duration.duration = meta
-                            .duration
-                            .duration
-                            .checked_add(&log.time_range().duration().duration)
-                            .expect("overflow occurred");
+                        meta.duration = meta.duration.add(&log.time_range().duration());
                         acc
                     },
                 )
             },
         );
 
-        let mut tag_metas: Vec<TagMeta> = vec![];
-        for (_, mut tag_meta) in entry_map {
-
-            // this is repeated!
-            for rate in &tag_meta.get_rates(&context.rates) {
-                tag_meta.cost = match tag_meta.cost {
-                    Some(c) => Some(
-                        Money::new(c.currency, c.amount + rate.cost(&tag_meta.duration).amount)
-                    ),
-                    None => Some(rate.cost(&tag_meta.duration)),
+        let mut tag_summaries: Vec<TagSummary> = summary_map.values().cloned().fold(
+            vec![],
+            |mut list, mut tag_summary| {
+                for rate in &tag_summary.get_rates(&context.rates) {
+                    tag_summary.cost = Some(match tag_summary.cost {
+                        Some(cost) => cost.add(&rate.cost_for_duration(&tag_summary.duration)),
+                        None => rate.cost_for_duration(&tag_summary.duration),
+                    })
                 }
+                list.push(tag_summary);
+                list
             }
-            tag_metas.push(tag_meta)
-        }
-        tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
-        TagMetas { tag_metas }
+        );
+        tag_summaries.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
+        TagSummaries { tag_metas: tag_summaries }
     }
 
     pub(crate) fn with_filter(&self, filter: &Filter) -> Self {
@@ -337,7 +287,7 @@ impl LogDay {
                         false
                     })(log.description())
                 })
-                .cloned()
+            .cloned()
                 .collect(),
         }
     }
@@ -355,7 +305,7 @@ impl LogDay {
                     .by_kind(TokenKind::Tag)
                     .0
             })
-            .unique()
+        .unique()
             .intersperse(Token::prose(" ".to_string()))
             .collect();
 
@@ -369,7 +319,7 @@ impl LogDay {
                     .by_kind(TokenKind::Ticket)
                     .0
             })
-            .unique()
+        .unique()
             .intersperse(Token::prose(" ".to_string()))
             .collect();
 
@@ -383,7 +333,7 @@ impl LogDay {
                     .by_kind(TokenKind::Prose)
                     .0
             })
-            .intersperse(Token::prose(" ".to_string()))
+        .intersperse(Token::prose(" ".to_string()))
             .collect();
 
         if !tags.is_empty() {
@@ -398,20 +348,20 @@ impl LogDay {
 
         Tokens(
             parts
-                .into_iter()
-                .intersperse(vec![Token::prose(" ".to_string())])
-                .flatten()
-                .collect(),
+            .into_iter()
+            .intersperse(vec![Token::prose(" ".to_string())])
+            .flatten()
+            .collect(),
         )
     }
 }
 
-pub struct TagMetas {
-    pub tag_metas: Vec<TagMeta>,
+pub struct TagSummaries {
+    pub tag_metas: Vec<TagSummary>,
 }
 
-impl TagMetas {
-    pub fn iter(&self) -> Iter<'_, TagMeta> {
+impl TagSummaries {
+    pub fn iter(&self) -> Iter<'_, TagSummary> {
         self.tag_metas.iter()
     }
     pub fn len(&self) -> usize {
@@ -427,8 +377,30 @@ impl TagMetas {
             duration: Duration::minutes(minutes),
         }
     }
+
+    fn from_log_days(log_days: &Vec<LogDay>, context: &LogContext, tag: TokenKind) -> TagSummaries {
+        let entry_map = log_days.iter().fold(
+            HashMap::new(),
+            |entry_map: HashMap<String, TagSummary>, day: &LogDay| {
+                day.tag_summary(tag, context)
+                    .iter()
+                    .fold(entry_map, |mut entry_map, day_meta| {
+                        let meta = entry_map
+                            .entry(day_meta.tag.to_string())
+                            .or_insert(TagSummary::from_tag_name_and_kind(day_meta.tag.clone(), day_meta.kind));
+                        meta.merge(day_meta);
+                        entry_map
+                    })
+            },
+        );
+
+        let mut tag_summaries: Vec<TagSummary> = entry_map.values().cloned().collect();
+        tag_summaries.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
+        TagSummaries { tag_metas: tag_summaries }
+    }
 }
 
+#[derive(Clone)]
 pub struct Money
 {
     pub currency: Currency,
@@ -439,6 +411,15 @@ impl Money {
     pub fn new(currency: Currency, amount: u64) -> Self 
     {
         Self { currency, amount }
+    }
+
+    pub fn add(&self, money: &Money) -> Self
+    {
+        if self.currency != money.currency {
+            panic!("Cannot perform addition with two different currencies: {} vs {}", self.currency, money.currency);
+        }
+
+        Self { currency: self.currency, amount: self.amount + money.amount }
     }
 
     fn major_units(&self) -> u64 {
@@ -473,7 +454,8 @@ impl Display for Money {
     }
 }
 
-pub struct TagMeta {
+#[derive(Clone)]
+pub struct TagSummary {
     pub tag: String,
     pub kind: TokenKind,
     pub duration: LogDuration,
@@ -481,13 +463,43 @@ pub struct TagMeta {
     pub cost: Option<Money>,
 }
 
-impl TagMeta {
+impl TagSummary {
     fn get_rates(&self, rates: &Rates) -> Vec<Rate> {
         match self.kind {
             TokenKind::Prose => vec![],
             TokenKind::Tag => rates.for_tag(&self.tag),
             TokenKind::Ticket => rates.for_ticket(&self.tag),
         }
+    }
+
+    fn from_tag_name_and_kind(tag: String, kind: TokenKind) -> Self
+    {
+        TagSummary{
+            tag: tag,
+            kind: kind,
+            duration: LogDuration::from_minutes(0),
+            count: 0,
+            cost: None,
+        }
+    }
+
+    fn merge(&mut self, new_tag_meta: &TagSummary) -> () {
+        if self.tag != new_tag_meta.tag {
+            panic!("Cannot merge tag meta with different tag name: {} vs {}", self.tag, new_tag_meta.tag);
+        }
+        if self.kind != new_tag_meta.kind {
+            panic!("Cannot merge tag meta with different tag kind: {} vs {}", self.tag, new_tag_meta.tag);
+        }
+
+        self.duration = self.duration.add(&new_tag_meta.duration);
+        self.count = self.count + new_tag_meta.count;
+        self.cost = match &self.cost {
+            Some(cost) => match &new_tag_meta.cost {
+                Some(new_cost) => Some(cost.add(&new_cost)),
+                None => None,
+            }
+            None => new_tag_meta.cost.clone(),
+        };
     }
 }
 
@@ -532,6 +544,8 @@ impl LogDate {
         self.date.format("%d/%m/%Y").to_string()
     }
 }
+
+#[derive(Clone)]
 pub struct LogDuration {
     duration: Duration,
 }
@@ -544,6 +558,10 @@ impl LogDuration {
         LogDuration {
             duration: Duration::minutes(arg),
         }
+    }
+
+    fn add(&self, duration: &LogDuration) -> LogDuration {
+        LogDuration { duration: self.duration + duration.duration }
     }
 }
 impl ToString for LogDuration {
@@ -700,19 +718,19 @@ mod tests {
                 },
             ],
         }]);
-        assert_eq!(4, days.entries[0].logs.len());
+        assert_eq!(4, days.log_days[0].logs.len());
 
         let filtered = days.filter(&Filter::new(vec![Box::new(TokenIs {
             value: "foobar".to_string(),
             kind: TokenKind::Tag,
         })]));
-        assert_eq!(2, filtered.entries[0].logs.len());
+        assert_eq!(2, filtered.log_days[0].logs.len());
 
         let filtered = days.filter(&Filter::new(vec![Box::new(TokenIs {
             value: "FOO-1234".to_string(),
             kind: TokenKind::Ticket,
         })]));
-        assert_eq!(1, filtered.entries[0].logs.len());
+        assert_eq!(1, filtered.log_days[0].logs.len());
     }
 
     #[test]
@@ -727,7 +745,7 @@ mod tests {
                 ]),
             }],
         }]);
-        assert_eq!(1, days.entries[0].logs.len());
+        assert_eq!(1, days.log_days[0].logs.len());
 
         let filtered = days.filter(&Filter::new(vec![Box::new(UnaryOperator {
             kind: UnaryOperatorKind::Not,
@@ -736,7 +754,7 @@ mod tests {
                 kind: TokenKind::Tag,
             }),
         })]));
-        assert_eq!(0, filtered.entries[0].logs.len());
+        assert_eq!(0, filtered.log_days[0].logs.len());
     }
 
     #[test]
@@ -751,7 +769,7 @@ mod tests {
                 ]),
             }],
         }]);
-        assert_eq!(1, days.entries[0].tag_summary(TokenKind::Tag, &LogContext::new(days.clone(), Rates::from_rates(vec![
+        assert_eq!(1, days.log_days[0].tag_summary(TokenKind::Tag, &LogContext::new(days.clone(), Rates::from_rates(vec![
            Rate{
                ticket_prefix: None,
                tags: vec!["foobar".to_string()],
@@ -767,7 +785,7 @@ mod tests {
                 kind: TokenKind::Tag,
             }),
         })]));
-        assert_eq!(0, filtered.entries[0].logs.len());
+        assert_eq!(0, filtered.log_days[0].logs.len());
     }
 
     #[test]

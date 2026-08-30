@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    model::model::{TagMeta, TagMetas},
+    model::model::{TagSummary, TagSummaries},
     parser::token::TokenKind,
 };
 
@@ -24,7 +24,7 @@ impl TokenSummaryTable<'_> {
         &self,
         f: &mut tui::Frame<B>,
         area: tui::layout::Rect,
-        tag_metas: &TagMetas,
+        tag_metas: &TagSummaries,
     ) -> anyhow::Result<()> {
         let mut rows = vec![];
         let binding = [self.title, "Duration", "Cost"];
@@ -34,7 +34,7 @@ impl TokenSummaryTable<'_> {
 
         for tag_meta in tag_metas.tag_metas.iter() {
             rows.push(Row::new([
-                Cell::from((|t: &TagMeta| match tag_meta.kind {
+                Cell::from((|t: &TagSummary| match tag_meta.kind {
                     TokenKind::Tag => {
                         Span::styled(format!("@{}", t.tag), Style::default().fg(Color::Green))
                     }
