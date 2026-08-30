@@ -1,28 +1,35 @@
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::slice::Iter;
+use num_format::{Locale, ToFormattedString};
 
+use crate::model::rates::Rate;
+use crate::model::rates::Rates;
 use crate::parser::filter::Filter;
 use crate::parser::timesheet::{Entry, Tokens};
 use crate::parser::token::{Token, TokenKind};
 use chrono::{Datelike, Local, Timelike};
 use chrono::{Duration, NaiveDate, NaiveDateTime, NaiveTime};
+use iso_currency::Currency;
 use itertools::Itertools;
 
+#[derive(Default)]
 pub struct LogContext {
-    pub log_days: LogDays
+    pub log_days: LogDays,
+    pub rates: Rates
 }
 
 impl LogContext {
-    pub fn new(log_days: LogDays) -> Self {
-        Self{log_days}
+    pub fn new(log_days: LogDays, rates: Rates) -> Self {
+        Self{log_days, rates}
     }
 
     pub(crate) fn with_log_days(&self, log_days: LogDays) -> LogContext {
-        LogContext { log_days }
+        LogContext { log_days, rates: self.rates.clone() }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct LogDays {
     entries: Vec<LogDay>,
 }
@@ -32,7 +39,10 @@ impl LogDays {
         LogDays {
             entries: entries
                 .into_iter()
-                .map(|entry| LogDay::from_entry(Local::now().naive_local(), entry.clone()))
+                .map(|entry| LogDay::from_entry(
+                    Local::now().naive_local(),
+                    entry.clone(),
+                ))
                 .collect(),
         }
     }
@@ -69,11 +79,11 @@ impl LogDays {
         self.entries.len()
     }
 
-    pub(crate) fn tag_summary(&self, tag: TokenKind) -> TagMetas {
+    pub(crate) fn tag_summary(&self, tag: TokenKind, context: &LogContext) -> TagMetas {
         let entry_map = self.entries.iter().fold(
             HashMap::new(),
-            |entry_map: HashMap<String, TagMeta>, view: &LogDay| {
-                view.tag_summary(tag)
+            |entry_map: HashMap<String, TagMeta>, day: &LogDay| {
+                day.tag_summary(tag, context)
                     .iter()
                     .fold(entry_map, |mut entry_map, tag_meta| {
                         let meta = entry_map
@@ -83,6 +93,7 @@ impl LogDays {
                                 kind: tag_meta.kind,
                                 duration: LogDuration::from_minutes(0_i64),
                                 count: 0,
+                                cost: None,
                             });
                         meta.count += 1;
                         meta.duration.duration = meta
@@ -96,8 +107,16 @@ impl LogDays {
         );
 
         let mut tag_metas: Vec<TagMeta> = vec![];
-        for (_, v) in entry_map {
-            tag_metas.push(v)
+        for (_, mut tag_meta) in entry_map {
+            for rate in &tag_meta.get_rates(&context.rates) {
+                tag_meta.cost = match tag_meta.cost {
+                    Some(c) => Some(
+                        Money::new(c.currency, c.amount + rate.cost(&tag_meta.duration).amount)
+                    ),
+                    None => Some(rate.cost(&tag_meta.duration)),
+                }
+            }
+            tag_metas.push(tag_meta);
         }
         tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
         TagMetas { tag_metas }
@@ -247,7 +266,7 @@ impl LogDay {
         &self.date
     }
 
-    pub fn tag_summary(&self, kind: TokenKind) -> TagMetas {
+    pub fn tag_summary(&self, kind: TokenKind, context: &LogContext) -> TagMetas {
         let entry_map = self.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagMeta>, log: &LogEntry| {
@@ -259,6 +278,7 @@ impl LogDay {
                             kind: tag.kind,
                             duration: LogDuration::from_minutes(0_i64),
                             count: 0,
+                            cost: None,
                         });
                         meta.count += 1;
                         meta.duration.duration = meta
@@ -273,8 +293,18 @@ impl LogDay {
         );
 
         let mut tag_metas: Vec<TagMeta> = vec![];
-        for (_, v) in entry_map {
-            tag_metas.push(v)
+        for (_, mut tag_meta) in entry_map {
+
+            // this is repeated!
+            for rate in &tag_meta.get_rates(&context.rates) {
+                tag_meta.cost = match tag_meta.cost {
+                    Some(c) => Some(
+                        Money::new(c.currency, c.amount + rate.cost(&tag_meta.duration).amount)
+                    ),
+                    None => Some(rate.cost(&tag_meta.duration)),
+                }
+            }
+            tag_metas.push(tag_meta)
         }
         tag_metas.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
         TagMetas { tag_metas }
@@ -399,11 +429,66 @@ impl TagMetas {
     }
 }
 
+pub struct Money
+{
+    pub currency: Currency,
+    pub amount: u64,
+}
+
+impl Money {
+    pub fn new(currency: Currency, amount: u64) -> Self 
+    {
+        Self { currency, amount }
+    }
+
+    fn major_units(&self) -> u64 {
+        if self.amount == 0 {
+            return 0;
+        }
+
+        match self.currency.subunit_fraction() {
+            Some(fraction) => self.amount / (fraction as u64),
+            None => 0,
+        }
+    }
+
+    fn remaining_minor_units(&self) -> u64 {
+        match self.currency.subunit_fraction() {
+            Some(fraction) => self.amount - (fraction as u64 * self.major_units()),
+            None => self.amount,
+        }
+    }
+}
+
+impl Display for Money {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(
+            format_args!(
+                "{} {}.{:02}",
+                self.currency.code(),
+                self.major_units().to_formatted_string(&Locale::en),
+                self.remaining_minor_units(),
+            )
+        )
+    }
+}
+
 pub struct TagMeta {
     pub tag: String,
     pub kind: TokenKind,
     pub duration: LogDuration,
     pub count: usize,
+    pub cost: Option<Money>,
+}
+
+impl TagMeta {
+    fn get_rates(&self, rates: &Rates) -> Vec<Rate> {
+        match self.kind {
+            TokenKind::Prose => vec![],
+            TokenKind::Tag => rates.for_tag(&self.tag),
+            TokenKind::Ticket => rates.for_ticket(&self.tag),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -505,6 +590,7 @@ impl TimeRangeView {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::Rate;
     use chrono::NaiveTime;
 
     use crate::parser::{
@@ -569,39 +655,6 @@ mod tests {
             let view = LogDay::new(time, entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
-    }
-
-    #[test]
-    fn test_view_tag_summary() {
-        let entry = Entry {
-            date: Date::from_ymd(2022, 01, 01),
-            logs: vec![
-                Log {
-                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(10, 30)),
-                    description: Tokens::new(vec![Token::tag("foobar".to_string())]),
-                },
-                Log {
-                    time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(11, 0)),
-                    description: Tokens::new(vec![
-                        Token::tag("barfoo".to_string()),
-                        Token::tag("foobar".to_string()),
-                    ]),
-                },
-            ],
-        };
-        let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
-        let view = LogDay::new(time, entry);
-        let summary = view.tag_summary(TokenKind::Tag);
-
-        assert_eq!(2, summary.len());
-
-        assert_eq!("barfoo".to_string(), summary.tag_metas[1].tag);
-        assert_eq!(1, summary.tag_metas[1].count);
-        assert_eq!(60, summary.tag_metas[1].duration.num_minutes());
-
-        assert_eq!("foobar".to_string(), summary.tag_metas[0].tag);
-        assert_eq!(2, summary.tag_metas[0].count);
-        assert_eq!(90, summary.tag_metas[0].duration.num_minutes());
     }
 
     #[test]
@@ -675,6 +728,37 @@ mod tests {
             }],
         }]);
         assert_eq!(1, days.entries[0].logs.len());
+
+        let filtered = days.filter(&Filter::new(vec![Box::new(UnaryOperator {
+            kind: UnaryOperatorKind::Not,
+            operand: Box::new(TokenIs {
+                value: "foobar".to_string(),
+                kind: TokenKind::Tag,
+            }),
+        })]));
+        assert_eq!(0, filtered.entries[0].logs.len());
+    }
+
+    #[test]
+    fn test_tag_summary() {
+        let days = LogDays::new(vec![Entry {
+            date: Date::from_ymd(2022, 01, 1),
+            logs: vec![Log {
+                time: TimeRange::from_start_end(Time::from_hm(10, 0), Time::from_hm(12, 30)),
+                description: Tokens::new(vec![
+                    Token::prose("baz".to_string()),
+                    Token::tag("foobar".to_string()),
+                ]),
+            }],
+        }]);
+        assert_eq!(1, days.entries[0].tag_summary(TokenKind::Tag, &LogContext::new(days.clone(), Rates::from_rates(vec![
+           Rate{
+               ticket_prefix: None,
+               tags: vec!["foobar".to_string()],
+               rate: 100,
+               currency: Currency::AFN
+           }
+        ]))).len());
 
         let filtered = days.filter(&Filter::new(vec![Box::new(UnaryOperator {
             kind: UnaryOperatorKind::Not,

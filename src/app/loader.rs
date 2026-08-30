@@ -16,8 +16,9 @@ pub struct FileLoader<'a> {
     path: String,
     config: &'a Config,
 }
+
 impl FileLoader<'_> {
-    pub fn new<'a>(path: String, config: &'a Config) -> Box<dyn Loader + 'a> {
+    pub fn new_boxed<'a>(path: String, config: &'a Config) -> Box<dyn Loader + 'a> {
         Box::new(FileLoader { path, config })
     }
 }
@@ -43,7 +44,7 @@ pub struct FuncLoader {
     pub factory: Box<dyn Fn() -> Entries>,
 }
 impl FuncLoader {
-    pub fn new(func: Box<dyn Fn() -> Entries>) -> Box<dyn Loader> {
+    pub fn new_boxed(func: Box<dyn Fn() -> Entries>) -> Box<dyn Loader> {
         Box::new(FuncLoader { factory: func })
     }
 }

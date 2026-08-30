@@ -15,7 +15,7 @@ pub struct DayBreakdownTable {}
 impl DayBreakdownTable {
     pub fn draw<B: Backend>(&self, f: &mut Frame<B>, area: Rect, context: &LogContext) -> Result<()> {
         let mut rows = vec![];
-        let binding = ["Day", "Hours"];
+        let binding = ["Day", "Hours", "Cost"];
         let headers = binding
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
@@ -35,7 +35,10 @@ impl DayBreakdownTable {
                     .bottom_margin(1)
                     .style(Style::default()),
             )
-            .widths(&[Constraint::Percentage(50), Constraint::Percentage(50)]);
+            .widths(&[
+                Constraint::Percentage(50),
+                Constraint::Percentage(50)
+            ]);
         f.render_widget(table, area);
         Ok(())
     }

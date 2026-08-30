@@ -15,7 +15,7 @@ use crate::{
         interval_view::{IntervalView, ReportDuration},
         status::Status,
     },
-    model::{model::{LogContext, LogDays}, time::TimeFactory},
+    model::{model::{LogContext, LogDays}, rates::Rates, time::TimeFactory},
     parser::timesheet::Entry,
 };
 
@@ -42,6 +42,7 @@ pub struct App<'a> {
     month: IntervalView<'a>,
     year: IntervalView<'a>,
     view: AppView,
+    rates: Rates,
     pub filter: Filter<'a>,
     status: Status,
     pub should_quit: bool,
@@ -83,6 +84,7 @@ impl App<'_> {
             ),
             filter: Filter::new(config),
             status: Status::new(),
+            rates: Rates::from_config(config),
             should_quit: false,
         }
     }
@@ -105,7 +107,7 @@ impl App<'_> {
 
         f.render_widget(navigation(), rows[0]);
 
-        let context = LogContext::new(self.filtered.clone());
+        let context = LogContext::new(self.filtered.clone(), self.rates.clone());
 
         match self.view {
             AppView::Day => self.day.draw(f, rows[1], &context)?,
@@ -290,7 +292,7 @@ mod test {
     #[test]
     pub fn last_day_of_month() {
         App::new(
-            FuncLoader::new(Box::new(|| Entries { entries: vec![] })),
+            FuncLoader::new_boxed(Box::new(|| Entries { entries: vec![] })),
             &Config::empty(),
             &FrozenTimeFactory::new(2022, 1, 1, 12, 0),
             &NaiveDate::from_ymd(2022, 11, 30).and_hms(10, 1, 1),

@@ -368,8 +368,6 @@ fn process_entries(entries: &mut Vec<Entry>) {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Deref;
-
     use crate::app::config::Project;
 
     use super::*;
@@ -545,11 +543,11 @@ mod tests {
             );
             assert_eq!(
                 "foobar".to_string(),
-                entries.entries[0].logs[0].description.at(1).deref().text
+                entries.entries[0].logs[0].description.at(1).text
             );
             assert_eq!(
                 TokenKind::Tag,
-                entries.entries[0].logs[0].description.at(1).deref().kind
+                entries.entries[0].logs[0].description.at(1).kind
             );
         }
         {
@@ -561,16 +559,16 @@ mod tests {
             assert_eq!(1, entries.entries.len());
             assert_eq!(
                 "foobar".to_string(),
-                entries.entries[0].logs[0].description.at(1).deref().text
+                entries.entries[0].logs[0].description.at(1).text
             );
             assert_eq!(
                 TokenKind::Tag,
-                entries.entries[0].logs[0].description.at(1).deref().kind
+                entries.entries[0].logs[0].description.at(1).kind
             );
 
             assert_eq!(
                 "barfoo".to_string(),
-                entries.entries[0].logs[0].description.at(2).deref().text
+                entries.entries[0].logs[0].description.at(2).text
             );
         }
     }
@@ -584,11 +582,13 @@ mod tests {
                         name: "myproject".to_string(),
                         ticket_prefix: "PROJECT-".to_string(),
                         tags: vec![],
+                        rate: None,
                     },
                     Project {
                         name: "myproject".to_string(),
                         ticket_prefix: "BAR-".to_string(),
                         tags: vec![],
+                        rate: None,
                     },
                 ],
             };
@@ -622,7 +622,7 @@ mod tests {
         assert_eq!(2, entries.entries.len());
         assert_eq!(
             "barfoo".to_string(),
-            entries.entries[1].logs[0].description.at(0).deref().text
+            entries.entries[1].logs[0].description.at(0).text
         );
     }
 
@@ -635,6 +635,6 @@ mod tests {
         let description = &entries.entries[0].logs[0].description;
         assert_eq!(2, description.len());
         assert_eq!("foobar ".to_string(), description.at(0).to_string());
-        assert_eq!("barfoo".to_string(), description.at(1).deref().text);
+        assert_eq!("barfoo".to_string(), description.at(1).text);
     }
 }

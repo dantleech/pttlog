@@ -27,7 +27,7 @@ impl TokenSummaryTable<'_> {
         tag_metas: &TagMetas,
     ) -> anyhow::Result<()> {
         let mut rows = vec![];
-        let binding = [self.title, "Duration", "Count"];
+        let binding = [self.title, "Duration", "Cost"];
         let headers = binding
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));
@@ -44,7 +44,10 @@ impl TokenSummaryTable<'_> {
                     }
                 })(tag_meta)),
                 Cell::from(tag_meta.duration.to_string()),
-                Cell::from(tag_meta.count.to_string()),
+                Cell::from(match &tag_meta.cost {
+                    Some(m) => m.to_string(),
+                    None => "".to_string(),
+                }),
             ]));
         }
 
@@ -67,9 +70,9 @@ impl TokenSummaryTable<'_> {
                     .style(Style::default()),
             )
             .widths(&[
-                Constraint::Percentage(33),
-                Constraint::Percentage(33),
-                Constraint::Percentage(33),
+                Constraint::Percentage(25),
+                Constraint::Percentage(25),
+                Constraint::Percentage(50),
             ]);
         f.render_widget(table, area);
         Ok(())
