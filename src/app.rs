@@ -69,17 +69,17 @@ impl App<'_> {
             view: AppView::Day,
             week: IntervalView::new(
                 time_factory,
-                NaiveDate::from_isoywd(now.year(), now.iso_week().week(), chrono::Weekday::Mon),
+                NaiveDate::from_isoywd_opt(now.year(), now.iso_week().week(), chrono::Weekday::Mon).unwrap(),
                 ReportDuration::Week,
             ),
             month: IntervalView::new(
                 time_factory,
-                NaiveDate::from_ymd(now.year(), now.month(), 1),
+                NaiveDate::from_ymd_opt(now.year(), now.month(), 1).unwrap(),
                 ReportDuration::Month,
             ),
             year: IntervalView::new(
                 time_factory,
-                NaiveDate::from_ymd(now.year(), 1, 1),
+                NaiveDate::from_ymd_opt(now.year(), 1, 1).unwrap(),
                 ReportDuration::Year,
             ),
             filter: Filter::new(config),
@@ -295,7 +295,7 @@ mod test {
             FuncLoader::new_boxed(Box::new(|| Entries { entries: vec![] })),
             &Config::empty(),
             &FrozenTimeFactory::new(2022, 1, 1, 12, 0),
-            &NaiveDate::from_ymd(2022, 11, 30).and_hms(10, 1, 1),
+            &NaiveDate::from_ymd_opt(2022, 11, 30).unwrap().and_hms_opt(10, 1, 1).unwrap(),
         );
     }
 }

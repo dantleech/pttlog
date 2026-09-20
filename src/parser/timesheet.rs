@@ -21,7 +21,7 @@ pub struct Date {
 impl Date {
     pub fn from_ymd(year: i32, month: u32, day: u32) -> Date {
         Date {
-            date: NaiveDate::from_ymd(year, month, day),
+            date: NaiveDate::from_ymd_opt(year, month, day).unwrap(),
         }
     }
 }
@@ -99,7 +99,7 @@ impl Time {
     /// ```
     pub fn from_hm(h: u32, m: u32) -> Time {
         Time {
-            time: NaiveTime::from_hms(h % 24, m % 60, 0),
+            time: NaiveTime::from_hms_opt(h % 24, m % 60, 0).unwrap(),
         }
     }
     pub fn hour(&self) -> u32 {

@@ -1,4 +1,3 @@
-use chrono::NaiveDate;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde_derive::{Deserialize, Serialize};
 use iso_currency::{Currency};

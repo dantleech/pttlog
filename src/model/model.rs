@@ -621,8 +621,8 @@ mod tests {
     fn log_view_percentage_of_day() {
         let l = LogEntry {
             time_range: TimeRangeView {
-                start: NaiveTime::from_hms(0, 0, 0),
-                end: NaiveTime::from_hms(12, 0, 0),
+                start: NaiveTime::from_hms_opt(0, 0, 0).unwrap(),
+                end: NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
                 ongoing: false,
             },
             desription: Tokens::from_prose("foo".to_string()),
@@ -633,8 +633,8 @@ mod tests {
     #[test]
     fn time_range_view_duration() {
         let t = TimeRangeView {
-            start: NaiveTime::from_hms(10, 30, 0),
-            end: NaiveTime::from_hms(12, 0, 0),
+            start: NaiveTime::from_hms_opt(10, 30, 0).unwrap(),
+            end: NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
             ongoing: false,
         };
         assert_eq!(90, t.duration().num_minutes());
@@ -643,8 +643,8 @@ mod tests {
     #[test]
     fn time_range_view_duration_overflow() {
         let t = TimeRangeView {
-            start: NaiveTime::from_hms(23, 30, 0),
-            end: NaiveTime::from_hms(0, 30, 0),
+            start: NaiveTime::from_hms_opt(23, 30, 0).unwrap(),
+            end: NaiveTime::from_hms_opt(0, 30, 0).unwrap(),
             ongoing: false,
         };
         assert_eq!(60, t.duration().num_minutes());
@@ -670,7 +670,7 @@ mod tests {
                     },
                 ],
             };
-            let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
+            let time = NaiveDate::from_ymd_opt(2022, 01, 01).unwrap().and_hms_opt(0, 0, 0).unwrap();
             let view = LogDay::new(time, entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
