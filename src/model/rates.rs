@@ -32,13 +32,18 @@ impl Rates {
     pub(crate) fn from_config(config: &Config) -> Rates {
         let mut rates = vec![];
         for project in &config.projects {
-            if let Some(rate) = &project.rate {
-                rates.push(Rate{
-                    ticket_prefix: Some(project.ticket_prefix.clone()),
-                    tags: project.tags.clone(),
-                    rate: rate.rate,
-                    currency: rate.currency
-                });
+            for epoch in &project.epochs {
+                match &epoch.rate {
+                    None => continue,
+                    Some(r) => {
+                        rates.push(Rate{
+                            ticket_prefix: Some(project.ticket_prefix.clone()),
+                            tags: project.tags.clone(),
+                            rate: r.rate,
+                            currency: r.currency
+                        });
+                    },
+                }
             }
         }
         Rates { rates }
@@ -76,7 +81,6 @@ impl Rates {
 
 #[cfg(test)]
 mod test {
-    use chrono::NaiveDate;
 
 use crate::app::config::Epoch;
 use crate::app::config::Project;
