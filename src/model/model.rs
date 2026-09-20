@@ -31,6 +31,39 @@ impl LogContext {
     pub(crate) fn tag_summary(&self, ticket: TokenKind) -> TagSummaries {
         TagSummaries::from_log_days(&self.log_days, &self, ticket)
     }
+
+    pub(crate) fn tag_summary_day(&self, day: &LogDay, kind: TokenKind) -> TagSummaries {
+        let summary_map = day.iter().fold(
+            HashMap::new(),
+            |entry_map: HashMap<String, TagSummary>, log: &LogEntry| {
+                log.description().by_kind_refs(kind).iter().fold(
+                    entry_map,
+                    |mut acc: HashMap<String, TagSummary>, tag: &&Token| {
+                        let meta = acc.entry(tag.text().to_string()).or_insert(TagSummary::from_tag_name_and_kind(tag.text.to_string(), tag.kind));
+                        meta.count += 1;
+                        meta.duration = meta.duration.add(&log.time_range().duration());
+                        acc
+                    },
+                )
+            },
+        );
+
+        let mut tag_summaries: Vec<TagSummary> = summary_map.values().cloned().fold(
+            vec![],
+            |mut list, mut tag_summary| {
+                for rate in &tag_summary.get_rates(&self.rates) {
+                    tag_summary.cost = Some(match tag_summary.cost {
+                        Some(cost) => cost.add(&rate.cost_for_duration(&tag_summary.duration)),
+                        None => rate.cost_for_duration(&tag_summary.duration),
+                    })
+                }
+                list.push(tag_summary);
+                list
+            }
+        );
+        tag_summaries.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
+        TagSummaries { tag_metas: tag_summaries }
+    }
 }
 
 #[derive(Clone, Default)]
@@ -227,38 +260,6 @@ impl LogDay {
         &self.date
     }
 
-    pub fn tag_summary(&self, kind: TokenKind, context: &LogContext) -> TagSummaries {
-        let summary_map = self.iter().fold(
-            HashMap::new(),
-            |entry_map: HashMap<String, TagSummary>, log: &LogEntry| {
-                log.description().by_kind_refs(kind).iter().fold(
-                    entry_map,
-                    |mut acc: HashMap<String, TagSummary>, tag: &&Token| {
-                        let meta = acc.entry(tag.text().to_string()).or_insert(TagSummary::from_tag_name_and_kind(tag.text.to_string(), tag.kind));
-                        meta.count += 1;
-                        meta.duration = meta.duration.add(&log.time_range().duration());
-                        acc
-                    },
-                )
-            },
-        );
-
-        let mut tag_summaries: Vec<TagSummary> = summary_map.values().cloned().fold(
-            vec![],
-            |mut list, mut tag_summary| {
-                for rate in &tag_summary.get_rates(&context.rates) {
-                    tag_summary.cost = Some(match tag_summary.cost {
-                        Some(cost) => cost.add(&rate.cost_for_duration(&tag_summary.duration)),
-                        None => rate.cost_for_duration(&tag_summary.duration),
-                    })
-                }
-                list.push(tag_summary);
-                list
-            }
-        );
-        tag_summaries.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
-        TagSummaries { tag_metas: tag_summaries }
-    }
 
     pub(crate) fn with_filter(&self, filter: &Filter) -> Self {
         if filter.criterias.is_empty() {
@@ -382,7 +383,7 @@ impl TagSummaries {
         let entry_map = log_days.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagSummary>, day: &LogDay| {
-                day.tag_summary(tag, context)
+                context.tag_summary_day(day, tag)
                     .iter()
                     .fold(entry_map, |mut entry_map, day_meta| {
                         let meta = entry_map

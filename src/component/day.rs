@@ -71,9 +71,9 @@ impl Day<'_> {
             .split(columns[1]);
 
         self.tag_summary
-            .draw(f, summary_rows[0], &log_day.tag_summary(TokenKind::Tag, context))?;
+            .draw(f, summary_rows[0], &context.tag_summary_day(log_day, TokenKind::Tag))?;
         self.ticket_summary
-            .draw(f, summary_rows[1], &log_day.tag_summary(TokenKind::Ticket, context))?;
+            .draw(f, summary_rows[1], &context.tag_summary_day(log_day, TokenKind::Ticket))?;
 
         f.render_widget(
             container,
