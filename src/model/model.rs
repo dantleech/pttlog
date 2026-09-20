@@ -3,8 +3,8 @@ use std::fmt::Display;
 use std::slice::Iter;
 use num_format::{Locale, ToFormattedString};
 
-use crate::model::rates::Rate;
-use crate::model::rates::Rates;
+use crate::model::rates::Epoch;
+use crate::model::rates::Epochs;
 use crate::parser::filter::Filter;
 use crate::parser::timesheet::{Entry, Tokens};
 use crate::parser::token::{Token, TokenKind};
@@ -16,16 +16,61 @@ use itertools::Itertools;
 #[derive(Default)]
 pub struct LogContext {
     pub log_days: LogDays,
-    pub rates: Rates
+    pub epochs: Epochs
 }
 
 impl LogContext {
-    pub fn new(log_days: LogDays, rates: Rates) -> Self {
-        Self{log_days, rates}
+    pub fn new(log_days: LogDays, epochs: Epochs) -> Self {
+        Self{log_days, epochs}
     }
 
     pub(crate) fn with_log_days(&self, log_days: LogDays) -> LogContext {
-        LogContext { log_days, rates: self.rates.clone() }
+        let epochs = self.epochs.for_days(
+            &log_days.start_date(),
+            &log_days.end_date(),
+        );
+        LogContext { log_days, epochs }
+    }
+
+    pub(crate) fn tag_summary(&self, ticket: TokenKind) -> TagSummaries {
+        TagSummaries::from_log_days(&self.log_days, &self, ticket)
+    }
+
+    pub(crate) fn tag_summary_day(&self, day: &LogDay, kind: TokenKind) -> TagSummaries {
+        let summary_map = day.iter().fold(
+            HashMap::new(),
+            |entry_map: HashMap<String, TagSummary>, log: &LogEntry| {
+                log.description().by_kind_refs(kind).iter().fold(
+                    entry_map,
+                    |mut acc: HashMap<String, TagSummary>, tag: &&Token| {
+                        let meta = acc.entry(tag.text().to_string()).or_insert(TagSummary::from_tag_name_and_kind(tag.text.to_string(), tag.kind));
+                        meta.count += 1;
+                        meta.duration = meta.duration.add(&log.time_range().duration());
+                        acc
+                    },
+                )
+            },
+        );
+
+        let mut tag_summaries: Vec<TagSummary> = summary_map.values().cloned().fold(
+            vec![],
+            |mut list, mut tag_summary| {
+
+                for epoch in &tag_summary.get_epochs(&self.epochs) {
+
+                    tag_summary.cost = Some(match tag_summary.cost {
+                        Some(cost) => cost.add(&epoch.cost_for_duration(&tag_summary.duration)),
+                        None => epoch.cost_for_duration(&tag_summary.duration),
+                    })
+
+                }
+
+                list.push(tag_summary);
+                list
+            }
+        );
+        tag_summaries.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
+        TagSummaries { tag_metas: tag_summaries }
     }
 }
 
@@ -79,10 +124,6 @@ impl LogDays {
         self.log_days.len()
     }
 
-    pub(crate) fn tag_summary(&self, tag: TokenKind, context: &LogContext) -> TagSummaries {
-        TagSummaries::from_log_days(&self.log_days, context, tag)
-    }
-
     pub(crate) fn until(&self, date_start: NaiveDate, date_end: NaiveDate) -> LogDays {
         LogDays {
             log_days: self
@@ -126,6 +167,19 @@ impl LogDays {
         ];
 
         tuples
+    }
+
+    fn start_date(&self) -> NaiveDate {
+        match self.log_days.get(0) {
+            Some(d) => d.date.to_naive_date(),
+            None => NaiveDate::from_ymd_opt(0,1,1).unwrap(),
+        }
+    }
+    fn end_date(&self) -> NaiveDate {
+        match self.log_days.last() {
+            Some(d) => d.date.to_naive_date(),
+            None => NaiveDate::from_ymd_opt(3000, 1, 1).unwrap(),
+        }
     }
 }
 
@@ -227,38 +281,6 @@ impl LogDay {
         &self.date
     }
 
-    pub fn tag_summary(&self, kind: TokenKind, context: &LogContext) -> TagSummaries {
-        let summary_map = self.iter().fold(
-            HashMap::new(),
-            |entry_map: HashMap<String, TagSummary>, log: &LogEntry| {
-                log.description().by_kind_refs(kind).iter().fold(
-                    entry_map,
-                    |mut acc: HashMap<String, TagSummary>, tag: &&Token| {
-                        let meta = acc.entry(tag.text().to_string()).or_insert(TagSummary::from_tag_name_and_kind(tag.text.to_string(), tag.kind));
-                        meta.count += 1;
-                        meta.duration = meta.duration.add(&log.time_range().duration());
-                        acc
-                    },
-                )
-            },
-        );
-
-        let mut tag_summaries: Vec<TagSummary> = summary_map.values().cloned().fold(
-            vec![],
-            |mut list, mut tag_summary| {
-                for rate in &tag_summary.get_rates(&context.rates) {
-                    tag_summary.cost = Some(match tag_summary.cost {
-                        Some(cost) => cost.add(&rate.cost_for_duration(&tag_summary.duration)),
-                        None => rate.cost_for_duration(&tag_summary.duration),
-                    })
-                }
-                list.push(tag_summary);
-                list
-            }
-        );
-        tag_summaries.sort_by(|a, b| b.duration.duration.cmp(&a.duration.duration));
-        TagSummaries { tag_metas: tag_summaries }
-    }
 
     pub(crate) fn with_filter(&self, filter: &Filter) -> Self {
         if filter.criterias.is_empty() {
@@ -378,11 +400,11 @@ impl TagSummaries {
         }
     }
 
-    fn from_log_days(log_days: &Vec<LogDay>, context: &LogContext, tag: TokenKind) -> TagSummaries {
+    fn from_log_days(log_days: &LogDays, context: &LogContext, tag: TokenKind) -> TagSummaries {
         let entry_map = log_days.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagSummary>, day: &LogDay| {
-                day.tag_summary(tag, context)
+                context.tag_summary_day(day, tag)
                     .iter()
                     .fold(entry_map, |mut entry_map, day_meta| {
                         let meta = entry_map
@@ -464,11 +486,11 @@ pub struct TagSummary {
 }
 
 impl TagSummary {
-    fn get_rates(&self, rates: &Rates) -> Vec<Rate> {
+    fn get_epochs(&self, epochs: &Epochs) -> Vec<Epoch> {
         match self.kind {
             TokenKind::Prose => vec![],
-            TokenKind::Tag => rates.for_tag(&self.tag),
-            TokenKind::Ticket => rates.for_ticket(&self.tag),
+            TokenKind::Tag => epochs.for_tag(&self.tag),
+            TokenKind::Ticket => epochs.for_ticket(&self.tag),
         }
     }
 
@@ -543,6 +565,10 @@ impl LogDate {
     pub(crate) fn to_compact_string(&self) -> String {
         self.date.format("%d/%m/%Y").to_string()
     }
+
+    fn to_naive_date(&self) -> NaiveDate {
+        self.date
+    }
 }
 
 #[derive(Clone)]
@@ -608,7 +634,7 @@ impl TimeRangeView {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::Rate;
+    use super::Epoch;
     use chrono::NaiveTime;
 
     use crate::parser::{
@@ -620,8 +646,8 @@ mod tests {
     fn log_view_percentage_of_day() {
         let l = LogEntry {
             time_range: TimeRangeView {
-                start: NaiveTime::from_hms(0, 0, 0),
-                end: NaiveTime::from_hms(12, 0, 0),
+                start: NaiveTime::from_hms_opt(0, 0, 0).unwrap(),
+                end: NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
                 ongoing: false,
             },
             desription: Tokens::from_prose("foo".to_string()),
@@ -632,8 +658,8 @@ mod tests {
     #[test]
     fn time_range_view_duration() {
         let t = TimeRangeView {
-            start: NaiveTime::from_hms(10, 30, 0),
-            end: NaiveTime::from_hms(12, 0, 0),
+            start: NaiveTime::from_hms_opt(10, 30, 0).unwrap(),
+            end: NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
             ongoing: false,
         };
         assert_eq!(90, t.duration().num_minutes());
@@ -642,8 +668,8 @@ mod tests {
     #[test]
     fn time_range_view_duration_overflow() {
         let t = TimeRangeView {
-            start: NaiveTime::from_hms(23, 30, 0),
-            end: NaiveTime::from_hms(0, 30, 0),
+            start: NaiveTime::from_hms_opt(23, 30, 0).unwrap(),
+            end: NaiveTime::from_hms_opt(0, 30, 0).unwrap(),
             ongoing: false,
         };
         assert_eq!(60, t.duration().num_minutes());
@@ -669,7 +695,7 @@ mod tests {
                     },
                 ],
             };
-            let time = NaiveDate::from_ymd(2022, 01, 01).and_hms(0, 0, 0);
+            let time = NaiveDate::from_ymd_opt(2022, 01, 01).unwrap().and_hms_opt(0, 0, 0).unwrap();
             let view = LogDay::new(time, entry);
             assert_eq!("10:00:00-11:00:00", view.logs[0].time_range().to_string())
         }
@@ -769,14 +795,16 @@ mod tests {
                 ]),
             }],
         }]);
-        assert_eq!(1, days.log_days[0].tag_summary(TokenKind::Tag, &LogContext::new(days.clone(), Rates::from_rates(vec![
-           Rate{
+        let context = &LogContext::new(days.clone(), Epochs::from_rates(vec![
+           Epoch{
+               from: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
                ticket_prefix: None,
                tags: vec!["foobar".to_string()],
                rate: 100,
                currency: Currency::AFN
            }
-        ]))).len());
+        ]));
+        assert_eq!(1, context.tag_summary(TokenKind::Tag).len());
 
         let filtered = days.filter(&Filter::new(vec![Box::new(UnaryOperator {
             kind: UnaryOperatorKind::Not,

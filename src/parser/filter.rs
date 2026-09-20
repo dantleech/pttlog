@@ -218,12 +218,9 @@ mod tests {
     #[test]
     fn test_parse_ticket() {
         let config = Config {
-            projects: vec![Project {
-                name: "myproject".to_string(),
-                ticket_prefix: "PROJECT-".to_string(),
-                tags: vec![],
-                rate: None,
-            }],
+            projects: vec![
+                Project::from_name_and_ticket_prefix("myproject".to_string(), "PROJECT-".to_string())
+            ]
         };
         let parsed = parse_filter("PROJECT-123", &config).unwrap();
         assert_eq!(1, parsed.criterias.len());
@@ -240,12 +237,9 @@ mod tests {
     #[test]
     fn test_parse_many_tags_and_tickets() {
         let config = Config {
-            projects: vec![Project {
-                name: "myproject".to_string(),
-                ticket_prefix: "PROJECT-".to_string(),
-                tags: vec![],
-                rate: None,
-            }],
+            projects: vec![
+                Project::from_name_and_ticket_prefix("myproject".to_string(), "PROJECT-".to_string())
+            ]
         };
         let parsed = parse_filter("@foobar NOT PROJECT-5 PROJECT-12", &config).unwrap();
         assert_eq!(3, parsed.criterias.len());

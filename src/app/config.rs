@@ -1,6 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde_derive::{Deserialize, Serialize};
 use iso_currency::{Currency};
+use toml::value::Date;
 
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
@@ -21,13 +22,32 @@ pub struct Project {
     #[serde(default)]
     pub tags: Vec<String>,
     #[serde(default)]
-    pub rate: Option<Rate>,
+    pub epochs: Vec<Epoch>
+}
+
+impl Project {
+    
+    pub fn from_name_and_ticket_prefix(name: String, ticket_prefix: String) -> Self
+    {
+        Project{
+            name,
+            ticket_prefix,
+            tags: vec![],
+            epochs: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Rate {
     pub rate: u64,
     pub currency: Currency,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Epoch {
+    pub from: Date,
+    pub rate: Option<Rate>,
 }
 
 pub enum KeyName {
@@ -88,7 +108,7 @@ mod tests {
 
         assert_eq!(config.projects[0].name, "Project One".to_string());
         assert_eq!(config.projects[1].name, "Project Two".to_string());
-        assert_eq!(10000, config.projects[1].rate.clone().unwrap().rate);
-        assert_eq!(config.projects[1].rate.clone().unwrap().currency, Currency::GBP);
+        assert_eq!(20000, config.projects[1].epochs[0].clone().rate.unwrap().rate);
+        assert_eq!(Currency::GBP, config.projects[1].epochs[0].clone().clone().rate.unwrap().currency);
     }
 }

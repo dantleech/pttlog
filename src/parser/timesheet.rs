@@ -21,7 +21,7 @@ pub struct Date {
 impl Date {
     pub fn from_ymd(year: i32, month: u32, day: u32) -> Date {
         Date {
-            date: NaiveDate::from_ymd(year, month, day),
+            date: NaiveDate::from_ymd_opt(year, month, day).unwrap(),
         }
     }
 }
@@ -99,7 +99,7 @@ impl Time {
     /// ```
     pub fn from_hm(h: u32, m: u32) -> Time {
         Time {
-            time: NaiveTime::from_hms(h % 24, m % 60, 0),
+            time: NaiveTime::from_hms_opt(h % 24, m % 60, 0).unwrap(),
         }
     }
     pub fn hour(&self) -> u32 {
@@ -578,18 +578,8 @@ mod tests {
         {
             let config = Config {
                 projects: vec![
-                    Project {
-                        name: "myproject".to_string(),
-                        ticket_prefix: "PROJECT-".to_string(),
-                        tags: vec![],
-                        rate: None,
-                    },
-                    Project {
-                        name: "myproject".to_string(),
-                        ticket_prefix: "BAR-".to_string(),
-                        tags: vec![],
-                        rate: None,
-                    },
+                    Project::from_name_and_ticket_prefix("myproject".to_string(), "PROJECT-".to_string()),
+                    Project::from_name_and_ticket_prefix("myproject".to_string(), "BAR-".to_string()),
                 ],
             };
             let (_, entries) = parse_entry(

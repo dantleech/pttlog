@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    app::config::KeyName, component::line_item_table::LineItemTable, model::{model::LogContext, time::TimeFactory}, parser::token::TokenKind
+    app::config::KeyName, component::{line_item_table::LineItemTable}, model::{model::LogContext, time::TimeFactory}, parser::token::TokenKind
 };
 
 use super::{
@@ -101,8 +101,17 @@ impl IntervalView<'_> {
             area.inner(&Margin {
                 vertical: 0,
                 horizontal: 0,
-            }),
+            })
         );
+
+        let constraints = vec![
+            Constraint::Percentage(100),
+        ];
+        let rows = Layout::default()
+            .direction(tui::layout::Direction::Vertical)
+            .margin(0)
+            .constraints(constraints)
+            .split(area);
 
         let tabs = Tabs::new(vec![
             Spans::from(vec![Span::raw("Tab"), ]),
@@ -114,6 +123,7 @@ impl IntervalView<'_> {
             IntervalTab::Summary => tabs.select(1),
             IntervalTab::List => tabs.select(2),
         };
+
         f.render_widget(
             tabs,
             Rect {
@@ -125,8 +135,8 @@ impl IntervalView<'_> {
         );
 
         match self.tab {
-            IntervalTab::Summary => self.render_summary(f, area, &context),
-            IntervalTab::List => self.render_list(f, area, &context),
+            IntervalTab::Summary => self.render_summary(f, rows[0], &context),
+            IntervalTab::List => self.render_list(f, rows[0], &context),
         }
     }
 
@@ -153,18 +163,16 @@ impl IntervalView<'_> {
             .direction(tui::layout::Direction::Horizontal)
             .margin(0)
             .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-            .split(area.inner(&Margin {
-                vertical: 2,
-                horizontal: 2,
-            }));
+            .split(area.inner(&Margin {vertical: 2, horizontal: 2}));
 
         let left_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Min(2)])
             .split(columns[0].inner(&Margin {
-                vertical: 2,
+                vertical: 0,
                 horizontal: 2,
             }));
+
         self.day_breakdown_chart.draw(f, left_rows[0], context)?;
         self.day_breakdown_table.draw(f, left_rows[1], context)?;
 
@@ -172,14 +180,14 @@ impl IntervalView<'_> {
             .direction(tui::layout::Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Min(2)])
             .split(columns[1].inner(&Margin {
-                vertical: 2,
+                vertical: 0,
                 horizontal: 2,
             }));
 
         self.tag_summary
-            .draw(f, right_rows[0], &context.log_days.tag_summary(TokenKind::Tag, context))?;
+            .draw(f, right_rows[0], &context.tag_summary(TokenKind::Tag))?;
         self.ticket_summary
-            .draw(f, right_rows[1], &context.log_days.tag_summary(TokenKind::Ticket, context))?;
+            .draw(f, right_rows[1], &context.tag_summary(TokenKind::Ticket))?;
 
         Ok(())
     }

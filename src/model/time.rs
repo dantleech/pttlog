@@ -19,7 +19,8 @@ pub struct FrozenTimeFactory {
 impl FrozenTimeFactory {
     pub fn new(y: i32, m: u32, d: u32, h: u32, i: u32) -> FrozenTimeFactory {
         FrozenTimeFactory {
-            time: NaiveDate::from_ymd(y, m, d).and_hms(h, i, 0),
+            time: NaiveDate::from_ymd_opt(y, m, d).unwrap().and_hms_opt(h, i, 0).unwrap()
+                ,
         }
     }
 }
