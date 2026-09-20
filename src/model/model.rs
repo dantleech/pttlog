@@ -770,14 +770,15 @@ mod tests {
                 ]),
             }],
         }]);
-        assert_eq!(1, days.log_days[0].tag_summary(TokenKind::Tag, &LogContext::new(days.clone(), Rates::from_rates(vec![
+        let context = &LogContext::new(days.clone(), Rates::from_rates(vec![
            Rate{
                ticket_prefix: None,
                tags: vec!["foobar".to_string()],
                rate: 100,
                currency: Currency::AFN
            }
-        ]))).len());
+        ]));
+        assert_eq!(1, context.tag_summary(TokenKind::Tag).len());
 
         let filtered = days.filter(&Filter::new(vec![Box::new(UnaryOperator {
             kind: UnaryOperatorKind::Not,

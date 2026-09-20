@@ -125,12 +125,9 @@ mod test {
     #[test]
     pub fn parses_input_with_ticket() {
         let config = Config {
-            projects: vec![Project {
-                name: "myproject".to_string(),
-                ticket_prefix: "PROJECT-".to_string(),
-                tags: vec![],
-                rate: None,
-            }],
+            projects: vec![
+                Project::from_name_and_ticket_prefix("myproject".to_string(), "PROJECT-".to_string())
+            ]
         };
         let mut filter = Filter::new(&config);
         filter.visible = true;

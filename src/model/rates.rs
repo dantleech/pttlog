@@ -76,7 +76,10 @@ impl Rates {
 
 #[cfg(test)]
 mod test {
-    use crate::app::config::Project;
+    use chrono::NaiveDate;
+
+use crate::app::config::Epoch;
+use crate::app::config::Project;
     use crate::app::config::Rate as ConfigRate;
 
 use super::*;
@@ -89,12 +92,18 @@ use super::*;
                 name: "Hello".to_string(),
                 ticket_prefix: "HELLO-".to_string(),
                 tags: vec!["one".to_string(), "two".to_string()],
-                rate: Some(
-                    ConfigRate{
-                        rate: 100,
-                        currency:iso_currency::Currency::USD 
+                rate: None,
+                epochs: vec![
+                    Epoch{
+                        from: NaiveDate::from_ymd(2026, 1, 1),
+                        rate: Some(
+                            ConfigRate{
+                                rate: 100,
+                                currency:iso_currency::Currency::USD 
+                            }
+                        )
                     }
-                ),
+                ]
             }
         ];
         let rates = Rates::from_config(&config);

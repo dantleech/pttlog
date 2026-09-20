@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde_derive::{Deserialize, Serialize};
 use iso_currency::{Currency};
@@ -22,12 +23,34 @@ pub struct Project {
     pub tags: Vec<String>,
     #[serde(default)]
     pub rate: Option<Rate>,
+    #[serde(default)]
+    pub epochs: Vec<Epoch>
+}
+
+impl Project {
+    
+    pub fn from_name_and_ticket_prefix(name: String, ticket_prefix: String) -> Self
+    {
+        Project{
+            name,
+            ticket_prefix,
+            tags: vec![],
+            rate: None,
+            epochs: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Rate {
     pub rate: u64,
     pub currency: Currency,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Epoch {
+    pub from: NaiveDate,
+    pub rate: Option<Rate>,
 }
 
 pub enum KeyName {
