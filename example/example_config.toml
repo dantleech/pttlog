@@ -11,6 +11,9 @@ currency="EUR"
 name="Project Two"
 ticket_prefix="TWO-"
 tags=["evilcorp"]
+epochs=[
+    { from = 2026-01-01, rate = { rate = 20000, currency = "GBP" }},
+]
 
 rate={rate=10000,currency="GBP"}
 

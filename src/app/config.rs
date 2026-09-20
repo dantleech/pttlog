@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde_derive::{Deserialize, Serialize};
 use iso_currency::{Currency};
+use toml::value::Date;
 
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
@@ -49,7 +50,7 @@ pub struct Rate {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Epoch {
-    pub from: NaiveDate,
+    pub from: Date,
     pub rate: Option<Rate>,
 }
 

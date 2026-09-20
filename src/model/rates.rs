@@ -95,7 +95,7 @@ use super::*;
                 rate: None,
                 epochs: vec![
                     Epoch{
-                        from: NaiveDate::from_ymd(2026, 1, 1),
+                        from: toml::value::Date{year: 2026, month: 1, day: 1},
                         rate: Some(
                             ConfigRate{
                                 rate: 100,

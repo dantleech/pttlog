@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.66"
+toml = { version = "0.8"}
 chrono = {version = "0.4.22", features = ["serde"]}
 clap = { version = "4.0.18", features = ["derive"] }
 confy = "0.5.1"
