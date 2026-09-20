@@ -15,7 +15,7 @@ use crate::{
         interval_view::{IntervalView, ReportDuration},
         status::Status,
     },
-    model::{model::{LogContext, LogDays}, rates::Rates, time::TimeFactory},
+    model::{model::{LogContext, LogDays}, rates::Epochs, time::TimeFactory},
     parser::timesheet::Entry,
 };
 
@@ -42,7 +42,7 @@ pub struct App<'a> {
     month: IntervalView<'a>,
     year: IntervalView<'a>,
     view: AppView,
-    rates: Rates,
+    epochs: Epochs,
     pub filter: Filter<'a>,
     status: Status,
     pub should_quit: bool,
@@ -84,7 +84,7 @@ impl App<'_> {
             ),
             filter: Filter::new(config),
             status: Status::new(),
-            rates: Rates::from_config(config),
+            epochs: Epochs::from_config(config),
             should_quit: false,
         }
     }
@@ -107,7 +107,7 @@ impl App<'_> {
 
         f.render_widget(navigation(), rows[0]);
 
-        let context = LogContext::new(self.filtered.clone(), self.rates.clone());
+        let context = LogContext::new(self.filtered.clone(), self.epochs.clone());
 
         match self.view {
             AppView::Day => self.day.draw(f, rows[1], &context)?,

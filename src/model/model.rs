@@ -3,8 +3,8 @@ use std::fmt::Display;
 use std::slice::Iter;
 use num_format::{Locale, ToFormattedString};
 
-use crate::model::rates::Rate;
-use crate::model::rates::Rates;
+use crate::model::rates::Epoch;
+use crate::model::rates::Epochs;
 use crate::parser::filter::Filter;
 use crate::parser::timesheet::{Entry, Tokens};
 use crate::parser::token::{Token, TokenKind};
@@ -16,16 +16,20 @@ use itertools::Itertools;
 #[derive(Default)]
 pub struct LogContext {
     pub log_days: LogDays,
-    pub rates: Rates
+    pub epochs: Epochs
 }
 
 impl LogContext {
-    pub fn new(log_days: LogDays, rates: Rates) -> Self {
-        Self{log_days, rates}
+    pub fn new(log_days: LogDays, epochs: Epochs) -> Self {
+        Self{log_days, epochs}
     }
 
     pub(crate) fn with_log_days(&self, log_days: LogDays) -> LogContext {
-        LogContext { log_days, rates: self.rates.clone() }
+        let epochs = self.epochs.for_days(
+            &log_days.start_date(),
+            &log_days.end_date(),
+        );
+        LogContext { log_days, epochs }
     }
 
     pub(crate) fn tag_summary(&self, ticket: TokenKind) -> TagSummaries {
@@ -51,12 +55,16 @@ impl LogContext {
         let mut tag_summaries: Vec<TagSummary> = summary_map.values().cloned().fold(
             vec![],
             |mut list, mut tag_summary| {
-                for rate in &tag_summary.get_rates(&self.rates) {
+
+                for epoch in &tag_summary.get_epochs(&self.epochs) {
+
                     tag_summary.cost = Some(match tag_summary.cost {
-                        Some(cost) => cost.add(&rate.cost_for_duration(&tag_summary.duration)),
-                        None => rate.cost_for_duration(&tag_summary.duration),
+                        Some(cost) => cost.add(&epoch.cost_for_duration(&tag_summary.duration)),
+                        None => epoch.cost_for_duration(&tag_summary.duration),
                     })
+
                 }
+
                 list.push(tag_summary);
                 list
             }
@@ -159,6 +167,19 @@ impl LogDays {
         ];
 
         tuples
+    }
+
+    fn start_date(&self) -> NaiveDate {
+        match self.log_days.get(0) {
+            Some(d) => d.date.to_naive_date(),
+            None => NaiveDate::from_ymd_opt(0,1,1).unwrap(),
+        }
+    }
+    fn end_date(&self) -> NaiveDate {
+        match self.log_days.last() {
+            Some(d) => d.date.to_naive_date(),
+            None => NaiveDate::from_ymd_opt(3000, 1, 1).unwrap(),
+        }
     }
 }
 
@@ -465,11 +486,11 @@ pub struct TagSummary {
 }
 
 impl TagSummary {
-    fn get_rates(&self, rates: &Rates) -> Vec<Rate> {
+    fn get_epochs(&self, epochs: &Epochs) -> Vec<Epoch> {
         match self.kind {
             TokenKind::Prose => vec![],
-            TokenKind::Tag => rates.for_tag(&self.tag),
-            TokenKind::Ticket => rates.for_ticket(&self.tag),
+            TokenKind::Tag => epochs.for_tag(&self.tag),
+            TokenKind::Ticket => epochs.for_ticket(&self.tag),
         }
     }
 
@@ -544,6 +565,10 @@ impl LogDate {
     pub(crate) fn to_compact_string(&self) -> String {
         self.date.format("%d/%m/%Y").to_string()
     }
+
+    fn to_naive_date(&self) -> NaiveDate {
+        self.date
+    }
 }
 
 #[derive(Clone)]
@@ -609,7 +634,7 @@ impl TimeRangeView {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::Rate;
+    use super::Epoch;
     use chrono::NaiveTime;
 
     use crate::parser::{
@@ -770,8 +795,9 @@ mod tests {
                 ]),
             }],
         }]);
-        let context = &LogContext::new(days.clone(), Rates::from_rates(vec![
-           Rate{
+        let context = &LogContext::new(days.clone(), Epochs::from_rates(vec![
+           Epoch{
+               from: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
                ticket_prefix: None,
                tags: vec!["foobar".to_string()],
                rate: 100,
