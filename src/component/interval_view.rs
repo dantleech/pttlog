@@ -165,6 +165,7 @@ impl IntervalView<'_> {
                 vertical: 2,
                 horizontal: 2,
             }));
+
         self.day_breakdown_chart.draw(f, left_rows[0], context)?;
         self.day_breakdown_table.draw(f, left_rows[1], context)?;
 
@@ -177,9 +178,9 @@ impl IntervalView<'_> {
             }));
 
         self.tag_summary
-            .draw(f, right_rows[0], &context.log_days.tag_summary(TokenKind::Tag, context))?;
+            .draw(f, right_rows[0], &context.tag_summary(TokenKind::Tag))?;
         self.ticket_summary
-            .draw(f, right_rows[1], &context.log_days.tag_summary(TokenKind::Ticket, context))?;
+            .draw(f, right_rows[1], &context.tag_summary(TokenKind::Ticket))?;
 
         Ok(())
     }

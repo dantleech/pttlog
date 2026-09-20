@@ -27,6 +27,10 @@ impl LogContext {
     pub(crate) fn with_log_days(&self, log_days: LogDays) -> LogContext {
         LogContext { log_days, rates: self.rates.clone() }
     }
+
+    pub(crate) fn tag_summary(&self, ticket: TokenKind) -> TagSummaries {
+        TagSummaries::from_log_days(&self.log_days, &self, ticket)
+    }
 }
 
 #[derive(Clone, Default)]
@@ -77,10 +81,6 @@ impl LogDays {
 
     pub(crate) fn len(&self) -> usize {
         self.log_days.len()
-    }
-
-    pub(crate) fn tag_summary(&self, tag: TokenKind, context: &LogContext) -> TagSummaries {
-        TagSummaries::from_log_days(&self.log_days, context, tag)
     }
 
     pub(crate) fn until(&self, date_start: NaiveDate, date_end: NaiveDate) -> LogDays {
@@ -378,7 +378,7 @@ impl TagSummaries {
         }
     }
 
-    fn from_log_days(log_days: &Vec<LogDay>, context: &LogContext, tag: TokenKind) -> TagSummaries {
+    fn from_log_days(log_days: &LogDays, context: &LogContext, tag: TokenKind) -> TagSummaries {
         let entry_map = log_days.iter().fold(
             HashMap::new(),
             |entry_map: HashMap<String, TagSummary>, day: &LogDay| {
