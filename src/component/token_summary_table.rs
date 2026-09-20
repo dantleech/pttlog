@@ -27,7 +27,7 @@ impl TokenSummaryTable<'_> {
         tag_metas: &TagSummaries,
     ) -> anyhow::Result<()> {
         let mut rows = vec![];
-        let binding = [self.title, "Duration", "Cost"];
+        let binding = [self.title, "Duration", "Rate", "Cost"];
         let headers = binding
             .iter()
             .map(|header| Cell::from(Span::styled(*header, Style::default().fg(Color::DarkGray))));

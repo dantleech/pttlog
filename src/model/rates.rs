@@ -116,7 +116,6 @@ use super::*;
                 name: "Hello".to_string(),
                 ticket_prefix: "HELLO-".to_string(),
                 tags: vec!["one".to_string(), "two".to_string()],
-                rate: None,
                 epochs: vec![
                     ConfigEpoch{
                         from: toml::value::Date{year: 2026, month: 1, day: 1},

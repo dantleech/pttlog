@@ -22,8 +22,6 @@ pub struct Project {
     #[serde(default)]
     pub tags: Vec<String>,
     #[serde(default)]
-    pub rate: Option<Rate>,
-    #[serde(default)]
     pub epochs: Vec<Epoch>
 }
 
@@ -35,7 +33,6 @@ impl Project {
             name,
             ticket_prefix,
             tags: vec![],
-            rate: None,
             epochs: vec![],
         }
     }
@@ -111,7 +108,7 @@ mod tests {
 
         assert_eq!(config.projects[0].name, "Project One".to_string());
         assert_eq!(config.projects[1].name, "Project Two".to_string());
-        assert_eq!(10000, config.projects[1].rate.clone().unwrap().rate);
-        assert_eq!(config.projects[1].rate.clone().unwrap().currency, Currency::GBP);
+        assert_eq!(20000, config.projects[1].epochs[0].clone().rate.unwrap().rate);
+        assert_eq!(Currency::GBP, config.projects[1].epochs[0].clone().clone().rate.unwrap().currency);
     }
 }

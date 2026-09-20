@@ -15,8 +15,6 @@ epochs=[
     { from = 2026-01-01, rate = { rate = 20000, currency = "GBP" }},
 ]
 
-rate={rate=10000,currency="GBP"}
-
 [[projects]]
 name="Acme"
 tags=["acme"]

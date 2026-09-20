@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    app::config::KeyName, component::{epochs::EpochListComponent, line_item_table::LineItemTable}, model::{model::LogContext, time::TimeFactory}, parser::token::TokenKind
+    app::config::KeyName, component::{line_item_table::LineItemTable}, model::{model::LogContext, time::TimeFactory}, parser::token::TokenKind
 };
 
 use super::{
@@ -105,7 +105,6 @@ impl IntervalView<'_> {
         );
 
         let constraints = vec![
-            Constraint::Length(context.epochs.epochs.len() as u16 + 4),
             Constraint::Percentage(100),
         ];
         let rows = Layout::default()
@@ -113,12 +112,6 @@ impl IntervalView<'_> {
             .margin(0)
             .constraints(constraints)
             .split(area);
-
-        EpochListComponent::new().draw(
-            f,
-            rows[0].inner(&Margin{horizontal: 2, vertical: 2}),
-            &context
-        )?;
 
         let tabs = Tabs::new(vec![
             Spans::from(vec![Span::raw("Tab"), ]),
@@ -142,8 +135,8 @@ impl IntervalView<'_> {
         );
 
         match self.tab {
-            IntervalTab::Summary => self.render_summary(f, rows[1], &context),
-            IntervalTab::List => self.render_list(f, rows[1], &context),
+            IntervalTab::Summary => self.render_summary(f, rows[0], &context),
+            IntervalTab::List => self.render_list(f, rows[0], &context),
         }
     }
 
@@ -176,7 +169,7 @@ impl IntervalView<'_> {
             .direction(tui::layout::Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Min(2)])
             .split(columns[0].inner(&Margin {
-                vertical: 2,
+                vertical: 0,
                 horizontal: 2,
             }));
 
@@ -187,7 +180,7 @@ impl IntervalView<'_> {
             .direction(tui::layout::Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Min(2)])
             .split(columns[1].inner(&Margin {
-                vertical: 2,
+                vertical: 0,
                 horizontal: 2,
             }));
 
