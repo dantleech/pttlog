@@ -1,9 +1,11 @@
 
+use std::collections::HashMap;
+
 use crate::{app::config::Config, model::model::{LogDuration, Money}};
 use chrono::NaiveDate;
 use iso_currency::{Currency};
 
-#[derive(Clone)]
+#[derive(Clone, Ord, PartialOrd, PartialEq, Eq)]
 pub struct Epoch {
     pub ticket_prefix: Option<String>,
     pub tags: Vec<String>,
@@ -19,11 +21,14 @@ impl Epoch {
             ((duration.num_minutes() as f64 / 60.0) * self.rate as f64).round() as u64
         )
     }
+    pub(crate) fn rate(&self) -> Money {
+        Money{ currency: self.currency, amount: self.rate }
+    }
 }
 
 #[derive(Clone, Default)]
 pub struct Epochs {
-    epochs: Vec<Epoch>
+    pub epochs: Vec<Epoch>
 }
 
 impl Epochs {
@@ -57,43 +62,39 @@ impl Epochs {
     }
 
     pub(crate) fn for_tag(&self, tag: &String) -> Vec<Epoch> {
-        for rate in &self.epochs {
-            if !rate.tags.contains(tag) {
-                continue;
-            }
-
-            return vec![rate.clone()];
+        match self.epochs.iter().filter(|e| e.tags.contains(tag)).last() {
+            Some(e) => vec![e.clone()],
+            None => vec![],
         }
-
-        vec![]
     }
 
     pub(crate) fn for_ticket(&self, ticket: &String) -> Vec<Epoch> {
-        for rate in &self.epochs {
-            let prefix = match &rate.ticket_prefix {
-                Some(prefix) => prefix,
-                None => continue,
-            };
-
-            if !ticket.starts_with(prefix) {
-                continue;
-            }
-
-            return vec![rate.clone()];
+        match self.epochs.iter().filter(|e| match &e.ticket_prefix {
+            Some(p) => ticket.starts_with(p),
+            None => false,
+        }).last() {
+            Some(e) => vec![e.clone()],
+            None => vec![],
         }
-
-        vec![]
     }
 
     pub(crate) fn for_days(&self, _: &NaiveDate, end_date: &NaiveDate) -> Epochs {
-        let mut epochs = vec![];
+        let mut epochs= HashMap::new();
         for epoch in &self.epochs {
             if &epoch.from > end_date {
                 continue
             }
-            epochs.push(epoch.clone())
+
+            if !epochs.contains_key(&epoch.ticket_prefix) {
+                epochs.insert(&epoch.ticket_prefix, epoch.clone());
+                continue;
+            }
+            epochs.insert(&epoch.ticket_prefix, epoch.clone());
         }
-        Epochs{epochs}
+        let mut values: Vec<Epoch> = epochs.values().cloned().collect();
+        values.sort();
+
+        Epochs{epochs: values}
     }
 
 }
@@ -125,14 +126,24 @@ use super::*;
                                 currency:iso_currency::Currency::USD 
                             }
                         )
+                    },
+                    ConfigEpoch{
+                        from: toml::value::Date{year: 2025, month: 1, day: 1},
+                        rate: Some(
+                            ConfigRate{
+                                rate: 200,
+                                currency:iso_currency::Currency::USD 
+                            }
+                        )
                     }
                 ]
             }
         ];
         let rates = Epochs::from_config(&config);
-        let rates = rates.for_tag(&"one".to_string());
+        let epochs = rates.for_tag(&"one".to_string());
 
-        assert_eq!(100, rates[0].rate);
+        // takes most recent rate
+        assert_eq!(200, epochs[0].rate);
     }
 
     #[test]

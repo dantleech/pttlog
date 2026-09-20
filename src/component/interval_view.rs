@@ -7,7 +7,7 @@ use tui::{
 };
 
 use crate::{
-    app::config::KeyName, component::line_item_table::LineItemTable, model::{model::LogContext, time::TimeFactory}, parser::token::TokenKind
+    app::config::KeyName, component::{epochs::EpochListComponent, line_item_table::LineItemTable}, model::{model::LogContext, time::TimeFactory}, parser::token::TokenKind
 };
 
 use super::{
@@ -101,8 +101,24 @@ impl IntervalView<'_> {
             area.inner(&Margin {
                 vertical: 0,
                 horizontal: 0,
-            }),
+            })
         );
+
+        let constraints = vec![
+            Constraint::Length(context.epochs.epochs.len() as u16 + 4),
+            Constraint::Percentage(100),
+        ];
+        let rows = Layout::default()
+            .direction(tui::layout::Direction::Vertical)
+            .margin(0)
+            .constraints(constraints)
+            .split(area);
+
+        EpochListComponent::new().draw(
+            f,
+            rows[0].inner(&Margin{horizontal: 2, vertical: 2}),
+            &context
+        )?;
 
         let tabs = Tabs::new(vec![
             Spans::from(vec![Span::raw("Tab"), ]),
@@ -114,6 +130,7 @@ impl IntervalView<'_> {
             IntervalTab::Summary => tabs.select(1),
             IntervalTab::List => tabs.select(2),
         };
+
         f.render_widget(
             tabs,
             Rect {
@@ -125,8 +142,8 @@ impl IntervalView<'_> {
         );
 
         match self.tab {
-            IntervalTab::Summary => self.render_summary(f, area, &context),
-            IntervalTab::List => self.render_list(f, area, &context),
+            IntervalTab::Summary => self.render_summary(f, rows[1], &context),
+            IntervalTab::List => self.render_list(f, rows[1], &context),
         }
     }
 
@@ -153,10 +170,7 @@ impl IntervalView<'_> {
             .direction(tui::layout::Direction::Horizontal)
             .margin(0)
             .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-            .split(area.inner(&Margin {
-                vertical: 2,
-                horizontal: 2,
-            }));
+            .split(area.inner(&Margin {vertical: 2, horizontal: 2}));
 
         let left_rows = Layout::default()
             .direction(tui::layout::Direction::Vertical)
