@@ -21,9 +21,6 @@ impl Epoch {
             ((duration.num_minutes() as f64 / 60.0) * self.rate as f64).round() as u64
         )
     }
-    pub(crate) fn rate(&self) -> Money {
-        Money{ currency: self.currency, amount: self.rate }
-    }
 }
 
 #[derive(Clone, Default)]
